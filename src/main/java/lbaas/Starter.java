@@ -11,7 +11,8 @@ public class Starter extends Verticle{
         final JsonObject conf_router = conf.getObject("router", new JsonObject("{}"));
         final JsonObject conf_routermanager = conf.getObject("routermanager", new JsonObject("{}"));
 
-        container.deployVerticle("lbaas.RouterVerticle", conf_router, conf_router.getInteger("instances", 4));
-        container.deployVerticle("lbaas.RouterManagerVerticle", conf_routermanager, conf_routermanager.getInteger("instances", 1));
+        int num_cpu_cores = Runtime.getRuntime().availableProcessors();
+        container.deployVerticle("lbaas.RouterVerticle", conf_router, conf_router.getInteger("instances", num_cpu_cores));
+        container.deployVerticle("lbaas.RouteManagerVerticle", conf_routermanager, conf_routermanager.getInteger("instances", 1));
     }
 }

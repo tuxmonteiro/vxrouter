@@ -104,15 +104,15 @@ public class Client {
     }
 
     public Integer getMaxPoolSize() {
-      return maxPoolSize;
-  }
+        return maxPoolSize;
+    }
 
-  public Client setMaxPoolSize(Integer maxPoolSize) {
-      this.maxPoolSize = maxPoolSize;
-      return this;
-  }
+    public Client setMaxPoolSize(Integer maxPoolSize) {
+        this.maxPoolSize = maxPoolSize;
+        return this;
+    }
 
-  // Lazy initialization
+    // Lazy initialization
     public HttpClient connect() {
         if (client==null) {
             client = vertx.createHttpClient()

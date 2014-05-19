@@ -7,7 +7,7 @@ import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
-public class RouterManagerVerticle extends Verticle {
+public class RouteManagerVerticle extends Verticle {
 
     @Override
     public void start() {
@@ -24,7 +24,7 @@ public class RouterManagerVerticle extends Verticle {
                     @Override
                     public void handle(Buffer body) {
                         eventBus.publish("router.add", body.toString());
-                        sRequest.response().end(body.toString());
+                        sRequest.response().end();
                     }
                 });
 
