@@ -13,6 +13,7 @@ import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpServerResponse;
 import org.vertx.java.core.http.HttpVersion;
 import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
@@ -20,6 +21,7 @@ public class RouterVerticle extends Verticle {
 
   public void start() {
 
+      final Logger log = container.logger();
       final JsonObject conf = container.config();
       final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 2000L);
       final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 100L);
@@ -31,7 +33,7 @@ public class RouterVerticle extends Verticle {
       final EventBus eventBus = vertx.eventBus();
       final HashMap<String, HashSet<Client>> vhosts = new HashMap<>();
 
-      eventBus.registerHandler("router.add", new Handler<Message<String>>() {
+      eventBus.registerHandler("route.add", new Handler<Message<String>>() {
 
         @Override
         public void handle(Message<String> buffer) {
@@ -48,7 +50,7 @@ public class RouterVerticle extends Verticle {
 
       });
 
-      eventBus.registerHandler("router.del", new Handler<Message<String>>() {
+      eventBus.registerHandler("route.del", new Handler<Message<String>>() {
 
           @Override
           public void handle(Message<String> buffer) {
@@ -81,9 +83,11 @@ public class RouterVerticle extends Verticle {
              if (sRequest.headers().contains("Host")) {
                  headerHost = sRequest.headers().get("Host").split(":")[0];
                  if (!vhosts.containsKey(headerHost)) {
+                     serverShowErrorAndClose(sRequest.response(), new BadRequestException());
                      return;
                  }
              } else {
+                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
                  return;
              }
 
@@ -175,6 +179,8 @@ public class RouterVerticle extends Verticle {
          .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
          .listen(conf.getInteger("port",9000));
 
+     log.info(String.format("Instance %s started", this.toString()));
+
    }
 
    private int getChoice(int size) {
@@ -187,6 +193,9 @@ public class RouterVerticle extends Verticle {
        if (event instanceof java.util.concurrent.TimeoutException) {
            serverResponse.setStatusCode(504);
            serverResponse.setStatusMessage("Gateway Time-Out");
+       } else if (event instanceof BadRequestException) {
+           serverResponse.setStatusCode(400);
+           serverResponse.setStatusMessage("Bad Request");
        } else {
            serverResponse.setStatusCode(502);
            serverResponse.setStatusMessage("Bad Gateway");
