@@ -47,10 +47,14 @@ public class RouteManagerVerticle extends Verticle {
                         final Set<String> clients = new HashSet<String>();
                         graphRoutes.put(route[0], clients);
                         clients.add(String.format("%s:%s", route[1], route[2]));
+                        log.info(String.format("Virtualhost added: %s", route[0]));
                     }
+                    log.info(String.format("Route added: %s:%s (%s)", route[1], route[2], route[0]));
                     try {
                         version = Long.parseLong(route[3]);
-                    } catch (NumberFormatException e) {}
+                    } catch (NumberFormatException e) {
+                        log.error(e.getMessage());
+                    }
                 }
             }
         });
@@ -61,14 +65,22 @@ public class RouteManagerVerticle extends Verticle {
                 final String[] route = message.body().split(separator.toString());
                 if (route.length > 3) {
                     if (graphRoutes.containsKey(route[0])) {
-                        final Set<String> clients = graphRoutes.get(route[0]);
+                        Set<String> clients = graphRoutes.get(route[0]);
                         if (clients != null) {
                             clients.remove(String.format("%s:%s", route[1], route[2]));
+                            log.info(String.format("Route removed: %s:%s (%s)", route[1], route[2], route[0]));
+                            if (clients.size() == 0) {
+                                clients = null;
+                                graphRoutes.remove(route[0]);
+                                log.info(String.format("Virtualhost removed: %s", route[0]));
+                            }
+                            try {
+                                version = Long.parseLong(route[3]);
+                            } catch (NumberFormatException e) {
+                                log.error(e.getMessage());
+                            }
                         }
                     }
-                    try {
-                        version = Long.parseLong(route[3]);
-                    } catch (NumberFormatException e) {}
                 }
             }
         });
@@ -118,6 +130,7 @@ public class RouteManagerVerticle extends Verticle {
                 req.response().setStatusMessage("OK");
                 req.response().headers().set("Content-Type", "application/json");
                 req.response().end(getRoutes().encodePrettily());
+                log.info("/route access");
             }
         });
 
@@ -129,6 +142,7 @@ public class RouteManagerVerticle extends Verticle {
                 req.response().headers().set("Content-Type", "application/json");
                 JsonObject versionJson = new JsonObject(String.format("{\"version\":%d}", getVersion()));
                 req.response().end(versionJson.encodePrettily());
+                log.info(String.format("Version: %d", getVersion()));
             }
         });
 
