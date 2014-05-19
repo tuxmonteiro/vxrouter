@@ -27,7 +27,7 @@ public class RouterVerticle extends Verticle {
       final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 100L);
       final Integer clientRequestTimeOut = conf.getInteger("clientRequestTimeOut", 60000);
       final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
-      final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", false);
+      final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
       final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
 
       final EventBus eventBus = vertx.eventBus();
@@ -83,10 +83,12 @@ public class RouterVerticle extends Verticle {
              if (sRequest.headers().contains("Host")) {
                  headerHost = sRequest.headers().get("Host").split(":")[0];
                  if (!vhosts.containsKey(headerHost)) {
+                     log.error(String.format("Host: %s UNDEF", headerHost));
                      serverShowErrorAndClose(sRequest.response(), new BadRequestException());
                      return;
                  }
              } else {
+                 log.error("Host UNDEF");
                  serverShowErrorAndClose(sRequest.response(), new BadRequestException());
                  return;
              }
@@ -115,6 +117,7 @@ public class RouterVerticle extends Verticle {
                          if (!connectionKeepalive) {
                              sRequest.response().headers().set("Connection", "close");
                          }
+
                          Pump.createPump(cResponse, sRequest.response()).start();
 
                          cResponse.endHandler(new VoidHandler() {
@@ -150,10 +153,12 @@ public class RouterVerticle extends Verticle {
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
 
+             changeHeader(sRequest, headerHost);
              cRequest.headers().set(sRequest.headers());
              if (clientForceKeepAlive) {
                  cRequest.headers().set("Connection", "keep-alive");
              }
+
              // Pump sRequest => cRequest
              Pump.createPump(sRequest, cRequest).start();
 
@@ -181,6 +186,36 @@ public class RouterVerticle extends Verticle {
 
      log.info(String.format("Instance %s started", this.toString()));
 
+   }
+  
+   private void changeHeader(final HttpServerRequest sRequest, final String vhost) {
+       String xff;
+       String remote = sRequest.remoteAddress().getAddress().getHostAddress();
+       sRequest.headers().set("X-Real-IP", remote);
+
+       if (sRequest.headers().contains("X-Forwarded-For")) {
+           xff = String.format("%s, %s", sRequest.headers().get("X-Forwarded-For"),remote);
+           sRequest.headers().remove("X-Forwarded-For");
+       } else {
+           xff = remote;
+       }
+       sRequest.headers().set("X-Forwarded-For", xff);
+
+       if (sRequest.headers().contains("Forwarded-For")) {
+           xff = String.format("%s, %s" , sRequest.headers().get("Forwarded-For"), remote);
+           sRequest.headers().remove("Forwarded-For");
+       } else {
+           xff = remote;
+       }
+       sRequest.headers().set("Forwarded-For", xff);
+
+       if (!sRequest.headers().contains("X-Forwarded-Host")) {
+           sRequest.headers().set("X-Forwarded-Host", vhost);
+       }
+
+       if (!sRequest.headers().contains("X-Forwarded-Proto")) {
+           sRequest.headers().set("X-Forwarded-Proto", "http");
+       }
    }
 
    private int getChoice(int size) {
