@@ -32,6 +32,8 @@ public class RouterVerticle extends Verticle {
 
       final EventBus eventBus = vertx.eventBus();
       final HashMap<String, HashSet<Client>> vhosts = new HashMap<>();
+      final HashMap<String, HashMap<String, Long>> vhosts_stats = new HashMap<>();
+      final HashMap<String, Long> router_stats = new HashMap<>();
 
       eventBus.registerHandler("route.add", new Handler<Message<String>>() {
 
@@ -69,6 +71,7 @@ public class RouterVerticle extends Verticle {
       final Handler<HttpServerRequest> handlerHttpServerRequest = new Handler<HttpServerRequest>() {
          @Override
          public void handle(final HttpServerRequest sRequest) {
+             // TODO: register initial request_time
 
              sRequest.response().setChunked(true);
 
@@ -124,6 +127,9 @@ public class RouterVerticle extends Verticle {
                              @Override
                              public void handle() {
                                  sRequest.response().end();
+                                 // TODO: Check cResponse status code. Increment codeXXX stats
+                                 // TODO: register final request_time. Update request_time stats
+
                                  if (connectionKeepalive) {
                                      if (client.isKeepAliveLimit()) {
                                          client.close();
@@ -228,12 +234,15 @@ public class RouterVerticle extends Verticle {
        if (event instanceof java.util.concurrent.TimeoutException) {
            serverResponse.setStatusCode(504);
            serverResponse.setStatusMessage("Gateway Time-Out");
+           // TODO: increment code504 stats
        } else if (event instanceof BadRequestException) {
            serverResponse.setStatusCode(400);
            serverResponse.setStatusMessage("Bad Request");
+           // TODO: increment code400 stats
        } else {
            serverResponse.setStatusCode(502);
            serverResponse.setStatusMessage("Bad Gateway");
+           // TODO: increment code502 stats
        }
 
        try {
