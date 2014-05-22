@@ -275,7 +275,7 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
                     host = endpointJson.containsField("host") ? endpointJson.getString("host"):"";
                     port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
                     if ("".equals(host) || port==null) {
-                        throw new RuntimeException("endpoint port undef");
+                        throw new RuntimeException("Endpoint host or port undef");
                     }
                     String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, myVersion, uri);
                     sendAction(message, action);
