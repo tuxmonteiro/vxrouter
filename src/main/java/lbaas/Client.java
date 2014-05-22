@@ -95,7 +95,7 @@ public class Client {
         if (requestCount<=keepAliveMaxRequest) {
             requestCount++;
         }
-        if ((requestCount>=keepAliveMaxRequest) || ((now-keepAliveTimeMark))>keepAliveTimeOut) {
+        if ((requestCount>=keepAliveMaxRequest) || (now-keepAliveTimeMark)>keepAliveTimeOut) {
             keepAliveTimeMark = now;
             requestCount = 0L;
             return true;

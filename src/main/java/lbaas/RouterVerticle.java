@@ -17,6 +17,10 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
+import static lbaas.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.Constants.CONF_PORT;
+
 public class RouterVerticle extends Verticle {
 
   public void start() {
@@ -33,7 +37,7 @@ public class RouterVerticle extends Verticle {
       final EventBus eventBus = vertx.eventBus();
       final HashMap<String, HashSet<Client>> vhosts = new HashMap<>();
 
-      eventBus.registerHandler("route.add", new Handler<Message<String>>() {
+      eventBus.registerHandler(QUEUE_ROUTE_ADD, new Handler<Message<String>>() {
 
         @Override
         public void handle(Message<String> buffer) {
@@ -50,7 +54,7 @@ public class RouterVerticle extends Verticle {
 
       });
 
-      eventBus.registerHandler("route.del", new Handler<Message<String>>() {
+      eventBus.registerHandler(QUEUE_ROUTE_DEL, new Handler<Message<String>>() {
 
           @Override
           public void handle(Message<String> buffer) {
@@ -94,7 +98,7 @@ public class RouterVerticle extends Verticle {
              }
 
              final boolean connectionKeepalive = sRequest.headers().contains("Connection") ?
-                     (!sRequest.headers().get("Connection").equals("close")) : 
+                     !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) : 
                      sRequest.version().equals(HttpVersion.HTTP_1_1);
 
              final HashSet<Client> clients = vhosts.get(headerHost);
@@ -165,7 +169,7 @@ public class RouterVerticle extends Verticle {
              cRequest.exceptionHandler(new Handler<Throwable>() {
                  @Override
                  public void handle(Throwable event) {
-                     System.err.println(event.getMessage());
+                     log.error(event.getMessage());
                      serverShowErrorAndClose(sRequest.response(), event);
                      client.close();
                  }
@@ -182,7 +186,7 @@ public class RouterVerticle extends Verticle {
 
      vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
          .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
-         .listen(conf.getInteger("port",9000));
+         .listen(conf.getInteger(CONF_PORT,9000));
 
      log.info(String.format("Instance %s started", this.toString()));
 
@@ -219,8 +223,7 @@ public class RouterVerticle extends Verticle {
    }
 
    private int getChoice(int size) {
-       int choice = (int) (Math.random() * (size - Float.MIN_VALUE));
-       return choice;
+       return (int) (Math.random() * (size - Float.MIN_VALUE));
    }
 
    private void serverShowErrorAndClose(final HttpServerResponse serverResponse, final Throwable event) {

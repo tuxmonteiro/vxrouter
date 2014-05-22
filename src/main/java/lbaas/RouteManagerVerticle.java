@@ -18,6 +18,10 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 import org.vertx.java.core.logging.Logger;
 
+import static lbaas.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.Constants.CONF_PORT;
+
 public class RouteManagerVerticle extends Verticle {
 
     private final HashMap<String, Set<String>> graphRoutes = new HashMap<>();
@@ -35,13 +39,13 @@ public class RouteManagerVerticle extends Verticle {
 
         startHttpServer(eb, log, container.config());
 
-        eb.registerHandler("route.add", new Handler<Message<String>>() {
+        eb.registerHandler(QUEUE_ROUTE_ADD, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(separator.toString());
                 if (route.length > 3) {
                     String endpoint = "";
-                    if (!route[1].equals("") && !route[2].equals("")) {
+                    if (!"".equals(route[1]) && !"".equals(route[2])) {
                         endpoint = String.format("%s:%s", route[1], route[2]);
                     }
                     if (graphRoutes.containsKey(route[0])) {
@@ -55,7 +59,7 @@ public class RouteManagerVerticle extends Verticle {
                         graphRoutes.put(route[0], clients);
                         log.info(String.format("[%s] Virtualhost %s added", route[3], route[0]));
 
-                        if (!endpoint.equals("")) {
+                        if (!"".equals(endpoint)) {
                             clients.add(endpoint);
                             log.info(String.format("[%s] Real %s (%s) added", route[3], endpoint, route[0]));
                         }
@@ -69,13 +73,13 @@ public class RouteManagerVerticle extends Verticle {
             }
         });
 
-        eb.registerHandler("route.del", new Handler<Message<String>>() {
+        eb.registerHandler(QUEUE_ROUTE_DEL, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(separator.toString());
                 if (route.length > 3) {
                     String endpoint = "";
-                    if (!route[1].equals("") && !route[2].equals("")) {
+                    if (!"".equals(route[1]) && !"".equals(route[2])) {
                         endpoint = String.format("%s:%s", route[1], route[2]);
                     }
                     if (graphRoutes.containsKey(route[0])) {
@@ -83,7 +87,7 @@ public class RouteManagerVerticle extends Verticle {
                         if (clients != null) {
                             clients.remove(endpoint);
                             log.info(String.format("[%s] Real %s (%s) removed", route[3], endpoint, route[0]));
-                            if (clients.size() == 0) {
+                            if (clients.isEmpty()) {
                                 clients = null;
                                 graphRoutes.remove(route[0]);
                                 log.info(String.format("[%s] Virtualhost %s removed", route[3], route[0]));
@@ -117,7 +121,7 @@ public class RouteManagerVerticle extends Verticle {
                         try {
                             JsonObject json = new JsonObject(body.toString());
                             String jsonVirtualHost;
-                            if (!virtualHost.equals("")) {
+                            if (!"".equals(virtualHost)) {
                                 jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                                 if (!jsonVirtualHost.equalsIgnoreCase(virtualHost)) {
                                     throw new RuntimeException();
@@ -127,7 +131,7 @@ public class RouteManagerVerticle extends Verticle {
                             req.response().setStatusMessage("OK");
                             setRoute(json, action);
                         } catch (Exception e) {
-                            log.error(String.format("JSON FAIL: %s\nBody: %s",
+                            log.error(String.format("routeHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
                             req.response().setStatusCode(400);
                             req.response().setStatusMessage("Bad Request");
@@ -220,8 +224,7 @@ public class RouteManagerVerticle extends Verticle {
             }
         });
 
-        HttpServer server = vertx.createHttpServer();
-        server.requestHandler(routeMatcher).listen(serverConf.getInteger("port", 9090));
+        vertx.createHttpServer().requestHandler(routeMatcher).listen(serverConf.getInteger(CONF_PORT, 9090));
     }
 
     private Handler<HttpServerRequest> realHandlerAction(final EventBus eb, final Logger log, final Action action) {
@@ -243,7 +246,7 @@ public class RouteManagerVerticle extends Verticle {
                             String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                             if (action==Action.DEL) {
                                 JsonArray reals = json.containsField("endpoints") ? json.getArray("endpoints"): null;
-                                if (reals!=null && reals.size()>0) {
+                                if (reals!=null && reals.size() > 0) {
                                     if (!reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
                                         throw new RuntimeException();
                                     }
@@ -251,14 +254,14 @@ public class RouteManagerVerticle extends Verticle {
                                     throw new RuntimeException();
                                 }
                             }
-                            if (jsonVirtualHost.equals("")) {
+                            if ("".equals(jsonVirtualHost)) {
                                 throw new RuntimeException();
                             }
                             req.response().setStatusCode(200);
                             req.response().setStatusMessage("OK");
                             setRoute(json, action);
                         } catch (Exception e) {
-                            log.error(String.format("JSON FAIL: %s\nBody: %s",
+                            log.error(String.format("realHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
                             req.response().setStatusCode(400);
                             req.response().setStatusMessage("Bad Request");
@@ -272,7 +275,7 @@ public class RouteManagerVerticle extends Verticle {
     }
 
     protected JsonObject getVirtualHosts(String virtualhost) {
-        if (virtualhost!="") {
+        if (!virtualhost.equals("")) {
             JsonArray routes = getRoutes().getArray("routes");
             Iterator<Object> it = routes.iterator();
             while (it.hasNext()) {
@@ -355,11 +358,13 @@ public class RouteManagerVerticle extends Verticle {
                 }
                 switch (action) {
                     case ADD:
-                        eb.publish("route.add", String.format("%s:%s:%d:%d", vhost, host, port, _version));
+                        eb.publish(QUEUE_ROUTE_ADD, String.format("%s:%s:%d:%d", vhost, host, port, _version));
                         break;
                     case DEL:
-                        eb.publish("route.del", String.format("%s:%s:%d:%d", vhost, host, port, _version));
+                        eb.publish(QUEUE_ROUTE_DEL, String.format("%s:%s:%d:%d", vhost, host, port, _version));
                         break;
+                    default:
+                        throw new RuntimeException("Action not supported");
                 }
             }
         }
