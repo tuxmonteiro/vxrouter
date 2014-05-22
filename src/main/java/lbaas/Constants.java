@@ -2,7 +2,7 @@ package lbaas;
 
 public class Constants {
 
-    public Constants() {
+    private Constants() {
     }
 
     static public final String QUEUE_ROUTE_ADD = "route.add";
