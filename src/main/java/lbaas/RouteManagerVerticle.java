@@ -162,11 +162,7 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
                             String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                             if (action==Action.DEL) {
                                 JsonArray reals = json.containsField("endpoints") ? json.getArray("endpoints"): null;
-                                if (reals!=null && !reals.toList().isEmpty()) {
-                                    if (!reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
-                                        throw new RuntimeException();
-                                    }
-                                } else {
+                                if (reals!=null && !reals.toList().isEmpty() && !reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
                                     throw new RuntimeException();
                                 }
                             }
@@ -276,14 +272,9 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
                 Iterator<Object> endpointsIterator = endpoints.iterator();
                 while (endpointsIterator.hasNext()) {
                     JsonObject endpointJson = (JsonObject) endpointsIterator.next();
-                    if (endpointJson.containsField("host")) {
-                        host = endpointJson.getString("host");
-                    } else {
-                        throw new RuntimeException("endpoint host undef");
-                    }
-                    if (endpointJson.containsField("port")) {
-                        port = endpointJson.getInteger("port");
-                    } else {
+                    host = endpointJson.containsField("host") ? endpointJson.getString("host"):"";
+                    port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
+                    if ("".equals(host) || port==null) {
                         throw new RuntimeException("endpoint port undef");
                     }
                     String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, myVersion, uri);
