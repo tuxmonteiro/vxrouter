@@ -1,31 +1,30 @@
 package lbaas;
 
+import static lbaas.Constants.CONF_PORT;
+import static lbaas.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.Constants.QUEUE_ROUTE_DEL;
+
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.eventbus.Message;
-import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
-import org.vertx.java.platform.Verticle;
 import org.vertx.java.core.logging.Logger;
+import org.vertx.java.platform.Verticle;
 
-import static lbaas.Constants.QUEUE_ROUTE_ADD;
-import static lbaas.Constants.QUEUE_ROUTE_DEL;
-import static lbaas.Constants.CONF_PORT;
+public class RouteManagerVerticle extends Verticle implements IQueueMapObserver {
 
-public class RouteManagerVerticle extends Verticle {
-
-    private final HashMap<String, Set<String>> graphRoutes = new HashMap<>();
-    private Character separator = ':';
+    private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
     private Long version = 0L;
 
     private enum Action {
@@ -34,75 +33,13 @@ public class RouteManagerVerticle extends Verticle {
     }
 
     public void start() {
-        final EventBus eb = vertx.eventBus();
         final Logger log = container.logger();
 
-        startHttpServer(eb, log, container.config());
-
-        eb.registerHandler(QUEUE_ROUTE_ADD, new Handler<Message<String>>() {
-            @Override
-            public void handle(Message<String> message) {
-                final String[] route = message.body().split(separator.toString());
-                if (route.length > 3) {
-                    String endpoint = "";
-                    if (!"".equals(route[1]) && !"".equals(route[2])) {
-                        endpoint = String.format("%s:%s", route[1], route[2]);
-                    }
-                    if (graphRoutes.containsKey(route[0])) {
-                        final Set<String> clients = graphRoutes.get(route[0]);
-                        if (clients !=null) {
-                            clients.add(endpoint);
-                            log.info(String.format("[%s] Real %s (%s) added", route[3], endpoint, route[0]));
-                        }
-                    } else {
-                        final Set<String> clients = new HashSet<String>();
-                        graphRoutes.put(route[0], clients);
-                        log.info(String.format("[%s] Virtualhost %s added", route[3], route[0]));
-
-                        if (!"".equals(endpoint)) {
-                            clients.add(endpoint);
-                            log.info(String.format("[%s] Real %s (%s) added", route[3], endpoint, route[0]));
-                        }
-                    }
-                    try {
-                        version = Long.parseLong(route[3]);
-                    } catch (NumberFormatException e) {
-                        log.error(e.getMessage());
-                    }
-                }
-            }
-        });
-
-        eb.registerHandler(QUEUE_ROUTE_DEL, new Handler<Message<String>>() {
-            @Override
-            public void handle(Message<String> message) {
-                final String[] route = message.body().split(separator.toString());
-                if (route.length > 3) {
-                    String endpoint = "";
-                    if (!"".equals(route[1]) && !"".equals(route[2])) {
-                        endpoint = String.format("%s:%s", route[1], route[2]);
-                    }
-                    if (graphRoutes.containsKey(route[0])) {
-                        Set<String> clients = graphRoutes.get(route[0]);
-                        if (clients != null) {
-                            clients.remove(endpoint);
-                            log.info(String.format("[%s] Real %s (%s) removed", route[3], endpoint, route[0]));
-                            if (clients.isEmpty()) {
-                                clients = null;
-                                graphRoutes.remove(route[0]);
-                                log.info(String.format("[%s] Virtualhost %s removed", route[3], route[0]));
-                            }
-                            try {
-                                version = Long.parseLong(route[3]);
-                            } catch (NumberFormatException e) {
-                                log.error(e.getMessage());
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
+        startHttpServer(container.config());
+        final QueueMap queueMap = new QueueMap(this, graphRoutes);
+        queueMap.registerQueueAdd();
+        queueMap.registerQueueDel();
+ 
         log.info(String.format("Instance %s started", this.toString()));
     }
 
@@ -127,16 +64,12 @@ public class RouteManagerVerticle extends Verticle {
                                     throw new RuntimeException();
                                 }
                             }
-                            req.response().setStatusCode(200);
-                            req.response().setStatusMessage("OK");
-                            setRoute(json, action);
+                            returnStatus(req,200);
+                            setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("routeHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            req.response().setStatusCode(400);
-                            req.response().setStatusMessage("Bad Request");
-                        } finally {
-                            req.response().end();
+                            returnStatus(req,400);
                         }
                     }
                 });
@@ -144,7 +77,9 @@ public class RouteManagerVerticle extends Verticle {
         };
     }
 
-    private void startHttpServer(final EventBus eb, final Logger log, final JsonObject serverConf) throws RuntimeException {
+    private void startHttpServer(final JsonObject serverConf) throws RuntimeException {
+        final EventBus eb = this.getVertx().eventBus();
+        final Logger log = this.getContainer().logger();
 
         RouteMatcher routeMatcher = new RouteMatcher();
 
@@ -152,16 +87,10 @@ public class RouteManagerVerticle extends Verticle {
         routeMatcher.post("/route", routeHandlerAction(Action.ADD));
         routeMatcher.post("/route/:vh", routeHandlerAction(Action.ADD));
 
-        routeMatcher.delete("/route", routeHandlerAction(Action.DEL));
-        routeMatcher.delete("/route/:vh", routeHandlerAction(Action.DEL));
-
         routeMatcher.get("/route", new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
-                req.response().setStatusCode(200);
-                req.response().setStatusMessage("OK");
-                req.response().headers().set("Content-Type", "application/json");
-                req.response().end(getRoutes().encodePrettily());
+                returnStatus(req, 200, getRoutes().encodePrettily());
                 log.info("GET /route");
             }
         });
@@ -170,13 +99,9 @@ public class RouteManagerVerticle extends Verticle {
         routeMatcher.get("/version",new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
-                req.response().setStatusCode(200);
-                req.response().setStatusMessage("OK");
-                req.response().headers().set("Content-Type", "application/json");
                 JsonObject versionJson = new JsonObject(String.format("{\"version\":%d}", getVersion()));
-                req.response().end(versionJson.encodePrettily());
-                log.info(String.format("Version: %d", getVersion()));
-                log.info("GET /version");
+                returnStatus(req, 200, versionJson.encodePrettily());
+                log.info(String.format("GET /version: %d", getVersion()));
             }
         });
 
@@ -189,10 +114,7 @@ public class RouteManagerVerticle extends Verticle {
         routeMatcher.get("/virtualhost", new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
-                req.response().setStatusCode(200);
-                req.response().setStatusMessage("OK");
-                req.response().headers().set("Content-Type", "application/json");
-                req.response().end(getVirtualHosts().encodePrettily());
+                returnStatus(req, 200, getVirtualHosts(""));
                 log.info("GET /virtualhost");
             }
         });
@@ -201,10 +123,7 @@ public class RouteManagerVerticle extends Verticle {
             @Override
             public void handle(HttpServerRequest req) {
                 String virtualhost = req.params() != null && req.params().contains("id") ? req.params().get("id"): "";
-                req.response().setStatusCode(200);
-                req.response().setStatusMessage("OK");
-                req.response().headers().set("Content-Type", "application/json");
-                req.response().end(getVirtualHosts(virtualhost).encodePrettily());
+                returnStatus(req, 200, getVirtualHosts(virtualhost));
                 log.info(String.format("GET /virtualhost/%s", virtualhost));
             }
         });
@@ -216,11 +135,8 @@ public class RouteManagerVerticle extends Verticle {
         // Others methods/uris/etc
         routeMatcher.noMatch(new Handler<HttpServerRequest>() {
             public void handle(HttpServerRequest req) {
-                req.response().setStatusCode(400);
-                req.response().setStatusMessage("Bad Request");
-                req.response().headers().set("Content-Type", "application/json");
-                req.response().end(new JsonObject("{\"status_message\":\"Not supported\"}").encodePrettily());
-                log.warn(String.format("%s %s", req.method(), req.uri()));
+                returnStatus(req, 400);
+                log.warn(String.format("%s %s not supported", req.method(), req.uri()));
             }
         });
 
@@ -246,7 +162,7 @@ public class RouteManagerVerticle extends Verticle {
                             String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                             if (action==Action.DEL) {
                                 JsonArray reals = json.containsField("endpoints") ? json.getArray("endpoints"): null;
-                                if (reals!=null && reals.size() > 0) {
+                                if (reals!=null && !reals.toList().isEmpty()) {
                                     if (!reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
                                         throw new RuntimeException();
                                     }
@@ -257,16 +173,12 @@ public class RouteManagerVerticle extends Verticle {
                             if ("".equals(jsonVirtualHost)) {
                                 throw new RuntimeException();
                             }
-                            req.response().setStatusCode(200);
-                            req.response().setStatusMessage("OK");
-                            setRoute(json, action);
+                            returnStatus(req, 200);
+                            setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("realHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            req.response().setStatusCode(400);
-                            req.response().setStatusMessage("Bad Request");
-                        } finally {
-                            req.response().end();
+                            returnStatus(req, 400);
                         }
                     }
                 });
@@ -274,31 +186,54 @@ public class RouteManagerVerticle extends Verticle {
         };
     }
 
-    protected JsonObject getVirtualHosts(String virtualhost) {
-        if (!virtualhost.equals("")) {
+    private String getVirtualHosts(String virtualhost) {
+        if (!"".equals(virtualhost)) {
             JsonArray routes = getRoutes().getArray("routes");
             Iterator<Object> it = routes.iterator();
             while (it.hasNext()) {
                 JsonObject route = (JsonObject) it.next();
                 if (route.getString("name").equalsIgnoreCase(virtualhost)) {
-                    return route;
+                    return route.encodePrettily();
                 }
             }
-            return new JsonObject("{}");
+            return new JsonObject("{}").encodePrettily();
         }
-        return getRoutes();
-    }
-
-    private JsonObject getVirtualHosts() {
-        return getVirtualHosts("");
+        return getRoutes().encodePrettily();
     }
 
     private Handler<HttpServerRequest> virtualhostHandlerAction(final Action action) {
         final Logger log = this.getContainer().logger();
         return new Handler<HttpServerRequest>() {
             @Override
-            public void handle(HttpServerRequest req) {
-                // TODO
+            public void handle(final HttpServerRequest req) {
+                String virtualhostRequest = "";
+                try {
+                    virtualhostRequest = req.params() != null && req.params().contains("id") ? 
+                            java.net.URLDecoder.decode(req.params().get("id"), "UTF-8") : "";
+                } catch (UnsupportedEncodingException e) {
+                    log.error(e.getMessage());
+                }
+                final String virtualhost = virtualhostRequest;
+                req.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        try {
+                            final JsonObject json = new JsonObject(body.toString());
+                            String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
+                            if ("".equals(jsonVirtualHost)) {
+                                throw new RuntimeException();
+                            }
+                            if (action==Action.DEL && !jsonVirtualHost.equals(virtualhost) && "".equals(virtualhost)) {
+                                throw new RuntimeException();
+                            }
+                            returnStatus(req, 200);
+                            setRoute(json, action, req.uri());
+                        } catch (Exception e) {
+                            log.error(String.format("virtualHostHandlerAction FAIL: %s\nBody: %s",
+                                    e.getMessage(), body.toString()));
+                            returnStatus(req, 400);
+                        }
+                    }
+                });
             }
         };
     }
@@ -307,9 +242,13 @@ public class RouteManagerVerticle extends Verticle {
         return graphRoutes.containsKey(vhost);
     }
 
-    public void setRoute(final JsonObject json, final Action action) throws RuntimeException {
-        final Logger log = this.getContainer().logger();
-        final EventBus eb = this.getVertx().eventBus();
+    public void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
+        Long myVersion;
+        if (json.containsField("version")) {
+            myVersion = json.getLong("version");
+        } else {
+            throw new RuntimeException("version undef");
+        }
 
         JsonArray jsonRoutes = null;
         if (json.containsField("routes")) {
@@ -323,7 +262,6 @@ public class RouteManagerVerticle extends Verticle {
             String vhost;
             String host;
             Integer port;
-            Long _version;
             JsonArray endpoints = null;
             JsonObject jsonTemp = (JsonObject) it.next();
 
@@ -332,45 +270,52 @@ public class RouteManagerVerticle extends Verticle {
             } else {
                 throw new RuntimeException("virtualhost undef");
             }
-            if (jsonTemp.containsField("version")) {
-                _version = jsonTemp.getLong("version");
-            } else {
-                throw new RuntimeException("version undef");
-            }
+
             if (jsonTemp.containsField("endpoints")) {
                 endpoints = jsonTemp.getArray("endpoints");
+                Iterator<Object> endpointsIterator = endpoints.iterator();
+                while (endpointsIterator.hasNext()) {
+                    JsonObject endpointJson = (JsonObject) endpointsIterator.next();
+                    if (endpointJson.containsField("host")) {
+                        host = endpointJson.getString("host");
+                    } else {
+                        throw new RuntimeException("endpoint host undef");
+                    }
+                    if (endpointJson.containsField("port")) {
+                        port = endpointJson.getInteger("port");
+                    } else {
+                        throw new RuntimeException("endpoint port undef");
+                    }
+                    String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, myVersion, uri);
+                    sendAction(message, action);
+                }
             } else {
-                throw new RuntimeException("endpoints undef");
+                String message = String.format("%s:::%d:%s", vhost, myVersion, uri);
+                sendAction(message, action);
             }
 
-            Iterator<Object> endpointsIterator = endpoints.iterator();
-            while (endpointsIterator.hasNext()) {
-                JsonObject endpointJson = (JsonObject) endpointsIterator.next();
-                if (endpointJson.containsField("host")) {
-                    host = endpointJson.getString("host");
-                } else {
-                    throw new RuntimeException("endpoint host undef");
-                }
-                if (endpointJson.containsField("port")) {
-                    port = endpointJson.getInteger("port");
-                } else {
-                    throw new RuntimeException("endpoint port undef");
-                }
-                switch (action) {
-                    case ADD:
-                        eb.publish(QUEUE_ROUTE_ADD, String.format("%s:%s:%d:%d", vhost, host, port, _version));
-                        break;
-                    case DEL:
-                        eb.publish(QUEUE_ROUTE_DEL, String.format("%s:%s:%d:%d", vhost, host, port, _version));
-                        break;
-                    default:
-                        throw new RuntimeException("Action not supported");
-                }
-            }
         }
     }
 
-    public JsonObject getRoutes() {
+    public void sendAction(String message, Action action) {
+        final EventBus eb = this.getVertx().eventBus();
+        final Logger log = this.getContainer().logger();
+
+        switch (action) {
+            case ADD:
+                eb.publish(QUEUE_ROUTE_ADD, message);
+                log.debug(String.format("Sending %s to %s",message, QUEUE_ROUTE_ADD));
+                break;
+            case DEL:
+                eb.publish(QUEUE_ROUTE_DEL, message);
+                log.debug(String.format("Sending %s to %s",message, QUEUE_ROUTE_DEL));
+                break;
+            default:
+                throw new RuntimeException("Action not supported");
+        }
+    }
+
+     public JsonObject getRoutes() {
         JsonObject routes = new JsonObject();
         routes.putNumber("version", getVersion());
         JsonArray vhosts = new JsonArray();
@@ -379,10 +324,10 @@ public class RouteManagerVerticle extends Verticle {
             JsonObject vhostObj = new JsonObject();
             vhostObj.putString("name", vhost);
             JsonArray endpoints = new JsonArray();
-            for (String value : graphRoutes.get(vhost)) {
+            for (Client value : graphRoutes.get(vhost)) {
                 JsonObject endpointObj = new JsonObject();
-                endpointObj.putString("host", value.split(":")[0]);
-                endpointObj.putNumber("port", Integer.parseInt(value.split(":")[1]));
+                endpointObj.putString("host", value.toString().split(":")[0]);
+                endpointObj.putNumber("port", Integer.parseInt(value.toString().split(":")[1]));
                 endpoints.add(endpointObj);
             }
             vhostObj.putArray("endpoints", endpoints);
@@ -390,5 +335,26 @@ public class RouteManagerVerticle extends Verticle {
         }
         routes.putArray("routes", vhosts);
         return routes;
+    }
+
+    private void returnStatus(final HttpServerRequest req, Integer code) {
+        returnStatus(req, code, "");
+    }
+
+    private void returnStatus(final HttpServerRequest req, Integer code, String message) {
+        req.response().setStatusCode(code);
+        req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
+        req.response().headers().set("Content-Type", "application/json");
+        String messageReturn = message;
+        if ("".equals(message)) {
+            JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
+            messageReturn = json.encodePrettily();
+        }
+        req.response().end(messageReturn);
+    }
+
+    @Override
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

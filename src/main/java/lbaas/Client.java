@@ -146,16 +146,25 @@ public class Client {
     }
 
     @Override
+    public String toString() {
+        return String.format("%s:%d", this.host, this.port);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (obj==null||!(obj instanceof Client)) {
             return false;
         }
+        if (obj == this) {
+            return true;
+        }
+
         Client objClient = (Client)obj;
-        return objClient.getHost() == this.host && objClient.getPort() == this.port;
+        return objClient.toString().equals(this.toString());
     }
 
     @Override
     public int hashCode() {
-        return String.format("%s:%d", this.host, this.port).hashCode();
+        return this.toString().hashCode();
     }
 }

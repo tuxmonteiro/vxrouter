@@ -1,12 +1,11 @@
 package lbaas;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.VoidHandler;
-import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -17,11 +16,9 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
-import static lbaas.Constants.QUEUE_ROUTE_ADD;
-import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.CONF_PORT;
 
-public class RouterVerticle extends Verticle {
+public class RouterVerticle extends Verticle implements IQueueMapObserver {
 
   public void start() {
 
@@ -34,41 +31,11 @@ public class RouterVerticle extends Verticle {
       final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
       final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
 
-      final EventBus eventBus = vertx.eventBus();
-      final HashMap<String, HashSet<Client>> vhosts = new HashMap<>();
+      final Map<String, Set<Client>> vhosts = new HashMap<>();
+      final QueueMap queueMap = new QueueMap(this, vhosts);
 
-      eventBus.registerHandler(QUEUE_ROUTE_ADD, new Handler<Message<String>>() {
-
-        @Override
-        public void handle(Message<String> buffer) {
-            String[] message = buffer.body().split(":");
-            HashSet<Client> clients = null;
-            if (!vhosts.containsKey(message[0])) {
-                clients = new HashSet<Client>();
-                vhosts.put(message[0], clients);
-            } else {
-                clients = vhosts.get(message[0]);
-            }
-            clients.add(new Client(String.format("%s:%s", message[1],message[2]), vertx));
-        }
-
-      });
-
-      eventBus.registerHandler(QUEUE_ROUTE_DEL, new Handler<Message<String>>() {
-
-          @Override
-          public void handle(Message<String> buffer) {
-              String[] message = buffer.body().split(":");
-              HashSet<Client> clients = null;
-              if (!vhosts.containsKey(message[0])) {
-                  return;
-              } else {
-                  clients = vhosts.get(message[0]);
-              }
-              clients.remove(new Client(String.format("%s:%s", message[1],message[2]), vertx));
-          }
-
-        });
+      queueMap.registerQueueAdd();
+      queueMap.registerQueueDel();
 
       final Handler<HttpServerRequest> handlerHttpServerRequest = new Handler<HttpServerRequest>() {
          @Override
@@ -101,7 +68,11 @@ public class RouterVerticle extends Verticle {
                      !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) : 
                      sRequest.version().equals(HttpVersion.HTTP_1_1);
 
-             final HashSet<Client> clients = vhosts.get(headerHost);
+             final Set<Client> clients = vhosts.get(headerHost);
+             if (clients==null) {
+                 log.error(String.format("Host %s without endpoints", headerHost));
+                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
+             }
              final Client client = ((Client)clients.toArray()[getChoice(clients.size())])
                      .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                      .setKeepAliveTimeOut(keepAliveTimeOut)
@@ -258,6 +229,11 @@ public class RouterVerticle extends Verticle {
        try {
            serverResponse.close();
        } catch (RuntimeException e) {} // Ignore already closed
+   }
+
+   @Override
+   public void setVersion(Long version) {
+       return;
    }
 
 }
