@@ -14,6 +14,7 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
 import static lbaas.Constants.SEPARATOR;
+import static lbaas.Constants.NUM_FIELDS;
 
 public class QueueMap {
 
@@ -34,20 +35,18 @@ public class QueueMap {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(SEPARATOR.toString());
-                if (route.length > 4) {
+                if (route.length == NUM_FIELDS) {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
-                    Long version = Long.parseLong(route[3]);
-                    String uri = route[4];
+                    String uri = route[3];
                     String endpoint = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
                     String uriBase = uri.split("/")[1];
 
                     if ("route".equals(uriBase) || "virtualhost".equals(uriBase) && !map.containsKey(virtualhost)) {
                         map.put(virtualhost, new HashSet<Client>());
-                        log.info(String.format("[%d] Virtualhost %s added", version, virtualhost));
-                        setVersion(version);
+                        log.info(String.format("Virtualhost %s added",virtualhost));
                     }
                     if ("".equals(endpoint)) {
                         return;
@@ -59,8 +58,7 @@ public class QueueMap {
                         final Set<Client> clients = map.get(virtualhost);
                         Client client = new Client(endpoint, verticle.getVertx());
                         if (clients.add(client)) {
-                            log.info(String.format("[%d] Real %s (%s) added", version, endpoint, virtualhost));
-                            setVersion(version);
+                            log.info(String.format("Real %s (%s) added", endpoint, virtualhost));
                         } else {
                             log.warn(String.format("Real %s (%s) already exist", endpoint, virtualhost));
                         }
@@ -74,12 +72,11 @@ public class QueueMap {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(SEPARATOR.toString());
-                if (route.length > 3) {
+                if (route.length == NUM_FIELDS) {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
-                    Long version = Long.parseLong(route[3]);
-//                    String uri = route[4];
+//                    String uri = route[3];
                     String endpoint = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
 //                    String uriBase = uri.split("/")[1];
@@ -88,8 +85,7 @@ public class QueueMap {
                         if (map.containsKey(virtualhost)) {
                             map.get(virtualhost).clear();
                             map.remove(virtualhost);
-                            log.info(String.format("[%d] Virtualhost %s removed", version, virtualhost));
-                            setVersion(version);
+                            log.info(String.format("Virtualhost %s removed", virtualhost));
                         } else {
                             log.warn(String.format("Virtualhost not removed. Virtualhost %s not exist", virtualhost));
                         }
@@ -100,8 +96,7 @@ public class QueueMap {
                     }
                     final Set<Client> clients = map.get(virtualhost);
                     if (clients.remove(new Client(endpoint, verticle.getVertx()))) {
-                        log.info(String.format("[%d] Real %s (%s) removed", version, endpoint, virtualhost));
-                        setVersion(version);
+                        log.info(String.format("Real %s (%s) removed", endpoint, virtualhost));
                     } else {
                         log.warn(String.format("Real not removed. Real %s (%s) not exist", endpoint, virtualhost));
                     }
@@ -110,11 +105,4 @@ public class QueueMap {
         });
     }
 
-    public void setVersion(Long version) {
-        try {
-            ((IQueueMapObserver)verticle).setVersion(version);
-        } catch (NumberFormatException e) {
-            log.error(e.getMessage());
-        }
-    }
 }

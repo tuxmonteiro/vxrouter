@@ -12,5 +12,6 @@ public class Constants {
     public static final String CONF_PORT       = "port";
 
     public static final Character SEPARATOR = ':';
+    public static final int NUM_FIELDS = 4;
 
 }

@@ -18,7 +18,7 @@ import org.vertx.java.platform.Verticle;
 
 import static lbaas.Constants.CONF_PORT;
 
-public class RouterVerticle extends Verticle implements IQueueMapObserver {
+public class RouterVerticle extends Verticle {
 
   public void start() {
 
@@ -229,11 +229,6 @@ public class RouterVerticle extends Verticle implements IQueueMapObserver {
        try {
            serverResponse.close();
        } catch (RuntimeException e) {} // Ignore already closed
-   }
-
-   @Override
-   public void setVersion(Long version) {
-       return;
    }
 
 }

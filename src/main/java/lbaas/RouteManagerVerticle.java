@@ -22,7 +22,7 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-public class RouteManagerVerticle extends Verticle implements IQueueMapObserver {
+public class RouteManagerVerticle extends Verticle {
 
     private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
     private Long version = 0L;
@@ -95,7 +95,27 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
             }
         });
 
-        // Version (Only GET)
+        // Version
+        routeMatcher.post("/version", new Handler<HttpServerRequest>() {
+            @Override
+            public void handle(final HttpServerRequest req) {
+                req.bodyHandler(new Handler<Buffer>() {
+                    @Override
+                    public void handle(Buffer body) {
+                        try {
+                            JsonObject json = new JsonObject(body.toString());
+                            if (json.containsField("version")) {
+                                setVersion(json.getLong("version"));
+                            }
+                            returnStatus(req, 200);
+                            log.info(String.format("POST /version: %d", getVersion()));
+                        } catch (RuntimeException e) {
+                            returnStatus(req, 400);
+                        }
+                    }
+                });
+            }
+        });
         routeMatcher.get("/version",new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
@@ -234,18 +254,7 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
         };
     }
 
-    public boolean existVirtualHost(String vhost) {
-        return graphRoutes.containsKey(vhost);
-    }
-
     public void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
-        Long myVersion;
-        if (json.containsField("version")) {
-            myVersion = json.getLong("version");
-        } else {
-            throw new RuntimeException("version undef");
-        }
-
         JsonArray jsonRoutes = null;
         if (json.containsField("routes")) {
             jsonRoutes = json.getArray("routes");
@@ -277,11 +286,11 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
                     if ("".equals(host) || port==null) {
                         throw new RuntimeException("Endpoint host or port undef");
                     }
-                    String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, myVersion, uri);
+                    String message = String.format("%s:%s:%d:%s", vhost, host, port, uri);
                     sendAction(message, action);
                 }
             } else {
-                String message = String.format("%s:::%d:%s", vhost, myVersion, uri);
+                String message = String.format("%s:::%s", vhost, uri);
                 sendAction(message, action);
             }
 
@@ -344,7 +353,6 @@ public class RouteManagerVerticle extends Verticle implements IQueueMapObserver 
         req.response().end(messageReturn);
     }
 
-    @Override
     public void setVersion(Long version) {
         this.version = version;
     }
