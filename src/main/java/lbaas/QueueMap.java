@@ -2,6 +2,7 @@ package lbaas;
 
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.Constants.QUEUE_ROUTE_VERSION;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class QueueMap {
     private final EventBus eb;
     private final Logger log;
     private final Map<String, Set<Client>> map;
+    private Long version;
 
     public QueueMap(final Verticle verticle, final Map<String, Set<Client>> map) {
         this.verticle = verticle;
@@ -103,6 +105,23 @@ public class QueueMap {
                 }
             }
         });
+    }
+
+    public void registerQueueVersion() {
+        eb.registerHandler(QUEUE_ROUTE_VERSION, new Handler<Message<String>>() {
+            @Override
+            public void handle(Message<String> message) {
+                try {
+                    System.out.println(message.body().toString());
+                    setVersion(Long.parseLong(message.body().toString()));
+                } catch (java.lang.NumberFormatException e) {}
+            }
+        });
+    }
+
+    public void setVersion(Long version) {
+        ((IVersionObserver)verticle).setVersion(version);
+        log.info(String.format("POST /version: %d", version));
     }
 
 }

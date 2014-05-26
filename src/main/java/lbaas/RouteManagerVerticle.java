@@ -3,6 +3,7 @@ package lbaas;
 import static lbaas.Constants.CONF_PORT;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.Constants.QUEUE_ROUTE_VERSION;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -22,14 +23,15 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-public class RouteManagerVerticle extends Verticle {
+public class RouteManagerVerticle extends Verticle implements IVersionObserver {
 
     private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
     private Long version = 0L;
 
     private enum Action {
         ADD,
-        DEL
+        DEL,
+        VERSION
     }
 
     public void start() {
@@ -39,6 +41,7 @@ public class RouteManagerVerticle extends Verticle {
         final QueueMap queueMap = new QueueMap(this, graphRoutes);
         queueMap.registerQueueAdd();
         queueMap.registerQueueDel();
+        queueMap.registerQueueVersion();
  
         log.info(String.format("Instance %s started", this.toString()));
     }
@@ -105,10 +108,9 @@ public class RouteManagerVerticle extends Verticle {
                         try {
                             JsonObject json = new JsonObject(body.toString());
                             if (json.containsField("version")) {
-                                setVersion(json.getLong("version"));
+                                sendAction(String.format("%d", json.getLong("version")), Action.VERSION);
                             }
                             returnStatus(req, 200);
-                            log.info(String.format("POST /version: %d", getVersion()));
                         } catch (RuntimeException e) {
                             returnStatus(req, 400);
                         }
@@ -310,6 +312,10 @@ public class RouteManagerVerticle extends Verticle {
                 eb.publish(QUEUE_ROUTE_DEL, message);
                 log.debug(String.format("Sending %s to %s",message, QUEUE_ROUTE_DEL));
                 break;
+            case VERSION:
+                eb.publish(QUEUE_ROUTE_VERSION, message);
+                log.debug(String.format("Sending %s to %s",message, QUEUE_ROUTE_VERSION));
+                break;
             default:
                 throw new RuntimeException("Action not supported");
         }
@@ -353,6 +359,7 @@ public class RouteManagerVerticle extends Verticle {
         req.response().end(messageReturn);
     }
 
+    @Override
     public void setVersion(Long version) {
         this.version = version;
     }
