@@ -23,13 +23,14 @@ public class QueueMap {
     private final EventBus eb;
     private final Logger log;
     private final Map<String, Set<Client>> map;
-    private Long version;
+    private final Map<String, Set<Client>> badMap;
 
-    public QueueMap(final Verticle verticle, final Map<String, Set<Client>> map) {
+    public QueueMap(final Verticle verticle, final Map<String, Set<Client>> map, final Map<String, Set<Client>> badMap) {
         this.verticle = verticle;
         this.eb=verticle.getVertx().eventBus();
         this.log=verticle.getContainer().logger();
         this.map=map;
+        this.badMap = badMap;
     }
 
     public void registerQueueAdd() {
@@ -41,23 +42,26 @@ public class QueueMap {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
-                    String uri = route[3];
+                    boolean status = !route[3].equals("0");
+                    String uri = route[4];
                     String endpoint = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
                     String uriBase = uri.split("/")[1];
+                    final Map<String, Set<Client>> tempMap = status ? map : badMap;
 
-                    if ("route".equals(uriBase) || "virtualhost".equals(uriBase) && !map.containsKey(virtualhost)) {
-                        map.put(virtualhost, new HashSet<Client>());
+                    if (!status && !map.containsKey(virtualhost)) {
+                        log.warn(String.format("Endpoint %s failed do not created because Virtualhost %s not exist", endpoint, virtualhost));
+                        return;
+                    }
+                    if (!tempMap.containsKey(virtualhost)) {
+                        tempMap.put(virtualhost, new HashSet<Client>());
                         log.info(String.format("Virtualhost %s added",virtualhost));
                     }
                     if ("".equals(endpoint)) {
                         return;
-                    } else if (!map.containsKey(virtualhost)) {
-                        log.warn(String.format("Virtualhost %s not exist", virtualhost));
-                        return;
                     }
                     if ("route".equals(uriBase)||"real".equals(uriBase)) {
-                        final Set<Client> clients = map.get(virtualhost);
+                        final Set<Client> clients = tempMap.get(virtualhost);
                         Client client = new Client(endpoint, verticle.getVertx());
                         if (clients.add(client)) {
                             log.info(String.format("Real %s (%s) added", endpoint, virtualhost));
@@ -78,29 +82,38 @@ public class QueueMap {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
-//                    String uri = route[3];
+                    boolean status = !route[3].equals("0");
+//                    String uri = route[4];
                     String endpoint = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
 //                    String uriBase = uri.split("/")[1];
+                    final Map<String, Set<Client>> tempMap = status ? map : badMap;
 
                     if ("".equals(endpoint)) {
-                        if (map.containsKey(virtualhost)) {
-                            map.get(virtualhost).clear();
-                            map.remove(virtualhost);
+                        if (tempMap.containsKey(virtualhost)) {
+                            tempMap.get(virtualhost).clear();
+                            tempMap.remove(virtualhost);
                             log.info(String.format("Virtualhost %s removed", virtualhost));
                         } else {
                             log.warn(String.format("Virtualhost not removed. Virtualhost %s not exist", virtualhost));
                         }
                         return;
-                    } else if (!map.containsKey(virtualhost)) {
+                    } else if (!tempMap.containsKey(virtualhost)) {
                         log.warn(String.format("Real not removed. Virtualhost %s not exist", virtualhost));
                         return;
                     }
-                    final Set<Client> clients = map.get(virtualhost);
-                    if (clients.remove(new Client(endpoint, verticle.getVertx()))) {
+                    final Set<Client> clients = tempMap.get(virtualhost);
+                    Client client = new Client(endpoint, verticle.getVertx());
+                    if (clients.remove(client)) {
                         log.info(String.format("Real %s (%s) removed", endpoint, virtualhost));
                     } else {
-                        log.warn(String.format("Real not removed. Real %s (%s) not exist", endpoint, virtualhost));
+                        if (status) {
+                            final Set<Client> badClients = badMap.get(virtualhost);
+                            badClients.remove(client);
+                            log.info(String.format("Real %s (%s) removed", endpoint, virtualhost));
+                        } else {
+                            log.warn(String.format("Real not removed. Real %s (%s) not exist", endpoint, virtualhost));
+                        }
                     }
                 }
             }

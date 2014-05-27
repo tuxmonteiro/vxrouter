@@ -34,7 +34,8 @@ public class RouterVerticle extends Verticle {
       final Long clientEventInterval = conf.getLong("clientEventInterval",5000L);
 
       final Map<String, Set<Client>> vhosts = new HashMap<>();
-      final QueueMap queueMap = new QueueMap(this, vhosts);
+      final Map<String, Set<Client>> badVhosts = new HashMap<>();
+      final QueueMap queueMap = new QueueMap(this, vhosts, badVhosts);
 
       queueMap.registerQueueAdd();
       queueMap.registerQueueDel();
@@ -131,7 +132,7 @@ public class RouterVerticle extends Verticle {
              final HttpClientRequest cRequest = httpClient
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
-             if (!client.isHealthy()) {
+             if (cRequest==null) {
                  serverShowErrorAndClose(sRequest.response(), new BadRequestException());
                  return;
              }

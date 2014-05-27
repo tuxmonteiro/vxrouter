@@ -26,6 +26,8 @@ import org.vertx.java.platform.Verticle;
 public class RouteManagerVerticle extends Verticle implements IVersionObserver {
 
     private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
+    private final Map<String, Set<Client>> badGraphRoutes = new HashMap<>();
+
     private Long version = 0L;
 
     private enum Action {
@@ -38,7 +40,7 @@ public class RouteManagerVerticle extends Verticle implements IVersionObserver {
         final Logger log = container.logger();
 
         startHttpServer(container.config());
-        final QueueMap queueMap = new QueueMap(this, graphRoutes);
+        final QueueMap queueMap = new QueueMap(this, graphRoutes, badGraphRoutes);
         queueMap.registerQueueAdd();
         queueMap.registerQueueDel();
         queueMap.registerQueueVersion();
@@ -269,6 +271,7 @@ public class RouteManagerVerticle extends Verticle implements IVersionObserver {
             String vhost;
             String host;
             Integer port;
+            boolean status;
             JsonArray endpoints = null;
             JsonObject jsonTemp = (JsonObject) it.next();
 
@@ -285,14 +288,15 @@ public class RouteManagerVerticle extends Verticle implements IVersionObserver {
                     JsonObject endpointJson = (JsonObject) endpointsIterator.next();
                     host = endpointJson.containsField("host") ? endpointJson.getString("host"):"";
                     port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
+                    status = endpointJson.containsField("status") ? endpointJson.getBoolean("status"):true;
                     if ("".equals(host) || port==null) {
                         throw new RuntimeException("Endpoint host or port undef");
                     }
-                    String message = String.format("%s:%s:%d:%s", vhost, host, port, uri);
+                    String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, status ? 1 : 0, uri);
                     sendAction(message, action);
                 }
             } else {
-                String message = String.format("%s:::%s", vhost, uri);
+                String message = String.format("%s::::%s", vhost, uri);
                 sendAction(message, action);
             }
 
@@ -337,6 +341,18 @@ public class RouteManagerVerticle extends Verticle implements IVersionObserver {
                 endpoints.add(endpointObj);
             }
             vhostObj.putArray("endpoints", endpoints);
+            JsonArray badEndpoints = new JsonArray();
+            if (badGraphRoutes.containsKey(vhost)) {
+                for (Client value : badGraphRoutes.get(vhost)) {
+                    JsonObject endpointObj = new JsonObject();
+                    String[] hostWithPort = value.toString().split(":");
+                    endpointObj.putString("host", hostWithPort[0]);
+                    endpointObj.putNumber("port", Integer.parseInt(hostWithPort[1]));
+                    badEndpoints.add(endpointObj);
+                }
+            }
+            vhostObj.putArray("badEndpoints", badEndpoints);
+
             vhosts.add(vhostObj);
         }
         routes.putArray("routes", vhosts);

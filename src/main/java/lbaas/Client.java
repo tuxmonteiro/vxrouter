@@ -2,10 +2,8 @@ package lbaas;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
 
-import static lbaas.Constants.QUEUE_HEALTHCHECK_OK;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Client {
@@ -23,8 +21,6 @@ public class Client {
     private Long keepAliveTimeOut;
     private Long requestCount;
 
-    private boolean healthy;
-    private Long lastCheck;
     private Long eventInterval;
 
     public Client(final String hostWithPort, final Vertx vertx) {
@@ -40,8 +36,6 @@ public class Client {
         this.keepAliveTimeMark = now;
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
-        this.healthy = true;
-        this.lastCheck = now;
     }
 
     public Client myself() {
@@ -132,22 +126,6 @@ public class Client {
         return this;
     }
 
-    public boolean isHealthy() {
-        return healthy;
-    }
-
-    public void setHealthy(boolean healthy) {
-        this.healthy = healthy;
-    }
-
-    public Long getLastCheck() {
-        return lastCheck;
-    }
-
-    public void updateLastCheck() {
-        this.lastCheck = System.currentTimeMillis();
-    }
-
     public Long getEventInterval() {
         return this.eventInterval;
     }
@@ -160,22 +138,6 @@ public class Client {
     // Lazy initialization
     public HttpClient connect() {
         if (client==null) {
-            getVertx().eventBus().registerHandler(QUEUE_HEALTHCHECK_OK, new Handler<Message<String>>() {
-                @Override
-                public void handle(Message<String> message) {
-                    if (message.body().equalsIgnoreCase(myself().toString())) {
-                        setHealthy(true);
-                    }
-                }
-            });
-            getVertx().eventBus().registerHandler(QUEUE_HEALTHCHECK_FAIL, new Handler<Message<String>>() {
-                @Override
-                public void handle(Message<String> message) {
-                    if (message.body().equalsIgnoreCase(myself().toString())) {
-                        setHealthy(false);
-                    }
-                }
-            });
             client = getVertx().createHttpClient()
                 .setKeepAlive(keepalive)
                 .setTCPKeepAlive(keepalive)
@@ -186,11 +148,7 @@ public class Client {
             client.exceptionHandler(new Handler<Throwable>() {
                 @Override
                 public void handle(Throwable e) {
-                    Long now = System.currentTimeMillis();
-                    if (getLastCheck()+getEventInterval()<now) {
-                        updateLastCheck();
-                        getVertx().eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
-                    }
+                    getVertx().eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
                 }
             });
         }
