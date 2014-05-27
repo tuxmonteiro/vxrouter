@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.VoidHandler;
+import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -30,6 +31,7 @@ public class RouterVerticle extends Verticle {
       final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
       final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
       final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
+      final Long clientEventInterval = conf.getLong("clientEventInterval",5000L);
 
       final Map<String, Set<Client>> vhosts = new HashMap<>();
       final QueueMap queueMap = new QueueMap(this, vhosts);
@@ -78,7 +80,8 @@ public class RouterVerticle extends Verticle {
                      .setKeepAliveTimeOut(keepAliveTimeOut)
                      .setKeepAliveMaxRequest(keepAliveMaxRequest)
                      .setConnectionTimeout(clientConnectionTimeOut)
-                     .setMaxPoolSize(clientMaxPoolSize);
+                     .setMaxPoolSize(clientMaxPoolSize)
+                     .setEventInterval(clientEventInterval);
 
              final Handler<HttpClientResponse> handlerHttpClientResponse = new Handler<HttpClientResponse>() {
 
@@ -124,10 +127,14 @@ public class RouterVerticle extends Verticle {
                  }
              };
 
-             final HttpClientRequest cRequest = client.connect()
+             final HttpClient httpClient = client.connect();
+             final HttpClientRequest cRequest = httpClient
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
-
+             if (!client.isHealthy()) {
+                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
+                 return;
+             }
              changeHeader(sRequest, headerHost);
              cRequest.headers().set(sRequest.headers());
              if (clientForceKeepAlive) {
@@ -140,9 +147,10 @@ public class RouterVerticle extends Verticle {
              cRequest.exceptionHandler(new Handler<Throwable>() {
                  @Override
                  public void handle(Throwable event) {
-                     log.error(event.getMessage());
                      serverShowErrorAndClose(sRequest.response(), event);
-                     client.close();
+                     try {
+                         client.close();
+                     } catch (RuntimeException e) {} // Ignore double client close
                  }
               });
 

@@ -2,7 +2,11 @@ package lbaas;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
+
+import static lbaas.Constants.QUEUE_HEALTHCHECK_OK;
+import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Client {
 
@@ -19,17 +23,33 @@ public class Client {
     private Long keepAliveTimeOut;
     private Long requestCount;
 
+    private boolean healthy;
+    private Long lastCheck;
+    private Long eventInterval;
+
     public Client(final String hostWithPort, final Vertx vertx) {
+        Long now = System.currentTimeMillis();
+        String[] hostWithPortArray = hostWithPort.split(":");
         this.vertx = vertx;
         this.client = null;
-        this.host = hostWithPort.split(":")[0];
-        this.port = Integer.parseInt(hostWithPort.split(":")[1]);
+        this.host = hostWithPortArray[0];
+        this.port = Integer.parseInt(hostWithPortArray[1]);
         this.timeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
-        this.keepAliveTimeMark = System.currentTimeMillis();
+        this.keepAliveTimeMark = now;
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
+        this.healthy = true;
+        this.lastCheck = now;
+    }
+
+    public Client myself() {
+        return this;
+    }
+
+    public Vertx getVertx() {
+        return vertx;
     }
 
     public String getHost() {
@@ -112,10 +132,51 @@ public class Client {
         return this;
     }
 
+    public boolean isHealthy() {
+        return healthy;
+    }
+
+    public void setHealthy(boolean healthy) {
+        this.healthy = healthy;
+    }
+
+    public Long getLastCheck() {
+        return lastCheck;
+    }
+
+    public void updateLastCheck() {
+        this.lastCheck = System.currentTimeMillis();
+    }
+
+    public Long getEventInterval() {
+        return this.eventInterval;
+    }
+
+    public Client setEventInterval(Long eventInterval) {
+        this.eventInterval = eventInterval;
+        return this;
+    }
+
     // Lazy initialization
     public HttpClient connect() {
         if (client==null) {
-            client = vertx.createHttpClient()
+            getVertx().eventBus().registerHandler(QUEUE_HEALTHCHECK_OK, new Handler<Message<String>>() {
+                @Override
+                public void handle(Message<String> message) {
+                    if (message.body().equalsIgnoreCase(myself().toString())) {
+                        setHealthy(true);
+                    }
+                }
+            });
+            getVertx().eventBus().registerHandler(QUEUE_HEALTHCHECK_FAIL, new Handler<Message<String>>() {
+                @Override
+                public void handle(Message<String> message) {
+                    if (message.body().equalsIgnoreCase(myself().toString())) {
+                        setHealthy(false);
+                    }
+                }
+            });
+            client = getVertx().createHttpClient()
                 .setKeepAlive(keepalive)
                 .setTCPKeepAlive(keepalive)
                 .setConnectTimeout(timeout)
@@ -123,10 +184,14 @@ public class Client {
                 .setPort(port)
                 .setMaxPoolSize(maxPoolSize);
             client.exceptionHandler(new Handler<Throwable>() {
-              @Override
-              public void handle(Throwable e) {
-//                  System.err.println(e.getMessage());
-              }
+                @Override
+                public void handle(Throwable e) {
+                    Long now = System.currentTimeMillis();
+                    if (getLastCheck()+getEventInterval()<now) {
+                        updateLastCheck();
+                        getVertx().eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
+                    }
+                }
             });
         }
         return client;
