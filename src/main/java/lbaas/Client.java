@@ -42,10 +42,6 @@ public class Client {
         return this;
     }
 
-    public Vertx getVertx() {
-        return vertx;
-    }
-
     public String getHost() {
         return host;
     }
@@ -138,7 +134,7 @@ public class Client {
     // Lazy initialization
     public HttpClient connect() {
         if (client==null) {
-            client = getVertx().createHttpClient()
+            client = vertx.createHttpClient()
                 .setKeepAlive(keepalive)
                 .setTCPKeepAlive(keepalive)
                 .setConnectTimeout(timeout)
@@ -148,7 +144,7 @@ public class Client {
             client.exceptionHandler(new Handler<Throwable>() {
                 @Override
                 public void handle(Throwable e) {
-                    getVertx().eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
+                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
                 }
             });
         }

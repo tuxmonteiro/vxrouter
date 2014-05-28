@@ -18,6 +18,7 @@ import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
 import static lbaas.Constants.CONF_PORT;
+import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class RouterVerticle extends Verticle {
 
@@ -67,15 +68,17 @@ public class RouterVerticle extends Verticle {
                  return;
              }
 
+             final Set<Client> clients = vhosts.get(headerHost);
+             if (clients==null ? true : clients.isEmpty()) {
+                 log.error(String.format("Host %s without endpoints", headerHost));
+                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
+                 return;
+             }
+
              final boolean connectionKeepalive = sRequest.headers().contains("Connection") ?
                      !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) : 
                      sRequest.version().equals(HttpVersion.HTTP_1_1);
 
-             final Set<Client> clients = vhosts.get(headerHost);
-             if (clients==null) {
-                 log.error(String.format("Host %s without endpoints", headerHost));
-                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
-             }
              final Client client = ((Client)clients.toArray()[getChoice(clients.size())])
                      .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                      .setKeepAliveTimeOut(keepAliveTimeOut)
@@ -120,7 +123,7 @@ public class RouterVerticle extends Verticle {
                          cResponse.exceptionHandler(new Handler<Throwable>() {
                              @Override
                              public void handle(Throwable event) {
-//                                 System.err.println(event.getMessage());
+                                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
                                  serverShowErrorAndClose(sRequest.response(), event);
                                  client.close();
                              }
@@ -132,11 +135,13 @@ public class RouterVerticle extends Verticle {
              final HttpClientRequest cRequest = httpClient
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
-             if (cRequest==null) {
-                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
-                 return;
-             }
+
+//             if (cRequest==null) {
+//                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
+//                 return;
+//             }
              changeHeader(sRequest, headerHost);
+
              cRequest.headers().set(sRequest.headers());
              if (clientForceKeepAlive) {
                  cRequest.headers().set("Connection", "keep-alive");
@@ -148,6 +153,8 @@ public class RouterVerticle extends Verticle {
              cRequest.exceptionHandler(new Handler<Throwable>() {
                  @Override
                  public void handle(Throwable event) {
+                     vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
+
                      serverShowErrorAndClose(sRequest.response(), event);
                      try {
                          client.close();

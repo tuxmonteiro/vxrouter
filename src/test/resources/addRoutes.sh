@@ -11,8 +11,8 @@ curl -XPOST 'http://127.0.0.1:9090/virtualhost' -d '{"name": "lol2.localdomain"}
 curl -XPOST 'http://127.0.0.1:9090/real' -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082}]}' \
   && curl -XPOST 'http://127.0.0.1:9090/version' -d '{"version": 28031978}'
 
-curl -XPOST 'http://127.0.0.1:9090/real' -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082, "status":false}]}' \
-  && curl -XPOST 'http://127.0.0.1:9090/version' -d '{"version": 28031979}'
+#curl -XPOST 'http://127.0.0.1:9090/real' -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082, "status":false}]}' \
+#  && curl -XPOST 'http://127.0.0.1:9090/version' -d '{"version": 28031979}'
 
 #curl -XDELETE 'http://127.0.0.1:9090/real/127.0.0.1%3A8082' -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082}]}' \
 #  && curl -XPOST 'http://127.0.0.1:9090/version' -d '{"version": 28031979}'

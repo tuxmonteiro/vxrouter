@@ -23,7 +23,7 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-public class RouteManagerVerticle extends Verticle implements IVersionObserver {
+public class RouteManagerVerticle extends Verticle implements IEventObserver {
 
     private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
     private final Map<String, Set<Client>> badGraphRoutes = new HashMap<>();
@@ -379,4 +379,10 @@ public class RouteManagerVerticle extends Verticle implements IVersionObserver {
     public void setVersion(Long version) {
         this.version = version;
     }
+
+    @Override
+    public void postAddEvent(String message) {};
+
+    @Override
+    public void postDelEvent(String message) {};
 }

@@ -1,5 +1,7 @@
 package lbaas;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -7,47 +9,48 @@ import java.util.Map;
 import java.util.Set;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
-import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
+import static lbaas.Constants.NUM_FIELDS;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_OK;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
+import static lbaas.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.Constants.SEPARATOR;
 
-public class HealthManagerVerticle extends Verticle {
+public class HealthManagerVerticle extends Verticle implements IEventObserver {
 
-    final Map<String, Set<String>> badEndpointMap = new HashMap<>();
-
-    private String routeManagerHost;
-    private Integer routeManagerPort;
+    private final Map<String, Set<String>> endPointsMap = new HashMap<>();
+    private final Map<String, Set<String>> badEndPointsMap = new HashMap<>();
 
     public void start() {
         final Logger log = container.logger();
 
         final JsonObject conf = container.config();
-        // Milliseconds Interval
-        final Long checkInterval = conf.getLong("checkInterval", 5000L);
-//TODO        // 0L = Disable. Recommended 86400000 (1 day)
-//TODO        final Long intervalForceAllOk = conf.getLong("intervalForceAllOk", 0L);
-        // Default = "/". Recommended = "/health"
-        final String uriHealthCheck = conf.getString("uriHealthCheck","/");
+        final Long checkInterval = conf.getLong("checkInterval", 5000L); // Milliseconds Interval
+        final String uriHealthCheck = conf.getString("uriHealthCheck","/"); // Recommended = "/health"
 
-        routeManagerHost = conf.getString("routeManagerHost","127.0.0.1");
-        routeManagerPort = conf.getInteger("routeManagerPort", 9090);
+        final QueueMap queueMap = new QueueMap(this, null, null);
+        queueMap.registerQueueAdd();
+        queueMap.registerQueueDel();
 
         final EventBus eb = vertx.eventBus();
         eb.registerHandler(QUEUE_HEALTHCHECK_OK, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
                 String endpoint = message.body();
-                moveEndpoint(endpoint, true);
+                try {
+                    moveEndpoint(endpoint, true);
+                } catch (UnsupportedEncodingException e) {
+                    log.error(e.getMessage());
+                }
                 log.debug(String.format("Endpoint %s OK", message.body()));
             };
         });
@@ -55,7 +58,11 @@ public class HealthManagerVerticle extends Verticle {
             @Override
             public void handle(Message<String> message) {
                 String endpoint = message.body();
-                moveEndpoint(endpoint, false);
+                try {
+                    moveEndpoint(endpoint, false);
+                } catch (UnsupportedEncodingException e) {
+                    log.error(e.getMessage());
+                }
                 log.error(String.format("Endpoint %s FAIL", endpoint));
             };
         });
@@ -63,94 +70,110 @@ public class HealthManagerVerticle extends Verticle {
         vertx.setPeriodic(checkInterval, new Handler<Long>() {
             @Override
             public void handle(Long timerID) {
-                vertx.createHttpClient()
-                    .setHost(routeManagerHost)
-                    .setPort(routeManagerPort)
-                    .getNow("/route", new Handler<HttpClientResponse>() {
-                        @Override
-                        public void handle(HttpClientResponse cResp) {
-                            cResp.bodyHandler(new Handler<Buffer>() {
-                                @Override
-                                public void handle(Buffer buffer) {
-                                    JsonObject resp = new JsonObject(buffer.toString());
-                                    JsonArray routes = resp.getArray("routes");
-                                    Iterator<Object> it = routes.iterator();
-                                    badEndpointMap.clear();
-                                    while (it.hasNext()) {
-                                        JsonObject route = (JsonObject) it.next();
-                                        String virtualhost = route.getString("name");
-                                        JsonArray badEndpoints = route.getArray("badEndpoints");
-                                        Iterator<Object> it2 = badEndpoints.iterator();
-                                        while (it2.hasNext()) {
-                                            JsonObject endpointJson = (JsonObject) it.next();
-                                            String host = endpointJson.getString("host");
-                                            Integer port = endpointJson.getInteger("port");
-                                            String endpoint = String.format("%s:%d", host, port);
-                                            if (!badEndpointMap.containsKey(endpoint)) {
-                                                badEndpointMap.put(endpoint, new HashSet<String>());
-                                            }
-                                            final Set<String> virtualhosts = badEndpointMap.get(endpoint);
-                                            virtualhosts.add(virtualhost);
+                log.info("Checking bad endpoints...");
+                if (badEndPointsMap!=null) {
+                    Iterator<String> it = badEndPointsMap.keySet().iterator();
+                    while (it.hasNext()) {
+                        final String endpoint = it.next();
+                        String[] hostWithPort = endpoint.split(":");
+                        String host = hostWithPort[0];
+                        Integer port = Integer.parseInt(hostWithPort[1]);
+                        try {
+                            HttpClient client = vertx.createHttpClient()
+                                .setHost(host)
+                                .setPort(port)
+                                .exceptionHandler(new Handler<Throwable>() {
+                                    @Override
+                                    public void handle(Throwable event) {}
+                                });
+                            HttpClientRequest cReq = client.get(uriHealthCheck, new Handler<HttpClientResponse>() {
+                                    @Override
+                                    public void handle(HttpClientResponse cResp) {
+                                        if (cResp!=null && cResp.statusCode()==200) {
+                                            eb.publish(QUEUE_HEALTHCHECK_OK, endpoint);
+                                            log.info(String.format("Real %s OK. Enabling it", endpoint));
                                         }
                                     }
-                                    Iterator<String> it3 = badEndpointMap.keySet().iterator();
-                                    while (it3.hasNext()) {
-                                        final String endpoint = it3.next();
-                                        Client client = new Client(endpoint, vertx);
-                                        client.setKeepAlive(false);
-                                        HttpClient httpClient = client.connect();
-                                        httpClient.getNow(uriHealthCheck, new Handler<HttpClientResponse>() {
-                                            @Override
-                                            public void handle(HttpClientResponse cResp) {
-                                                if (cResp.statusCode()==200) {
-                                                    eb.publish(QUEUE_HEALTHCHECK_OK, endpoint);
-                                                }
-                                            }
-                                        });
-                                    }
-                                }
+                                });
+                            cReq.headers().set("Host", (String) badEndPointsMap.get(endpoint).toArray()[0]);
+                            cReq.exceptionHandler(new Handler<Throwable>() {
+                                @Override
+                                public void handle(Throwable event) {}
                             });
-                        }
-                    });
+                            cReq.end();
+                        } catch (Exception e) {}
+                    }
+                }
             }
         });
-//        if (intervalForceAllOk!=0L) {
-//            vertx.setPeriodic(intervalForceAllOk, new Handler<Long>() {
-//                @Override
-//                public void handle(Long event) {
-//                    Iterator<String> it = badClients.iterator();
-//                    while (it.hasNext()) {
-//                        String clientString = it.next();
-//                        eb.publish(QUEUE_HEALTHCHECK_OK, clientString);
-//                    }
-//                    badClients.clear();
-//                }
-//            });
-//        }
         log.info(String.format("Instance %s started", this.toString()));
     }
 
-    private void moveEndpoint(final String endpoint, final Boolean status) {
-        Set <String> virtualhosts = badEndpointMap.get(endpoint);
-        Iterator<String> it = virtualhosts.iterator();
-        while (it.hasNext()) {
-            String virtualhost = it.next();
-            String[] endpointArray = endpoint.split(":");
-            String prefix = String.format("{\"name\": \"%s\", \"endpoints\":[{\"host\":\"%s\", \"port\": %d", virtualhost, endpointArray[0], endpointArray[1]);
-            JsonObject jsonRemove = new JsonObject(String.format("%s%s}]}", prefix, status ? ",\"status\":false" : ""));
-            JsonObject jsonAdd = new JsonObject(String.format("%s%s}]}", prefix, !status ? ",\"status\":false": ""));
+    private void moveEndpoint(final String endpoint, final Boolean status) throws UnsupportedEncodingException {
 
-            vertx.createHttpClient()
-                .setHost(routeManagerHost)
-                .setPort(routeManagerPort)
-                .setKeepAlive(true)
-                .delete("/real", null).write(jsonRemove.toString());
-            vertx.createHttpClient()
-                .setHost(routeManagerHost)
-                .setPort(routeManagerPort)
-                .setKeepAlive(true)
-                .post("/real", null).write(jsonAdd.toString());
+        final EventBus eb = this.getVertx().eventBus();
+
+        Set<String> virtualhosts = status ? badEndPointsMap.get(endpoint) : endPointsMap.get(endpoint);
+
+        if (virtualhosts!=null) {
+            Iterator<String> it = virtualhosts.iterator();
+            while (it.hasNext()) {
+                String message;
+                String virtualhost = it.next();
+                String[] endpointArray = endpoint.split(":");
+                String host = endpointArray[0];
+                String port = endpointArray[1];
+
+                message = String.format("%s:%s:%s:%d:%s", virtualhost, host, port, status ? 0 : 1, String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
+                eb.publish(QUEUE_ROUTE_DEL, message);
+
+                message = String.format("%s:%s:%s:%d:%s", virtualhost, host, port, status ? 1 : 0, "/real");
+                eb.publish(QUEUE_ROUTE_ADD, message);
+            }
         }
-
     }
+
+    private void messageToMap(final String message, final Map<String, String> map) {
+        final String[] route = message.split(SEPARATOR.toString());
+        if (route.length == NUM_FIELDS && map!=null) {
+            map.put("virtualhost", route[0]);
+            map.put("host",route[1]);
+            map.put("port",route[2]);
+            map.put("status",!route[3].equals("0") ? "true":"false");
+            map.put("uri",route[4]);
+            map.put("endpoint",(!"".equals(route[1]) && !"".equals(route[2])) ? String.format("%s:%s", route[1], route[2]) : "");
+            map.put("uriBase", route[4].contains("/")?route[4].split("/")[1]:"");
+        }
+    }
+
+    @Override
+    public void setVersion(Long version) {}
+
+    @Override
+    public void postAddEvent(String message) {
+        Map<String, String> map = new HashMap<>();
+        messageToMap(message, map);
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+
+        if (!tempMap.containsKey(map.get("endpoint"))) {
+            tempMap.put(map.get("endpoint"), new HashSet<String>());
+        }
+        Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+        virtualhosts.add(map.get("virtualhost"));
+    };
+
+    @Override
+    public void postDelEvent(String message) {
+        Map<String, String> map = new HashMap<>();
+        messageToMap(message, map);
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+
+        if (tempMap.containsKey(map.get("endpoint"))) {
+            Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+            virtualhosts.remove(map.get("virtualhost"));
+            if (virtualhosts.isEmpty()) {
+                tempMap.remove(map.get("endpoint"));
+            }
+        }
+    };
 }

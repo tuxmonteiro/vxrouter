@@ -38,7 +38,7 @@ public class QueueMap {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(SEPARATOR.toString());
-                if (route.length == NUM_FIELDS) {
+                if (route.length == NUM_FIELDS && map!=null && badMap!=null) {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
@@ -70,15 +70,17 @@ public class QueueMap {
                         }
                     }
                 }
+                postAddEvent(message.body());
             }
         });
     }
+
     public void registerQueueDel() {
         eb.registerHandler(QUEUE_ROUTE_DEL, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
                 final String[] route = message.body().split(SEPARATOR.toString());
-                if (route.length == NUM_FIELDS) {
+                if (route.length == NUM_FIELDS && map!=null && badMap!=null) {
                     String virtualhost = route[0];
                     String host = route[1];
                     String port = route[2];
@@ -116,6 +118,7 @@ public class QueueMap {
                         }
                     }
                 }
+                postDelEvent(message.body());
             }
         });
     }
@@ -133,8 +136,22 @@ public class QueueMap {
     }
 
     public void setVersion(Long version) {
-        ((IVersionObserver)verticle).setVersion(version);
-        log.info(String.format("POST /version: %d", version));
+        if (verticle instanceof IEventObserver) {
+            ((IEventObserver)verticle).setVersion(version);
+            log.info(String.format("POST /version: %d", version));
+        }
+    }
+
+    private void postDelEvent(String message) {
+        if (verticle instanceof IEventObserver) {
+            ((IEventObserver)verticle).postDelEvent(message);
+        }
+    }
+
+    private void postAddEvent(String message) {
+        if (verticle instanceof IEventObserver) {
+            ((IEventObserver)verticle).postAddEvent(message);
+        }
     }
 
 }
