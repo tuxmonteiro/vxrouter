@@ -4,6 +4,8 @@ import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpClient;
 
+import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
+
 public class Client {
 
     private final Vertx vertx;
@@ -19,17 +21,25 @@ public class Client {
     private Long keepAliveTimeOut;
     private Long requestCount;
 
+    private Long eventInterval;
+
     public Client(final String hostWithPort, final Vertx vertx) {
+        Long now = System.currentTimeMillis();
+        String[] hostWithPortArray = hostWithPort.split(":");
         this.vertx = vertx;
         this.client = null;
-        this.host = hostWithPort.split(":")[0];
-        this.port = Integer.parseInt(hostWithPort.split(":")[1]);
+        this.host = hostWithPortArray[0];
+        this.port = Integer.parseInt(hostWithPortArray[1]);
         this.timeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
-        this.keepAliveTimeMark = System.currentTimeMillis();
+        this.keepAliveTimeMark = now;
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
+    }
+
+    public Client myself() {
+        return this;
     }
 
     public String getHost() {
@@ -95,7 +105,7 @@ public class Client {
         if (requestCount<=keepAliveMaxRequest) {
             requestCount++;
         }
-        if ((requestCount>=keepAliveMaxRequest) || ((now-keepAliveTimeMark))>keepAliveTimeOut) {
+        if ((requestCount>=keepAliveMaxRequest) || (now-keepAliveTimeMark)>keepAliveTimeOut) {
             keepAliveTimeMark = now;
             requestCount = 0L;
             return true;
@@ -112,6 +122,15 @@ public class Client {
         return this;
     }
 
+    public Long getEventInterval() {
+        return this.eventInterval;
+    }
+
+    public Client setEventInterval(Long eventInterval) {
+        this.eventInterval = eventInterval;
+        return this;
+    }
+
     // Lazy initialization
     public HttpClient connect() {
         if (client==null) {
@@ -123,10 +142,10 @@ public class Client {
                 .setPort(port)
                 .setMaxPoolSize(maxPoolSize);
             client.exceptionHandler(new Handler<Throwable>() {
-              @Override
-              public void handle(Throwable e) {
-//                  System.err.println(e.getMessage());
-              }
+                @Override
+                public void handle(Throwable e) {
+                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
+                }
             });
         }
         return client;
@@ -146,16 +165,25 @@ public class Client {
     }
 
     @Override
+    public String toString() {
+        return String.format("%s:%d", this.host, this.port);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (obj==null||!(obj instanceof Client)) {
             return false;
         }
+        if (obj == this) {
+            return true;
+        }
+
         Client objClient = (Client)obj;
-        return objClient.getHost() == this.host && objClient.getPort() == this.port;
+        return objClient.toString().equals(this.toString());
     }
 
     @Override
     public int hashCode() {
-        return String.format("%s:%d", this.host, this.port).hashCode();
+        return this.toString().hashCode();
     }
 }

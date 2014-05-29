@@ -3,19 +3,23 @@ package lbaas;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
+import static lbaas.Constants.CONF_INSTANCES;
+
 public class Starter extends Verticle{
 
     @Override
     public void start() {
         final JsonObject conf = container.config();
-        final JsonObject conf_router = conf.getObject("router", new JsonObject("{}"));
-        final JsonObject conf_routermanager = conf.getObject("routermanager", new JsonObject("{}"));
-        final JsonObject conf_statsd = conf.getObject("statsd", new JsonObject("{}"));
+        final JsonObject confRouter = conf.getObject("router", new JsonObject("{}"));
+        final JsonObject confRouterManager = conf.getObject("routermanager", new JsonObject("{}"));
+        final JsonObject confHealthManager = conf.getObject("healthmanager", new JsonObject("{}"));
+        final JsonObject confStatsd = conf.getObject("statsd", new JsonObject("{}"));
 
-        int num_cpu_cores = Runtime.getRuntime().availableProcessors();
-        container.deployVerticle("lbaas.RouterVerticle", conf_router, conf_router.getInteger("instances", num_cpu_cores));
-        container.deployVerticle("lbaas.RouteManagerVerticle", conf_routermanager, conf_routermanager.getInteger("instances", 1));
-        container.deployVerticle("lbaas.StatsDVerticle", conf_statsd, conf_statsd.getInteger("instances", 1));
+        int numCpuCores = Runtime.getRuntime().availableProcessors();
+        container.deployVerticle("lbaas.RouterVerticle", confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
+        container.deployVerticle("lbaas.RouteManagerVerticle", confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle("lbaas.HealthManagerVerticle", confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle("lbaas.StatsDVerticle", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
 
     }
 }
