@@ -2,12 +2,15 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas;
+package lbaas.verticles;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lbaas.Client;
+import lbaas.QueueMap;
+import lbaas.Server;
 import lbaas.handlers.RouterFrontEndRequestHandler;
 
 import org.vertx.java.core.Handler;

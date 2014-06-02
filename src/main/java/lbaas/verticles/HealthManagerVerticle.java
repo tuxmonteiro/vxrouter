@@ -2,7 +2,7 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas;
+package lbaas.verticles;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -11,6 +11,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import lbaas.IEventObserver;
+import lbaas.QueueMap;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.EventBus;

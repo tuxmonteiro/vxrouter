@@ -2,7 +2,7 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas;
+package lbaas.verticles;
 
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
@@ -14,6 +14,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import lbaas.Client;
+import lbaas.IEventObserver;
+import lbaas.QueueMap;
+import lbaas.Server;
 import lbaas.exceptions.RouterException;
 
 import org.vertx.java.core.Handler;
