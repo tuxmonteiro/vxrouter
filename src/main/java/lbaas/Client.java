@@ -10,19 +10,19 @@ public class Client {
 
     private final Vertx vertx;
     private HttpClient client;
+
     private String host;
     private Integer port;
     private Integer timeout;
     private Integer maxPoolSize;
-
     private boolean keepalive;
     private Long keepAliveMaxRequest;
-    private Long keepAliveTimeMark;
     private Long keepAliveTimeOut;
+
+    private Long keepAliveTimeMark;
     private Long requestCount;
 
     public Client(final String hostWithPort, final Vertx vertx) {
-        Long now = System.currentTimeMillis();
         String[] hostWithPortArray = hostWithPort.split(":");
         this.vertx = vertx;
         this.client = null;
@@ -31,12 +31,12 @@ public class Client {
         this.timeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
-        this.keepAliveTimeMark = now;
+        this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
     }
 
-    public Client myself() {
+    private Client myself() {
         return this;
     }
 
@@ -76,11 +76,7 @@ public class Client {
         return this;
     }
 
-    public Long getKeepAliveRequestCount() {
-      return requestCount;
-    }
-
-    public Long getMaxRequestCount() {
+    public Long getKeepAliveMaxRequest() {
       return keepAliveMaxRequest;
     }
 
