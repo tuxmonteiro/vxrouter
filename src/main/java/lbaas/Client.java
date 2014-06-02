@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import org.vertx.java.core.Handler;
@@ -10,21 +14,42 @@ public class Client {
 
     private final Vertx vertx;
     private HttpClient client;
+
     private String host;
     private Integer port;
     private Integer timeout;
     private Integer maxPoolSize;
-
     private boolean keepalive;
     private Long keepAliveMaxRequest;
-    private Long keepAliveTimeMark;
     private Long keepAliveTimeOut;
+
+    private Long keepAliveTimeMark;
     private Long requestCount;
 
-    private Long eventInterval;
+    @Override
+    public String toString() {
+        return String.format("%s:%d", this.host, this.port);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj==null||!(obj instanceof Client)) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+
+        Client objClient = (Client)obj;
+        return objClient.toString().equals(this.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.toString().hashCode();
+    }
 
     public Client(final String hostWithPort, final Vertx vertx) {
-        Long now = System.currentTimeMillis();
         String[] hostWithPortArray = hostWithPort.split(":");
         this.vertx = vertx;
         this.client = null;
@@ -33,13 +58,9 @@ public class Client {
         this.timeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
-        this.keepAliveTimeMark = now;
+        this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
-    }
-
-    public Client myself() {
-        return this;
     }
 
     public String getHost() {
@@ -78,11 +99,7 @@ public class Client {
         return this;
     }
 
-    public Long getKeepAliveRequestCount() {
-      return requestCount;
-    }
-
-    public Long getMaxRequestCount() {
+    public Long getKeepAliveMaxRequest() {
       return keepAliveMaxRequest;
     }
 
@@ -122,17 +139,9 @@ public class Client {
         return this;
     }
 
-    public Long getEventInterval() {
-        return this.eventInterval;
-    }
-
-    public Client setEventInterval(Long eventInterval) {
-        this.eventInterval = eventInterval;
-        return this;
-    }
-
     // Lazy initialization
     public HttpClient connect() {
+        final String endpoint = this.toString();
         if (client==null) {
             client = vertx.createHttpClient()
                 .setKeepAlive(keepalive)
@@ -144,7 +153,7 @@ public class Client {
             client.exceptionHandler(new Handler<Throwable>() {
                 @Override
                 public void handle(Throwable e) {
-                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
+                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, endpoint);
                 }
             });
         }
@@ -156,34 +165,11 @@ public class Client {
             try {
                 client.close();
             } catch (IllegalStateException e) {
-                // Already closed
-//                System.err.println(e.getMessage());
+                // Already closed. Ignore exception.
             } finally {
                 client=null;
             }
         }
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s:%d", this.host, this.port);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj==null||!(obj instanceof Client)) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-
-        Client objClient = (Client)obj;
-        return objClient.toString().equals(this.toString());
-    }
-
-    @Override
-    public int hashCode() {
-        return this.toString().hashCode();
-    }
 }

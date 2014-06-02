@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import lbaas.exceptions.BadRequestException;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.VoidHandler;
@@ -22,6 +28,7 @@ import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class RouterVerticle extends Verticle {
 
+  @Override
   public void start() {
 
       final Logger log = container.logger();
@@ -32,7 +39,6 @@ public class RouterVerticle extends Verticle {
       final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
       final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
       final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
-      final Long clientEventInterval = conf.getLong("clientEventInterval",5000L);
 
       final Map<String, Set<Client>> vhosts = new HashMap<>();
       final Map<String, Set<Client>> badVhosts = new HashMap<>();
@@ -87,8 +93,7 @@ public class RouterVerticle extends Verticle {
                      .setKeepAliveTimeOut(keepAliveTimeOut)
                      .setKeepAliveMaxRequest(keepAliveMaxRequest)
                      .setConnectionTimeout(clientConnectionTimeOut)
-                     .setMaxPoolSize(clientMaxPoolSize)
-                     .setEventInterval(clientEventInterval);
+                     .setMaxPoolSize(clientMaxPoolSize);
 
              final Handler<HttpClientResponse> handlerHttpClientResponse = new Handler<HttpClientResponse>() {
 
@@ -142,10 +147,6 @@ public class RouterVerticle extends Verticle {
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
 
-//             if (cRequest==null) {
-//                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
-//                 return;
-//             }
              changeHeader(sRequest, headerHost);
 
              cRequest.headers().set(sRequest.headers());
@@ -164,7 +165,10 @@ public class RouterVerticle extends Verticle {
                      serverShowErrorAndClose(sRequest.response(), event);
                      try {
                          client.close();
-                     } catch (RuntimeException e) {} // Ignore double client close
+                     } catch (RuntimeException e) {
+                         // Ignore double client close
+                         return;
+                     }
                  }
               });
 
@@ -239,21 +243,24 @@ public class RouterVerticle extends Verticle {
            serverResponse.end();
        } catch (java.lang.IllegalStateException e) {
            // Response has already been written ?
-//           System.err.println(e.getMessage());
+           return;
        }
 
        try {
            serverResponse.close();
        } catch (RuntimeException e) {
            // Socket null or already closed
-//           System.err.println(e.getMessage());
+           return;
        }
    }
 
    private void serverNormalClose(final HttpServerResponse serverResponse) {
        try {
            serverResponse.close();
-       } catch (RuntimeException e) {} // Ignore already closed
+       } catch (RuntimeException e) {
+           // Ignore already closed
+           return;
+       }
    }
 
 }
