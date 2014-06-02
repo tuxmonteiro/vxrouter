@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import lbaas.exceptions.RouterException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.vertx.java.core.Handler;
@@ -86,7 +87,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (!"".equals(virtualHost)) {
                                 jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                                 if (!jsonVirtualHost.equalsIgnoreCase(virtualHost)) {
-                                    throw new RuntimeException();
+                                    throw new RouterException("Virtualhost: inconsistent reference");
                                 }
                             }
                             returnStatus(req,200);
@@ -200,6 +201,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 final String real = realWithPort != null ? realWithPort[0]:"";
                 final String port = realWithPort != null ? realWithPort[1]:"";
                 req.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         try {
                             final JsonObject json = new JsonObject(body.toString());
@@ -207,11 +209,11 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (action==Action.DEL) {
                                 JsonArray reals = json.containsField("endpoints") ? json.getArray("endpoints"): null;
                                 if (reals!=null && !reals.toList().isEmpty() && !reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
-                                    throw new RuntimeException();
+                                    throw new RouterException("Real not found");
                                 }
                             }
                             if ("".equals(jsonVirtualHost)) {
-                                throw new RuntimeException();
+                                throw new RouterException("Virtualhost name null");
                             }
                             returnStatus(req, 200);
                             setRoute(json, action, req.uri());
@@ -260,10 +262,10 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             final JsonObject json = new JsonObject(body.toString());
                             String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                             if ("".equals(jsonVirtualHost)) {
-                                throw new RuntimeException();
+                                throw new RouterException("Virtualhost name null");
                             }
                             if (action==Action.DEL && !jsonVirtualHost.equals(virtualhost) && "".equals(virtualhost)) {
-                                throw new RuntimeException();
+                                throw new RouterException("Virtualhost: inconsistent reference");
                             }
                             returnStatus(req, 200);
                             setRoute(json, action, req.uri());
@@ -298,7 +300,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             if (jsonTemp.containsField("name")) {
                 vhost = jsonTemp.getString("name");
             } else {
-                throw new RuntimeException("virtualhost undef");
+                throw new RouterException("virtualhost undef");
             }
 
             if (jsonTemp.containsField("endpoints")) {
@@ -310,7 +312,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                     port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
                     status = endpointJson.containsField("status") ? endpointJson.getBoolean("status"):true;
                     if ("".equals(host) || port==null) {
-                        throw new RuntimeException("Endpoint host or port undef");
+                        throw new RouterException("Endpoint host or port undef");
                     }
                     String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, status ? 1 : 0, uri);
                     sendAction(message, action);
@@ -341,7 +343,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 log.debug(String.format("Sending %s to %s",message, QUEUE_ROUTE_VERSION));
                 break;
             default:
-                throw new RuntimeException("Action not supported");
+                throw new RouterException("Action not supported");
         }
     }
 

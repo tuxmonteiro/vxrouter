@@ -2,7 +2,7 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas;
+package lbaas.exceptions;
 
 public class BadRequestException extends RuntimeException {
 
