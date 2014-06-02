@@ -89,9 +89,9 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
                 new RouterBackEndResponseHandler(vertx, requestTimeoutTimer, sRequest, 
                         connectionKeepalive, clientForceKeepAlive, client, server);
         final HttpClient httpClient = client.connect();
-        final HttpClientRequest cRequest = httpClient
-                .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
-                .setChunked(true);
+        final HttpClientRequest cRequest =
+                httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
+                    .setChunked(true);
 
         changeHeader(sRequest, headerHost);
 

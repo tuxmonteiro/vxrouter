@@ -28,7 +28,10 @@ public class Server {
         this.log = container.logger();
     }
 
-    public void start(final Object caller, final Handler<HttpServerRequest> handlerHttpServerRequest, final Integer defaultPort) {
+    public void start(
+            final Object caller,
+            final Handler<HttpServerRequest> handlerHttpServerRequest,
+            final Integer defaultPort) {
         Integer port = conf.getInteger(CONF_PORT,defaultPort);
         vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
             .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
