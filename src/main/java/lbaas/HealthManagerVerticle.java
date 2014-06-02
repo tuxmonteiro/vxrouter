@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import java.io.UnsupportedEncodingException;
@@ -30,6 +34,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
     private final Map<String, Set<String>> endPointsMap = new HashMap<>();
     private final Map<String, Set<String>> badEndPointsMap = new HashMap<>();
 
+    @Override
     public void start() {
         final Logger log = container.logger();
 
@@ -109,6 +114,37 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
         log.info(String.format("Instance %s started", this.toString()));
     }
 
+    @Override
+    public void setVersion(Long version) {}
+
+    @Override
+    public void postAddEvent(String message) {
+        Map<String, String> map = new HashMap<>();
+        messageToMap(message, map);
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+
+        if (!tempMap.containsKey(map.get("endpoint"))) {
+            tempMap.put(map.get("endpoint"), new HashSet<String>());
+        }
+        Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+        virtualhosts.add(map.get("virtualhost"));
+    };
+
+    @Override
+    public void postDelEvent(String message) {
+        Map<String, String> map = new HashMap<>();
+        messageToMap(message, map);
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+
+        if (tempMap.containsKey(map.get("endpoint"))) {
+            Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+            virtualhosts.remove(map.get("virtualhost"));
+            if (virtualhosts.isEmpty()) {
+                tempMap.remove(map.get("endpoint"));
+            }
+        }
+    };
+
     private void moveEndpoint(final String endpoint, final Boolean status) throws UnsupportedEncodingException {
 
         final EventBus eb = this.getVertx().eventBus();
@@ -146,34 +182,4 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
         }
     }
 
-    @Override
-    public void setVersion(Long version) {}
-
-    @Override
-    public void postAddEvent(String message) {
-        Map<String, String> map = new HashMap<>();
-        messageToMap(message, map);
-        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
-
-        if (!tempMap.containsKey(map.get("endpoint"))) {
-            tempMap.put(map.get("endpoint"), new HashSet<String>());
-        }
-        Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
-        virtualhosts.add(map.get("virtualhost"));
-    };
-
-    @Override
-    public void postDelEvent(String message) {
-        Map<String, String> map = new HashMap<>();
-        messageToMap(message, map);
-        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
-
-        if (tempMap.containsKey(map.get("endpoint"))) {
-            Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
-            virtualhosts.remove(map.get("virtualhost"));
-            if (virtualhosts.isEmpty()) {
-                tempMap.remove(map.get("endpoint"));
-            }
-        }
-    };
 }

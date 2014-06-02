@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
@@ -85,10 +89,10 @@ public class QueueMap {
                     String host = route[1];
                     String port = route[2];
                     boolean status = !route[3].equals("0");
-//                    String uri = route[4];
+                    //String uri = route[4];
                     String endpoint = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
-//                    String uriBase = uri.split("/")[1];
+                    //String uriBase = uri.split("/")[1];
                     final Map<String, Set<Client>> tempMap = status ? map : badMap;
 
                     if ("".equals(endpoint)) {
@@ -134,7 +138,7 @@ public class QueueMap {
         });
     }
 
-    public void setVersion(Long version) {
+    private void setVersion(Long version) {
         if (verticle instanceof IEventObserver) {
             ((IEventObserver)verticle).setVersion(version);
             log.info(String.format("[%s] POST /version: %d", verticle.toString(), version));

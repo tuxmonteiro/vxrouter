@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import org.vertx.java.core.Handler;
@@ -21,6 +25,29 @@ public class Client {
 
     private Long keepAliveTimeMark;
     private Long requestCount;
+
+    @Override
+    public String toString() {
+        return String.format("%s:%d", this.host, this.port);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj==null||!(obj instanceof Client)) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+
+        Client objClient = (Client)obj;
+        return objClient.toString().equals(this.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.toString().hashCode();
+    }
 
     public Client(final String hostWithPort, final Vertx vertx) {
         String[] hostWithPortArray = hostWithPort.split(":");
@@ -145,26 +172,4 @@ public class Client {
         }
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s:%d", this.host, this.port);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj==null||!(obj instanceof Client)) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-
-        Client objClient = (Client)obj;
-        return objClient.toString().equals(this.toString());
-    }
-
-    @Override
-    public int hashCode() {
-        return this.toString().hashCode();
-    }
 }

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
@@ -36,6 +40,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         VERSION
     }
 
+    @Override
     public void start() {
         final Logger log = container.logger();
 
@@ -48,7 +53,22 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         log.info(String.format("Instance %s started", this.toString()));
     }
 
-    public long getVersion() {
+    @Override
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    @Override
+    public void postAddEvent(String message) {
+        return;
+    };
+
+    @Override
+    public void postDelEvent(String message) {
+        return;
+    };
+
+    private long getVersion() {
         return this.version;
     }
 
@@ -258,7 +278,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         };
     }
 
-    public void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
+    private void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
         JsonArray jsonRoutes = null;
         if (json.containsField("routes")) {
             jsonRoutes = json.getArray("routes");
@@ -303,7 +323,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         }
     }
 
-    public void sendAction(String message, Action action) {
+    private void sendAction(String message, Action action) {
         final EventBus eb = this.getVertx().eventBus();
         final Logger log = this.getContainer().logger();
 
@@ -325,7 +345,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         }
     }
 
-     public JsonObject getRoutes() {
+     private JsonObject getRoutes() {
         JsonObject routes = new JsonObject();
         routes.putNumber("version", getVersion());
         JsonArray vhosts = new JsonArray();
@@ -375,14 +395,4 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         req.response().end(messageReturn);
     }
 
-    @Override
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    @Override
-    public void postAddEvent(String message) {};
-
-    @Override
-    public void postDelEvent(String message) {};
 }

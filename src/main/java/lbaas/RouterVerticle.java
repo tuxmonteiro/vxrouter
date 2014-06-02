@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import java.util.HashMap;
@@ -22,6 +26,7 @@ import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class RouterVerticle extends Verticle {
 
+  @Override
   public void start() {
 
       final Logger log = container.logger();
@@ -134,10 +139,6 @@ public class RouterVerticle extends Verticle {
                      .request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                      .setChunked(true);
 
-//             if (cRequest==null) {
-//                 serverShowErrorAndClose(sRequest.response(), new BadRequestException());
-//                 return;
-//             }
              changeHeader(sRequest, headerHost);
 
              cRequest.headers().set(sRequest.headers());
@@ -156,7 +157,10 @@ public class RouterVerticle extends Verticle {
                      serverShowErrorAndClose(sRequest.response(), event);
                      try {
                          client.close();
-                     } catch (RuntimeException e) {} // Ignore double client close
+                     } catch (RuntimeException e) {
+                         // Ignore double client close
+                         return;
+                     }
                  }
               });
 
@@ -176,7 +180,7 @@ public class RouterVerticle extends Verticle {
      log.info(String.format("Instance %s started", this.toString()));
 
    }
-  
+
    private void changeHeader(final HttpServerRequest sRequest, final String vhost) {
        String xff;
        String remote = sRequest.remoteAddress().getAddress().getHostAddress();
@@ -228,21 +232,24 @@ public class RouterVerticle extends Verticle {
            serverResponse.end();
        } catch (java.lang.IllegalStateException e) {
            // Response has already been written ?
-//           System.err.println(e.getMessage());
+           return;
        }
 
        try {
            serverResponse.close();
        } catch (RuntimeException e) {
            // Socket null or already closed
-//           System.err.println(e.getMessage());
+           return;
        }
    }
 
    private void serverNormalClose(final HttpServerResponse serverResponse) {
        try {
            serverResponse.close();
-       } catch (RuntimeException e) {} // Ignore already closed
+       } catch (RuntimeException e) {
+           // Ignore already closed
+           return;
+       }
    }
 
 }
