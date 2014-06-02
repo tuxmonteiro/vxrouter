@@ -36,10 +36,6 @@ public class Client {
         this.requestCount = 0L;
     }
 
-    private Client myself() {
-        return this;
-    }
-
     public String getHost() {
         return host;
     }
@@ -118,6 +114,7 @@ public class Client {
 
     // Lazy initialization
     public HttpClient connect() {
+        final String endpoint = this.toString();
         if (client==null) {
             client = vertx.createHttpClient()
                 .setKeepAlive(keepalive)
@@ -129,7 +126,7 @@ public class Client {
             client.exceptionHandler(new Handler<Throwable>() {
                 @Override
                 public void handle(Throwable e) {
-                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, myself().toString() );
+                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, endpoint);
                 }
             });
         }
@@ -141,8 +138,7 @@ public class Client {
             try {
                 client.close();
             } catch (IllegalStateException e) {
-                // Already closed
-//                System.err.println(e.getMessage());
+                // Already closed. Ignore exception.
             } finally {
                 client=null;
             }
