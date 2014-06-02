@@ -32,7 +32,6 @@ public class RouterVerticle extends Verticle {
       final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
       final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
       final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
-      final Long clientEventInterval = conf.getLong("clientEventInterval",5000L);
 
       final Map<String, Set<Client>> vhosts = new HashMap<>();
       final Map<String, Set<Client>> badVhosts = new HashMap<>();
@@ -84,8 +83,7 @@ public class RouterVerticle extends Verticle {
                      .setKeepAliveTimeOut(keepAliveTimeOut)
                      .setKeepAliveMaxRequest(keepAliveMaxRequest)
                      .setConnectionTimeout(clientConnectionTimeOut)
-                     .setMaxPoolSize(clientMaxPoolSize)
-                     .setEventInterval(clientEventInterval);
+                     .setMaxPoolSize(clientMaxPoolSize);
 
              final Handler<HttpClientResponse> handlerHttpClientResponse = new Handler<HttpClientResponse>() {
 

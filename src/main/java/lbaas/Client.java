@@ -21,8 +21,6 @@ public class Client {
     private Long keepAliveTimeOut;
     private Long requestCount;
 
-    private Long eventInterval;
-
     public Client(final String hostWithPort, final Vertx vertx) {
         Long now = System.currentTimeMillis();
         String[] hostWithPortArray = hostWithPort.split(":");
@@ -119,15 +117,6 @@ public class Client {
 
     public Client setMaxPoolSize(Integer maxPoolSize) {
         this.maxPoolSize = maxPoolSize;
-        return this;
-    }
-
-    public Long getEventInterval() {
-        return this.eventInterval;
-    }
-
-    public Client setEventInterval(Long eventInterval) {
-        this.eventInterval = eventInterval;
         return this;
     }
 
