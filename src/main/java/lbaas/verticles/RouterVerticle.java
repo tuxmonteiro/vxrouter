@@ -11,7 +11,7 @@ import java.util.Set;
 import lbaas.Client;
 import lbaas.QueueMap;
 import lbaas.Server;
-import lbaas.handlers.RouterFrontEndRequestHandler;
+import lbaas.handlers.RouterRequestHandler;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -34,7 +34,7 @@ public class RouterVerticle extends Verticle {
 
       final Server server = new Server(vertx, container);
       final Handler<HttpServerRequest> handlerHttpServerRequest = 
-              new RouterFrontEndRequestHandler(vertx, container, vhosts, server);
+              new RouterRequestHandler(vertx, container, vhosts, server);
 
       server.start(this, handlerHttpServerRequest, 9000);
       log.info(String.format("Instance %s started", this.toString()));

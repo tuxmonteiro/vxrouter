@@ -27,7 +27,7 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Container;
 
-public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> {
+public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
     private final Vertx vertx;
     private final JsonObject conf;
@@ -90,7 +90,7 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
                 .setMaxPoolSize(clientMaxPoolSize);
 
         final Handler<HttpClientResponse> handlerHttpClientResponse = 
-                new RouterBackEndResponseHandler(vertx, requestTimeoutTimer, sRequest, 
+                new RouterResponseHandler(vertx, requestTimeoutTimer, sRequest, 
                         connectionKeepalive, clientForceKeepAlive, client, server);
         final HttpClient httpClient = client.connect();
         final HttpClientRequest cRequest =
@@ -140,7 +140,7 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
          });
     }
 
-    public RouterFrontEndRequestHandler(
+    public RouterRequestHandler(
             final Vertx vertx, 
             final Container container, 
             final Map<String, Set<Client>> vhosts,

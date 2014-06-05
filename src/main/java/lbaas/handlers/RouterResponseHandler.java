@@ -15,7 +15,7 @@ import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.streams.Pump;
 
-public class RouterBackEndResponseHandler implements Handler<HttpClientResponse> {
+public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
     private final Vertx vertx;
     private final Long requestTimeoutTimer;
@@ -70,7 +70,7 @@ public class RouterBackEndResponseHandler implements Handler<HttpClientResponse>
 
     }
 
-    public RouterBackEndResponseHandler(
+    public RouterResponseHandler(
             final Vertx vertx, 
             final Long requestTimeoutTimer, 
             final HttpServerRequest sRequest,
