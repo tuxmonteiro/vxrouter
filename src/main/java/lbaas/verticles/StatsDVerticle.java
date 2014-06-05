@@ -1,7 +1,7 @@
 /* 
  * Vert.X module StatsD Client implementation
  */
-package lbaas;
+package lbaas.verticles;
 
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
 

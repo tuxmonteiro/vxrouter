@@ -2,9 +2,8 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas;
+package lbaas.verticles;
 
-import static lbaas.Constants.CONF_PORT;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
@@ -15,8 +14,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import lbaas.Client;
+import lbaas.IEventObserver;
+import lbaas.QueueMap;
+import lbaas.Server;
 import lbaas.exceptions.RouterException;
-import io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
@@ -32,6 +34,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
 
     private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
     private final Map<String, Set<Client>> badGraphRoutes = new HashMap<>();
+    private Server server;
 
     private Long version = 0L;
 
@@ -44,6 +47,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
     @Override
     public void start() {
         final Logger log = container.logger();
+        server = new Server(vertx, container);
 
         startHttpServer(container.config());
         final QueueMap queueMap = new QueueMap(this, graphRoutes, badGraphRoutes);
@@ -75,6 +79,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
 
     private Handler<HttpServerRequest> routeHandlerAction(final Action action) {
         final Logger log = this.getContainer().logger();
+        final Server server = this.server;
         return new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest req) {
@@ -90,12 +95,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                                     throw new RouterException("Virtualhost: inconsistent reference");
                                 }
                             }
-                            returnStatus(req,200);
+                            server.returnStatus(req,200);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("routeHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            returnStatus(req,400);
+                            server.returnStatus(req,400);
                         }
                     }
                 });
@@ -106,6 +111,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
     private void startHttpServer(final JsonObject serverConf) throws RuntimeException {
         final EventBus eb = this.getVertx().eventBus();
         final Logger log = this.getContainer().logger();
+        final Server server = this.server;
 
         RouteMatcher routeMatcher = new RouteMatcher();
 
@@ -116,7 +122,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         routeMatcher.get("/route", new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
-                returnStatus(req, 200, getRoutes().encodePrettily());
+                server.returnStatus(req, 200, getRoutes().encodePrettily());
                 log.info("GET /route");
             }
         });
@@ -133,9 +139,9 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (json.containsField("version")) {
                                 sendAction(String.format("%d", json.getLong("version")), Action.VERSION);
                             }
-                            returnStatus(req, 200);
+                            server.returnStatus(req, 200);
                         } catch (RuntimeException e) {
-                            returnStatus(req, 400);
+                            server.returnStatus(req, 400);
                         }
                     }
                 });
@@ -145,7 +151,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             @Override
             public void handle(HttpServerRequest req) {
                 JsonObject versionJson = new JsonObject(String.format("{\"version\":%d}", getVersion()));
-                returnStatus(req, 200, versionJson.encodePrettily());
+                server.returnStatus(req, 200, versionJson.encodePrettily());
                 log.info(String.format("GET /version: %d", getVersion()));
             }
         });
@@ -159,7 +165,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         routeMatcher.get("/virtualhost", new Handler<HttpServerRequest>() {
             @Override
             public void handle(HttpServerRequest req) {
-                returnStatus(req, 200, getVirtualHosts(""));
+                server.returnStatus(req, 200, getVirtualHosts(""));
                 log.info("GET /virtualhost");
             }
         });
@@ -168,7 +174,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             @Override
             public void handle(HttpServerRequest req) {
                 String virtualhost = req.params() != null && req.params().contains("id") ? req.params().get("id"): "";
-                returnStatus(req, 200, getVirtualHosts(virtualhost));
+                server.returnStatus(req, 200, getVirtualHosts(virtualhost));
                 log.info(String.format("GET /virtualhost/%s", virtualhost));
             }
         });
@@ -180,15 +186,16 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         // Others methods/uris/etc
         routeMatcher.noMatch(new Handler<HttpServerRequest>() {
             public void handle(HttpServerRequest req) {
-                returnStatus(req, 400);
+                server.returnStatus(req, 400);
                 log.warn(String.format("%s %s not supported", req.method(), req.uri()));
             }
         });
 
-        vertx.createHttpServer().requestHandler(routeMatcher).listen(serverConf.getInteger(CONF_PORT, 9090));
+        server.start(this, routeMatcher, 9090);
     }
 
     private Handler<HttpServerRequest> realHandlerAction(final EventBus eb, final Logger log, final Action action) {
+        final Server server = this.server;
         return new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest req) {
@@ -215,12 +222,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if ("".equals(jsonVirtualHost)) {
                                 throw new RouterException("Virtualhost name null");
                             }
-                            returnStatus(req, 200);
+                            server.returnStatus(req, 200);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("realHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            returnStatus(req, 400);
+                            server.returnStatus(req, 400);
                         }
                     }
                 });
@@ -245,6 +252,8 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
 
     private Handler<HttpServerRequest> virtualhostHandlerAction(final Action action) {
         final Logger log = this.getContainer().logger();
+        final Server server = this.server;
+
         return new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest req) {
@@ -267,12 +276,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (action==Action.DEL && !jsonVirtualHost.equals(virtualhost) && "".equals(virtualhost)) {
                                 throw new RouterException("Virtualhost: inconsistent reference");
                             }
-                            returnStatus(req, 200);
+                            server.returnStatus(req, 200);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("virtualHostHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            returnStatus(req, 400);
+                            server.returnStatus(req, 400);
                         }
                     }
                 });
@@ -379,22 +388,6 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         }
         routes.putArray("routes", vhosts);
         return routes;
-    }
-
-    private void returnStatus(final HttpServerRequest req, Integer code) {
-        returnStatus(req, code, "");
-    }
-
-    private void returnStatus(final HttpServerRequest req, Integer code, String message) {
-        req.response().setStatusCode(code);
-        req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
-        req.response().headers().set("Content-Type", "application/json");
-        String messageReturn = message;
-        if ("".equals(message)) {
-            JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
-            messageReturn = json.encodePrettily();
-        }
-        req.response().end(messageReturn);
     }
 
 }
