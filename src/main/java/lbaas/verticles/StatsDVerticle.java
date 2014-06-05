@@ -11,6 +11,7 @@ import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
 public class StatsDVerticle extends Verticle {
@@ -26,6 +27,7 @@ public class StatsDVerticle extends Verticle {
 
     public void start() {
 
+        final Logger log = container.logger();
         final JsonObject conf = container.config();
         this.prefix = conf.getString("defaultPrefix", "stats");
         this.statsDhost = conf.getString("host", "localhost");
@@ -40,6 +42,8 @@ public class StatsDVerticle extends Verticle {
         eb.registerLocalHandler("statsd.timer", getHandler(PATTERN_TIME));
         eb.registerLocalHandler("statsd.gauge", getHandler(PATTERN_GAUGE));
         eb.registerLocalHandler("statsd.set", getHandler(PATTERN_SET));
+
+        log.info(String.format("Instance %s started", this.toString()));
 
     }
 
