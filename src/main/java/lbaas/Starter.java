@@ -20,10 +20,10 @@ public class Starter extends Verticle{
         final JsonObject confStatsd = conf.getObject("statsd", new JsonObject("{}"));
 
         int numCpuCores = Runtime.getRuntime().availableProcessors();
-        container.deployVerticle("lbaas.RouterVerticle", confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
-        container.deployVerticle("lbaas.RouteManagerVerticle", confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
-        container.deployVerticle("lbaas.HealthManagerVerticle", confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
-        container.deployVerticle("lbaas.StatsDVerticle", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle("lbaas.verticles.RouterVerticle", confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
+        container.deployVerticle("lbaas.verticles.RouteManagerVerticle", confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle("lbaas.verticles.HealthManagerVerticle", confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle("lbaas.verticles.StatsDVerticle", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
 
     }
 }
