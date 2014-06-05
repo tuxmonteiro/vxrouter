@@ -16,6 +16,7 @@ import lbaas.exceptions.BadRequestException;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.VoidHandler;
+import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
@@ -43,6 +44,7 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
         final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
         final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
         final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
+        final boolean enableChunked = conf.getBoolean("enableChunked", true);
 
         sRequest.response().setChunked(true);
 
@@ -91,7 +93,7 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
         final HttpClient httpClient = client.connect();
         final HttpClientRequest cRequest =
                 httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
-                    .setChunked(true);
+                    .setChunked(enableChunked);
 
         changeHeader(sRequest, headerHost);
 
@@ -100,8 +102,18 @@ public class RouterFrontEndRequestHandler implements Handler<HttpServerRequest> 
             cRequest.headers().set("Connection", "keep-alive");
         }
 
-        // Pump sRequest => cRequest
-        Pump.createPump(sRequest, cRequest).start();
+        if (enableChunked) {
+            // Pump sRequest => cRequest
+            Pump.createPump(sRequest, cRequest).start();
+        } else {
+            sRequest.bodyHandler(new Handler<Buffer>() {
+                @Override
+                public void handle(Buffer buffer) {
+                    cRequest.headers().set("Content-Length", String.format("%d", buffer.length()));
+                    cRequest.write(buffer);
+                }
+            });
+        }
 
         cRequest.exceptionHandler(new Handler<Throwable>() {
             @Override
