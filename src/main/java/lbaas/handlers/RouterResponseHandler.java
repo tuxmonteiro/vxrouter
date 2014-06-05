@@ -48,13 +48,13 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
                 if (connectionKeepalive) {
                     if (client.isKeepAliveLimit()) {
                         client.close();
-                        server.close(sRequest.response());
+                        server.close(sRequest);
                     }
                 } else {
                     if (!clientForceKeepAlive) {
                         client.close();
                     }
-                    server.close(sRequest.response());
+                    server.close(sRequest);
                 }
             }
         });
@@ -63,7 +63,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             @Override
             public void handle(Throwable event) {
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
-                server.showErrorAndClose(sRequest.response(), event);
+                server.showErrorAndClose(sRequest, event);
                 client.close();
             }
         });

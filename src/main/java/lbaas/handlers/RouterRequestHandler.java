@@ -53,7 +53,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
-                server.showErrorAndClose(sRequest.response(), new java.util.concurrent.TimeoutException());
+                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException());
             }
         });
 
@@ -62,19 +62,19 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             headerHost = sRequest.headers().get("Host").split(":")[0];
             if (!vhosts.containsKey(headerHost)) {
                 log.error(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest.response(), new BadRequestException());
+                server.showErrorAndClose(sRequest, new BadRequestException());
                 return;
             }
         } else {
             log.error("Host UNDEF");
-            server.showErrorAndClose(sRequest.response(), new BadRequestException());
+            server.showErrorAndClose(sRequest, new BadRequestException());
             return;
         }
 
         final Set<Client> clients = vhosts.get(headerHost);
         if (clients==null ? true : clients.isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
-            server.showErrorAndClose(sRequest.response(), new BadRequestException());
+            server.showErrorAndClose(sRequest, new BadRequestException());
             return;
         }
 
@@ -122,7 +122,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             public void handle(Throwable event) {
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
 
-                server.showErrorAndClose(sRequest.response(), event);
+                server.showErrorAndClose(sRequest, event);
                 try {
                     client.close();
                 } catch (RuntimeException e) {

@@ -11,7 +11,6 @@ import lbaas.exceptions.BadRequestException;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.http.HttpServerResponse;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
@@ -39,35 +38,22 @@ public class Server {
         log.info(String.format("[%s] Server listen: %d/tcp", caller.toString(), port));
     }
 
-    public void showErrorAndClose(final HttpServerResponse serverResponse, final Throwable event) {
+    public void showErrorAndClose(final HttpServerRequest req, final Throwable event) {
 
         if (event instanceof java.util.concurrent.TimeoutException) {
-            serverResponse.setStatusCode(504);
-            serverResponse.setStatusMessage("Gateway Time-Out");
-            // TODO: increment code504 stats
+            returnStatus(req, 504);
         } else if (event instanceof BadRequestException) {
-            serverResponse.setStatusCode(400);
-            serverResponse.setStatusMessage("Bad Request");
-            // TODO: increment code400 stats
+            returnStatus(req, 400);
         } else {
-            serverResponse.setStatusCode(502);
-            serverResponse.setStatusMessage("Bad Gateway");
-            // TODO: increment code502 stats
+            returnStatus(req, 502);
         }
 
-        try {
-            serverResponse.end();
-        } catch (java.lang.IllegalStateException e) {
-            // Response has already been written ?
-            return;
-        }
-
-        close(serverResponse);
+        close(req);
     }
 
-    public void close(final HttpServerResponse serverResponse) {
+    public void close(final HttpServerRequest req) {
         try {
-            serverResponse.close();
+            req.response().close();
         } catch (RuntimeException e) {
             // Ignore already closed
             return;
@@ -88,7 +74,12 @@ public class Server {
             JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
             messageReturn = json.encodePrettily();
         }
-        req.response().end(messageReturn);
+        try {
+            req.response().end(messageReturn);
+        } catch (java.lang.IllegalStateException e) {
+            // Response has already been written ?
+            return;
+        }
     }
 
 }
