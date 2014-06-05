@@ -5,9 +5,32 @@ if [ "x$ROUTE" == "x" ]; then
   ROUTE='127.0.0.1:9090'
 fi
 
+VHOST=$2
+if [ "x$VHOST" == "x" ]; then
+  ROUTE='lol.localdomain'
+fi
+
+ENDPOINT1=$3
+if [ "x$ENDPOINT1" == "x" ]; then
+  ENDPOINT1_HOST='127.0.0.1'
+  ENDPOINT1_PORT='8081'
+else
+  ENDPOINT1_HOST=${ENDPOINT1%%:*}
+  ENDPOINT1_PORT=${ENDPOINT1##*:}
+fi
+
+ENDPOINT2=$3
+if [ "x$ENDPOINT2" == "x" ]; then
+  ENDPOINT2_HOST='127.0.0.1'
+  ENDPOINT2_PORT='8082'
+else
+  ENDPOINT2_HOST=${ENDPOINT2%%:*}
+  ENDPOINT2_PORT=${ENDPOINT2##*:}
+fi
+
 curl -XPOST "http://$ROUTE/virtualhost" -d '
 {
-  "name": "teste.qa02.globoi.com",
+  "name": "'$VHOST'",
   "endpoints": []}' \
   && curl -XPOST "http://$ROUTE/version" -d '
   {
@@ -16,11 +39,11 @@ curl -XPOST "http://$ROUTE/virtualhost" -d '
 
 curl -XPOST "http://$ROUTE/real" -d '
 {
-  "name": "teste.qa02.globoi.com",
+  "name": "'$VHOST'",
   "endpoints": [
     {
-        "host":"cittamp03ld03.globoi.com",
-        "port": 80
+        "host":"'$ENDPOINT1_HOST'",
+        "port": '$ENDPOINT1_PORT'
     }
     ]}' \
     && curl -XPOST "http://$ROUTE/version" -d '
@@ -31,11 +54,11 @@ curl -XPOST "http://$ROUTE/real" -d '
 
 curl -XPOST "http://$ROUTE/real" -d '
 {
-  "name": "teste.qa02.globoi.com",
+  "name": "'$VHOST'",
   "endpoints": [
     {
-        "host":"cittamp03ld04.globoi.com",
-        "port": 80
+        "host":"'$ENDPOINT2_HOST'",
+        "port": '$ENDPOINT2_PORT'
     }
     ]}' \
     && curl -XPOST "http://$ROUTE/version" -d '
@@ -43,8 +66,8 @@ curl -XPOST "http://$ROUTE/real" -d '
       "version": 28031978
     }'
 
-#curl -XPOST "http://$ROUTE/real" -d '{"name": "teste.qa02.globoi.com", "endpoints":[{"host":"127.0.0.1", "port": 8082}]}' \
+#curl -XPOST "http://127.0.0.1:9090/real" -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082}]}' \
 #  && curl -XPOST "http://$ROUTE/version" -d '{"version": 28031978}'
-#curl -XPOST "http://$ROUTE/real" -d '{"name": "teste.qa02.globoi.com", "endpoints":[{"host":"127.0.0.1", "port": 8083}]}' \
+#curl -XPOST "http://127.0.0.1:9090/real" -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8083}]}' \
 #  && curl -XPOST "http://$ROUTE/version" -d '{"version": 28031978}'
 
