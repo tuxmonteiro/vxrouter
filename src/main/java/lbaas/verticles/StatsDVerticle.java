@@ -1,5 +1,7 @@
 /* 
  * Vert.X module StatsD Client implementation
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
  */
 package lbaas.verticles;
 
@@ -25,6 +27,7 @@ public class StatsDVerticle extends Verticle {
     private String statsDhost;
     private Integer statsDPort;
 
+    @Override
     public void start() {
 
         final Logger log = container.logger();
