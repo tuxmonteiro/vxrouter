@@ -16,12 +16,27 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-public class StatsDVerticle extends Verticle {
+public class StatsDClient extends Verticle {
 
-    private final String PATTERN_COUNT = "%s.%s:%d|c";
-    private final String PATTERN_TIME  = "%s.%s:%d|ms";
-    private final String PATTERN_GAUGE = "%s.%s:%d|g";
-    private final String PATTERN_SET   = "%s.%s:%d|s";
+    private final static String PATTERN_COUNT = "%s:%d|c";
+    private final static String PATTERN_TIME  = "%s:%d|ms";
+    private final static String PATTERN_GAUGE = "%s:%d|g";
+    private final static String PATTERN_SET   = "%s:%d|s";
+
+    public enum TypeStatsdMessage {
+        COUNT(PATTERN_COUNT),
+        TIME(PATTERN_TIME),
+        GAUGE(PATTERN_GAUGE),
+        SET(PATTERN_SET);
+
+        private final String pattern;
+        private TypeStatsdMessage(String pattern) {
+            this.pattern = pattern;
+        }
+        public String getPattern() {
+            return this.pattern;
+        }
+    }
 
     private String prefix = "stats";
     private String statsDhost;
@@ -32,7 +47,7 @@ public class StatsDVerticle extends Verticle {
 
         final Logger log = container.logger();
         final JsonObject conf = container.config();
-        this.prefix = conf.getString("defaultPrefix", "stats");
+        this.prefix = conf.getString("defaultPrefix", "stats.");
         this.statsDhost = conf.getString("host", "localhost");
         this.statsDPort = conf.getInteger("port", 8125);
 
@@ -50,6 +65,15 @@ public class StatsDVerticle extends Verticle {
 
     }
 
+    public StatsDClient(String host, Integer port) {
+        this.statsDhost = host;
+        this.statsDPort = port;
+    }
+
+    public StatsDClient() {
+        this("localhost", 8125);
+    }
+
     private Handler<Message<String>> getHandler(final String pattern) {
         final String prefix = this.prefix;
         final Vertx vertx = this.getVertx();
@@ -59,9 +83,17 @@ public class StatsDVerticle extends Verticle {
             public void handle(Message<String> message) {
                 String[] data = message.body().split(":");
                 DatagramSocket socket = vertx.createDatagramSocket(IPv4);
-                socket.send(String.format(pattern, prefix, data[0], data[1]), statsDhost, statsDPort, null);
+                String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
+                socket.send(String.format(pattern, id, data[1]), statsDhost, statsDPort, null);
             }
         };
+    }
+
+    public void sendStatsd(TypeStatsdMessage typeStatsdMessage, String message) {
+        String[] data = message.split(":");
+        DatagramSocket socket = vertx.createDatagramSocket(IPv4);
+        String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
+        socket.send(String.format(typeStatsdMessage.getPattern(), id, data[1]), statsDhost, statsDPort, null);
     }
 
 }

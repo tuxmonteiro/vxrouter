@@ -41,9 +41,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.endHandler(new VoidHandler() {
             @Override
             public void handle() {
-                sRequest.response().end();
-                // TODO: Check cResponse status code. Increment codeXXX stats
-                // TODO: register final request_time. Update request_time stats
+                server.returnStatus(sRequest, 200, null);
 
                 if (connectionKeepalive) {
                     if (client.isKeepAliveLimit()) {

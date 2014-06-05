@@ -7,6 +7,8 @@ package lbaas;
 import static lbaas.Constants.CONF_PORT;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lbaas.exceptions.BadRequestException;
+import lbaas.verticles.StatsDClient;
+import lbaas.verticles.StatsDClient.TypeStatsdMessage;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -20,11 +22,15 @@ public class Server {
     private final Vertx vertx;
     private final JsonObject conf;
     private final Logger log;
+    private final StatsDClient statsdClient;
 
     public Server(final Vertx vertx, final Container container) {
         this.vertx = vertx;
         this.conf = container.config();
         this.log = container.logger();
+        String statsdHost = conf.getString("StatsdHost","127.0.0.1");
+        Integer statsdPort = conf.getInteger("statsdPort", 8125);
+        this.statsdClient = new StatsDClient(statsdHost, statsdPort);
     }
 
     public void start(
@@ -68,17 +74,31 @@ public class Server {
     public void returnStatus(final HttpServerRequest req, Integer code, String message) {
         req.response().setStatusCode(code);
         req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
-        req.response().headers().set("Content-Type", "application/json");
         String messageReturn = message;
-        if ("".equals(message)) {
-            JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
-            messageReturn = json.encodePrettily();
+        if (message != null) {
+            if ("".equals(message)) {
+                req.response().headers().set("Content-Type", "application/json");
+                JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
+                messageReturn = json.encodePrettily();
+            }
+            try {
+                req.response().end(messageReturn);
+            } catch (java.lang.IllegalStateException e) {
+                // Response has already been written ?
+                return;
+            }
+        } else {
+            try {
+                req.response().end();
+            } catch (java.lang.IllegalStateException e) {
+                // Response has already been written ?
+                return;
+            }
         }
-        try {
-            req.response().end(messageReturn);
-        } catch (java.lang.IllegalStateException e) {
-            // Response has already been written ?
-            return;
+        if (conf.getBoolean("enableStatsd",false)) {
+            String virtualhost = req.headers().get("Host").split(":")[0];
+            statsdClient.sendStatsd(TypeStatsdMessage.COUNT, String.format("%s.httpCode%d:%d", virtualhost, code, 1));
+
         }
     }
 

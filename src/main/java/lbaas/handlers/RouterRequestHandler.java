@@ -12,6 +12,8 @@ import java.util.Set;
 import lbaas.Client;
 import lbaas.Server;
 import lbaas.exceptions.BadRequestException;
+import lbaas.verticles.StatsDClient;
+import lbaas.verticles.StatsDClient.TypeStatsdMessage;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -34,6 +36,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Logger log;
     private final Map<String, Set<Client>> vhosts;
     private final Server server;
+    private final StatsDClient statsdClient;
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
@@ -45,10 +48,10 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
         final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
+        final boolean enableStatsd = conf.getBoolean("enableStatsd", false);
+        final Long initialRequestTime = System.currentTimeMillis();
 
         sRequest.response().setChunked(true);
-
-        // TODO: register initial request_time
 
         final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
             @Override
@@ -57,7 +60,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             }
         });
 
-        String headerHost;
+        final String headerHost;
         if (sRequest.headers().contains("Host")) {
             headerHost = sRequest.headers().get("Host").split(":")[0];
             if (!vhosts.containsKey(headerHost)) {
@@ -135,9 +138,17 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         sRequest.endHandler(new VoidHandler() {
             @Override
             public void handle() {
+                if (enableStatsd) {
+                    sendRequestTime(headerHost, initialRequestTime);
+                }
                 cRequest.end();
             }
          });
+    }
+
+    private void sendRequestTime(final String virtualhost, final Long initialRequestTime) {
+        Long requestTime = System.currentTimeMillis() - initialRequestTime;
+        statsdClient.sendStatsd(TypeStatsdMessage.COUNT, String.format("%s.requestTime:%d", virtualhost, requestTime));
     }
 
     public RouterRequestHandler(
@@ -150,6 +161,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         this.log = container.logger();
         this.vhosts = vhosts;
         this.server = server;
+        String statsdHost = conf.getString("StatsdHost","127.0.0.1");
+        Integer statsdPort = conf.getInteger("statsdPort", 8125);
+        this.statsdClient = new StatsDClient(statsdHost, statsdPort);
     }
 
     private void changeHeader(final HttpServerRequest sRequest, final String vhost) {
