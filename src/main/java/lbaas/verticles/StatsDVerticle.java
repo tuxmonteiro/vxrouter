@@ -20,14 +20,16 @@ public class StatsDVerticle extends Verticle {
     private final String PATTERN_GAUGE = "%s.%s:%d|g";
     private final String PATTERN_SET   = "%s.%s:%d|s";
 
-    private boolean started = false;
     private String prefix = "stats";
+    private String statsDhost;
+    private Integer statsDPort;
 
     public void start() {
-        this.started = true;
 
         final JsonObject conf = container.config();
         this.prefix = conf.getString("defaultPrefix", "stats");
+        this.statsDhost = conf.getString("host", "localhost");
+        this.statsDPort = conf.getInteger("port", 8125);
 
         final EventBus eb = vertx.eventBus();
 
@@ -43,26 +45,16 @@ public class StatsDVerticle extends Verticle {
 
     private Handler<Message<String>> getHandler(final String pattern) {
         final String prefix = this.prefix;
+        final Vertx vertx = this.getVertx();
+
         return new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
                 String[] data = message.body().split(":");
-                send(String.format(pattern, prefix, data[0], data[1]));
+                DatagramSocket socket = vertx.createDatagramSocket(IPv4);
+                socket.send(String.format(pattern, prefix, data[0], data[1]), statsDhost, statsDPort, null);
             }
         };
     }
 
-    public void send(final String message) {
-        if (!started) {
-            return;
-        }
-        final Vertx vertx = this.getVertx();
-        final JsonObject conf = this.getContainer().config();
-
-        final String statsDhost = conf.getString("host", "localhost");
-        final Integer statsDPort = conf.getInteger("port", 8125);
-
-        DatagramSocket socket = vertx.createDatagramSocket(IPv4);
-        socket.send(message, statsDhost, statsDPort, null);
-    }
 }
