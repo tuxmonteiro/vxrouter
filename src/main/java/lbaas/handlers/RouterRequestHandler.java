@@ -48,8 +48,6 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         sRequest.response().setChunked(true);
 
-        // TODO: register initial request_time
-
         final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
