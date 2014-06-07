@@ -7,7 +7,7 @@ fi
 
 VHOST=$2
 if [ "x$VHOST" == "x" ]; then
-  ROUTE='lol.localdomain'
+  VHOST='lol.localdomain'
 fi
 
 ENDPOINT1=$3
@@ -19,7 +19,7 @@ else
   ENDPOINT1_PORT=${ENDPOINT1##*:}
 fi
 
-ENDPOINT2=$3
+ENDPOINT2=$4
 if [ "x$ENDPOINT2" == "x" ]; then
   ENDPOINT2_HOST='127.0.0.1'
   ENDPOINT2_PORT='8082'
