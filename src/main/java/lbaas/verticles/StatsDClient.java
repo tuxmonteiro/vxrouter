@@ -8,7 +8,6 @@ package lbaas.verticles;
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
@@ -22,6 +21,10 @@ public class StatsDClient extends Verticle {
     private final static String PATTERN_TIME  = "%s:%d|ms";
     private final static String PATTERN_GAUGE = "%s:%d|g";
     private final static String PATTERN_SET   = "%s:%d|s";
+
+    private String prefix = "stats";
+    private String statsDhost;
+    private Integer statsDPort;
 
     public enum TypeStatsdMessage {
         COUNT(PATTERN_COUNT),
@@ -38,10 +41,6 @@ public class StatsDClient extends Verticle {
         }
     }
 
-    private String prefix = "stats";
-    private String statsDhost;
-    private Integer statsDPort;
-
     @Override
     public void start() {
 
@@ -56,44 +55,38 @@ public class StatsDClient extends Verticle {
         /*
          * Receive from EventBus. Format => tag:num
          */
-        eb.registerLocalHandler("statsd.counter", getHandler(PATTERN_COUNT));
-        eb.registerLocalHandler("statsd.timer", getHandler(PATTERN_TIME));
-        eb.registerLocalHandler("statsd.gauge", getHandler(PATTERN_GAUGE));
-        eb.registerLocalHandler("statsd.set", getHandler(PATTERN_SET));
+        eb.registerLocalHandler("statsd.counter", getHandler(TypeStatsdMessage.COUNT));
+        eb.registerLocalHandler("statsd.timer", getHandler(TypeStatsdMessage.TIME));
+        eb.registerLocalHandler("statsd.gauge", getHandler(TypeStatsdMessage.GAUGE));
+        eb.registerLocalHandler("statsd.set", getHandler(TypeStatsdMessage.SET));
 
         log.info(String.format("Instance %s started", this.toString()));
 
     }
 
-    public StatsDClient(String host, Integer port) {
-        this.statsDhost = host;
-        this.statsDPort = port;
+    public StatsDClient(String statsDhost, Integer statsDPort) {
+        this.statsDhost = statsDhost;
+        this.statsDPort = statsDPort;
     }
 
     public StatsDClient() {
         this("localhost", 8125);
     }
 
-    private Handler<Message<String>> getHandler(final String pattern) {
-        final String prefix = this.prefix;
-        final Vertx vertx = this.getVertx();
-
+    private Handler<Message<String>> getHandler(final TypeStatsdMessage type) {
         return new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
-                String[] data = message.body().split(":");
-                DatagramSocket socket = vertx.createDatagramSocket(IPv4);
-                String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
-                socket.send(String.format(pattern, id, data[1]), statsDhost, statsDPort, null);
+                sendStatsd(type, message.body());
             }
         };
     }
 
-    public void sendStatsd(TypeStatsdMessage typeStatsdMessage, String message) {
+    public void sendStatsd(final TypeStatsdMessage type, String message) {
         String[] data = message.split(":");
         DatagramSocket socket = vertx.createDatagramSocket(IPv4);
         String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
-        socket.send(String.format(typeStatsdMessage.getPattern(), id, data[1]), statsDhost, statsDPort, null);
+        socket.send(String.format(type.getPattern(), id, data[1]), statsDhost, statsDPort, null);
     }
 
 }
