@@ -12,8 +12,6 @@ import java.util.Set;
 import lbaas.Client;
 import lbaas.Server;
 import lbaas.exceptions.BadRequestException;
-import lbaas.verticles.StatsDClient;
-import lbaas.verticles.StatsDClient.TypeStatsdMessage;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -36,7 +34,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Logger log;
     private final Map<String, Set<Client>> vhosts;
     private final Server server;
-    private final StatsDClient statsdClient;
+    private final Container container;
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
@@ -48,8 +46,6 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
         final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
-        final boolean enableStatsd = conf.getBoolean("enableStatsd", false);
-        final Long initialRequestTime = System.currentTimeMillis();
 
         sRequest.response().setChunked(true);
 
@@ -92,9 +88,11 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 .setConnectionTimeout(clientConnectionTimeOut)
                 .setMaxPoolSize(clientMaxPoolSize);
 
+        Long initialRequestTime = System.currentTimeMillis();
         final Handler<HttpClientResponse> handlerHttpClientResponse = 
-                new RouterResponseHandler(vertx, requestTimeoutTimer, sRequest, 
-                        connectionKeepalive, clientForceKeepAlive, client, server);
+                new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
+                        connectionKeepalive, clientForceKeepAlive, client, server,
+                        headerHost, initialRequestTime);
         final HttpClient httpClient = client.connect();
         final HttpClientRequest cRequest =
                 httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
@@ -138,17 +136,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         sRequest.endHandler(new VoidHandler() {
             @Override
             public void handle() {
-                if (enableStatsd) {
-                    sendRequestTime(headerHost, initialRequestTime);
-                }
                 cRequest.end();
             }
          });
-    }
-
-    private void sendRequestTime(final String virtualhost, final Long initialRequestTime) {
-        Long requestTime = System.currentTimeMillis() - initialRequestTime;
-        statsdClient.sendStatsd(TypeStatsdMessage.COUNT, String.format("%s.requestTime:%d", virtualhost, requestTime));
     }
 
     public RouterRequestHandler(
@@ -157,13 +147,11 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             final Map<String, Set<Client>> vhosts,
             final Server server) {
         this.vertx = vertx;
+        this.container = container;
         this.conf = container.config();
         this.log = container.logger();
         this.vhosts = vhosts;
         this.server = server;
-        String statsdHost = conf.getString("StatsdHost","127.0.0.1");
-        Integer statsdPort = conf.getInteger("statsdPort", 8125);
-        this.statsdClient = new StatsDClient(statsdHost, statsdPort);
     }
 
     private void changeHeader(final HttpServerRequest sRequest, final String vhost) {

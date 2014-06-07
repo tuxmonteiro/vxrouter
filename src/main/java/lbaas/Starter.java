@@ -23,8 +23,8 @@ public class Starter extends Verticle{
         container.deployVerticle("lbaas.verticles.RouterVerticle", confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
         container.deployVerticle("lbaas.verticles.RouteManagerVerticle", confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
         container.deployVerticle("lbaas.verticles.HealthManagerVerticle", confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
-
-        container.deployVerticle("lbaas.verticles.StatsDClient", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
-
+        if (confRouter.getBoolean("enableStatsd", false)) {
+            container.deployVerticle("lbaas.verticles.StatsDClient", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
+        }
     }
 }

@@ -8,6 +8,7 @@ package lbaas.verticles;
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
 
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.Vertx;
 import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
@@ -83,10 +84,28 @@ public class StatsDClient extends Verticle {
     }
 
     public void sendStatsd(final TypeStatsdMessage type, String message) {
+        if (vertx!=null) {
+            sendStatsd(type, message, vertx, container.logger());
+        }
+    }
+
+    public void sendStatsd(final TypeStatsdMessage type, String message, final Vertx vertx, final Logger log) {
         String[] data = message.split(":");
-        DatagramSocket socket = vertx.createDatagramSocket(IPv4);
-        String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
-        socket.send(String.format(type.getPattern(), id, data[1]), statsDhost, statsDPort, null);
+        Long num = Long.parseLong(data[1]);
+        DatagramSocket socket = null;
+        try {
+            socket = vertx.createDatagramSocket(IPv4);
+            String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
+            socket.send(String.format(type.getPattern(), id, num), statsDhost, statsDPort, null);
+        } catch (io.netty.channel.ChannelException e) {
+            log.error("io.netty.channel.ChannelException: Failed to open a socket.");
+        } catch (RuntimeException e) {
+            log.error(e.getMessage());
+        } finally {
+            if (socket!=null) {
+                socket.close();
+            }
+        }
     }
 
 }

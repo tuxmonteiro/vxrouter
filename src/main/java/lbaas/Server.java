@@ -22,22 +22,25 @@ public class Server {
     private final Vertx vertx;
     private final JsonObject conf;
     private final Logger log;
-    private final StatsDClient statsdClient;
+    String statsdHost = "127.0.0.1";
+    Integer statsdPort = 8125;
 
     public Server(final Vertx vertx, final Container container) {
         this.vertx = vertx;
         this.conf = container.config();
         this.log = container.logger();
-        String statsdHost = conf.getString("StatsdHost","127.0.0.1");
-        Integer statsdPort = conf.getInteger("statsdPort", 8125);
-        this.statsdClient = new StatsDClient(statsdHost, statsdPort);
     }
 
     public void start(
             final Object caller,
             final Handler<HttpServerRequest> handlerHttpServerRequest,
             final Integer defaultPort) {
+
         Integer port = conf.getInteger(CONF_PORT,defaultPort);
+        if (conf.getBoolean("enableStatsd", false)) {
+            statsdHost = conf.getString("statsdHost","127.0.0.1");
+            statsdPort = conf.getInteger("statsdPort", 8125);
+        }
         vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
             .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
             .listen(port);
@@ -78,7 +81,8 @@ public class Server {
         if (message != null) {
             if ("".equals(message)) {
                 req.response().headers().set("Content-Type", "application/json");
-                JsonObject json = new JsonObject(String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
+                JsonObject json = new JsonObject(
+                        String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
                 messageReturn = json.encodePrettily();
             }
             try {
@@ -97,7 +101,9 @@ public class Server {
         }
         if (conf.getBoolean("enableStatsd",false)) {
             String virtualhost = req.headers().get("Host").split(":")[0];
-            statsdClient.sendStatsd(TypeStatsdMessage.COUNT, String.format("%s.httpCode%d:%d", virtualhost, code, 1));
+            StatsDClient statsdClient = new StatsDClient(statsdHost, statsdPort);
+            statsdClient.sendStatsd(TypeStatsdMessage.TIME,
+                    String.format("%s.httpCode%d:%d", virtualhost.replace('.', '~'), code, 1), vertx, log);
 
         }
     }
