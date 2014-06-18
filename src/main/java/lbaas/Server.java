@@ -5,11 +5,10 @@
 package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import static lbaas.StatsdClient.TypeStatsdMessage;
 import lbaas.exceptions.BadRequestException;
-import lbaas.verticles.StatsDClient;
-import lbaas.verticles.StatsDClient.TypeStatsdMessage;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -22,13 +21,13 @@ public class Server {
     private final Vertx vertx;
     private final JsonObject conf;
     private final Logger log;
-    String statsdHost = "127.0.0.1";
-    Integer statsdPort = 8125;
+    private final StatsdClient statsdClient;
 
-    public Server(final Vertx vertx, final Container container) {
+    public Server(final Vertx vertx, final Container container, final StatsdClient statsdClient) {
         this.vertx = vertx;
         this.conf = container.config();
         this.log = container.logger();
+        this.statsdClient = statsdClient;
     }
 
     public void start(
@@ -37,10 +36,7 @@ public class Server {
             final Integer defaultPort) {
 
         Integer port = conf.getInteger(CONF_PORT,defaultPort);
-        if (conf.getBoolean("enableStatsd", false)) {
-            statsdHost = conf.getString("statsdHost","127.0.0.1");
-            statsdPort = conf.getInteger("statsdPort", 8125);
-        }
+
         vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
             .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
             .listen(port);
@@ -99,12 +95,10 @@ public class Server {
                 return;
             }
         }
-        if (conf.getBoolean("enableStatsd",false)) {
+        if (statsdClient!=null) {
             String virtualhost = req.headers().get("Host").split(":")[0];
-            StatsDClient statsdClient = new StatsDClient(statsdHost, statsdPort);
             statsdClient.sendStatsd(TypeStatsdMessage.TIME,
-                    String.format("%s.httpCode%d:%d", virtualhost.replace('.', '~'), code, 1), vertx, log);
-
+                    String.format("%s.httpCode%d:%d", virtualhost.replace('.', '~'), code, 1));
         }
     }
 

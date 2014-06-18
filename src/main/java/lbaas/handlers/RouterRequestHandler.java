@@ -11,6 +11,7 @@ import java.util.Set;
 
 import lbaas.Client;
 import lbaas.Server;
+import lbaas.StatsdClient;
 import lbaas.exceptions.BadRequestException;
 
 import org.vertx.java.core.Handler;
@@ -35,6 +36,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Map<String, Set<Client>> vhosts;
     private final Server server;
     private final Container container;
+    private StatsdClient statsdClient;
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
@@ -91,7 +93,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         Long initialRequestTime = System.currentTimeMillis();
         final Handler<HttpClientResponse> handlerHttpClientResponse = 
                 new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
-                        connectionKeepalive, clientForceKeepAlive, client, server,
+                        connectionKeepalive, clientForceKeepAlive, client, server, statsdClient,
                         headerHost, initialRequestTime);
         final HttpClient httpClient = client.connect();
         final HttpClientRequest cRequest =
@@ -145,13 +147,15 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             final Vertx vertx, 
             final Container container, 
             final Map<String, Set<Client>> vhosts,
-            final Server server) {
+            final Server server,
+            final StatsdClient statsdClient) {
         this.vertx = vertx;
         this.container = container;
         this.conf = container.config();
         this.log = container.logger();
         this.vhosts = vhosts;
         this.server = server;
+        this.statsdClient = statsdClient;
     }
 
     private void changeHeader(final HttpServerRequest sRequest, final String vhost) {

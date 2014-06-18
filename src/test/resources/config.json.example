@@ -1,0 +1,22 @@
+{
+  "router":{
+    "instances"            : 4,
+    "port"                 : 8080,
+    "clientRequestTimeOut" : 5000,
+    "clientMaxPoolSize"    : 10
+  },
+  "routermanager":{
+    "instances"            : 1,
+    "port"                 : 9090
+  },
+  "healthmanager":{
+    "instances"            : 1,
+    "checkInterval"        : 5000,
+    "uriHealthCheck"       : "/"
+  },
+  "statsd":{
+    "host"                 : "127.0.0.1",
+    "port"                 : 8125,
+    "prefix"               : "lbaas"
+  }
+}

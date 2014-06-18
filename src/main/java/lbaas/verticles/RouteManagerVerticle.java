@@ -47,7 +47,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
     @Override
     public void start() {
         final Logger log = container.logger();
-        server = new Server(vertx, container);
+        server = new Server(vertx, container, null);
 
         startHttpServer(container.config());
         final QueueMap queueMap = new QueueMap(this, graphRoutes, badGraphRoutes);

@@ -5,17 +5,16 @@
 package lbaas.handlers;
 
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
+import static lbaas.StatsdClient.TypeStatsdMessage;
 import lbaas.Client;
 import lbaas.Server;
-import lbaas.verticles.StatsDClient;
-import lbaas.verticles.StatsDClient.TypeStatsdMessage;
+import lbaas.StatsdClient;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.VoidHandler;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Container;
@@ -29,12 +28,10 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     private final boolean clientForceKeepAlive;
     private final Client client;
     private final Server server;
-    private final StatsDClient statsdClient;
+    private final StatsdClient statsdClient;
     private final Logger log;
-    private final JsonObject conf;
     private final String headerHost;
     private Long initialRequestTime;
-    private final boolean enableStatsd;
 
     @Override
     public void handle(HttpClientResponse cResponse) {
@@ -52,7 +49,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.endHandler(new VoidHandler() {
             @Override
             public void handle() {
-                if (headerHost!=null && initialRequestTime!=null) {
+                if (headerHost!=null && initialRequestTime!=null && statsdClient!=null) {
                     sendRequestTime(headerHost.replace('.', '~'), initialRequestTime);
                 }
                 server.returnStatus(sRequest, 200, null);
@@ -91,6 +88,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             final boolean clientForceKeepAlive,
             final Client client,
             final Server server,
+            final StatsdClient statsdClient,
             final String headerHost,
             final Long initialRequestTime) {
         this.vertx = vertx;
@@ -100,27 +98,16 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         this.clientForceKeepAlive = clientForceKeepAlive;
         this.client = client;
         this.server = server;
-        this.conf = container.config();
         this.log = container.logger();
-
-        this.enableStatsd = conf.getBoolean("enableStatsd", false);
-        if (enableStatsd) {
-            this.headerHost = headerHost;
-            this.initialRequestTime = initialRequestTime;
-            String statsdHost = conf.getString("statsdHost","127.0.0.1");
-            Integer statsdPort = conf.getInteger("statsdPort", 8125);
-            this.statsdClient = new StatsDClient(statsdHost, statsdPort);
-        } else {
-            this.headerHost = null;
-            this.initialRequestTime = null;
-            this.statsdClient = null;
-        }
+        this.headerHost = headerHost;
+        this.initialRequestTime = initialRequestTime;
+        this.statsdClient = statsdClient;
     }
 
     private void sendRequestTime(final String virtualhost, final Long initialRequestTime) {
         Long requestTime = System.currentTimeMillis() - initialRequestTime;
         statsdClient.sendStatsd(TypeStatsdMessage.TIME,
-                String.format("%s.requestTime:%d", virtualhost, requestTime), vertx, log);
+                String.format("%s.requestTime:%d", virtualhost, requestTime));
     }
 
 }
