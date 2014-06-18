@@ -57,10 +57,5 @@ public class StatsdClient {
         } catch (RuntimeException e) {
             log.error(e.getMessage());
         }
-//        finally {
-//            if (socket!=null) {
-//                socket.close();
-//            }
-//        }
     }
 }
