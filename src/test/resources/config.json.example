@@ -2,7 +2,7 @@
   "router":{
     "instances"            : 4,
     "port"                 : 8080,
-    "clientRequestTimeOut" : 5000,
+    "clientRequestTimeOut" : 20000,
     "clientMaxPoolSize"    : 10
   },
   "routermanager":{
