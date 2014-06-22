@@ -74,6 +74,11 @@ public class Server {
         req.response().setStatusCode(code);
         req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
         String messageReturn = message;
+        if (statsdClient!=null) {
+            String virtualhost = req.headers().get("Host").split(":")[0];
+            statsdClient.sendStatsd(TypeStatsdMessage.TIME,
+                    String.format("%s.httpCode%d:%d", virtualhost.replace('.', '~'), code, 1));
+        }
         if (message != null) {
             if ("".equals(message)) {
                 req.response().headers().set("Content-Type", "application/json");
@@ -85,6 +90,10 @@ public class Server {
                 req.response().end(messageReturn);
             } catch (java.lang.IllegalStateException e) {
                 // Response has already been written ?
+                log.error(e.getMessage());
+                return;
+            } catch (RuntimeException e) {
+                log.error(e.getMessage());
                 return;
             }
         } else {
@@ -92,13 +101,12 @@ public class Server {
                 req.response().end();
             } catch (java.lang.IllegalStateException e) {
                 // Response has already been written ?
+                log.error(e.getMessage());
+                return;
+            } catch (RuntimeException e) {
+                log.error(e.getMessage());
                 return;
             }
-        }
-        if (statsdClient!=null) {
-            String virtualhost = req.headers().get("Host").split(":")[0];
-            statsdClient.sendStatsd(TypeStatsdMessage.TIME,
-                    String.format("%s.httpCode%d:%d", virtualhost.replace('.', '~'), code, 1));
         }
     }
 

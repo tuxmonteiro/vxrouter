@@ -71,6 +71,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.exceptionHandler(new Handler<Throwable>() {
             @Override
             public void handle(Throwable event) {
+                log.error(event.getMessage());
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
                 server.showErrorAndClose(sRequest, event);
                 client.close();
