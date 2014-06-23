@@ -67,6 +67,12 @@
       <artifactId>vertx-core</artifactId>
       <version>${vertx.version}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -98,11 +104,13 @@
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
       <version>${log4j.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
       <version>${log4j.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Add any other dependencies that you want packaged into your module (in the lib dir) here
