@@ -9,9 +9,10 @@ import java.util.Map;
 import java.util.Set;
 
 import lbaas.Client;
+import lbaas.CounterWithStatsd;
+import lbaas.ICounter;
 import lbaas.QueueMap;
 import lbaas.Server;
-import lbaas.StatsdClient;
 import lbaas.handlers.RouterRequestHandler;
 
 import org.vertx.java.core.Handler;
@@ -27,16 +28,7 @@ public class RouterVerticle extends Verticle {
 
       final Logger log = container.logger();
       final JsonObject conf = container.config();
-      final StatsdClient statsdClient;
-      boolean enableStatsd = conf.getBoolean("enableStatsd", false);
-      if (enableStatsd) {
-          String statsdHost = conf.getString("statsdHost","127.0.0.1");
-          Integer statsdPort = conf.getInteger("statsdPort", 8125);
-          String statsdPrefix = conf.getString("statsdPrefix","");
-          statsdClient = new StatsdClient(statsdHost, statsdPort, statsdPrefix, vertx, log);
-      } else {
-          statsdClient = null;
-      }
+      final ICounter counter = new CounterWithStatsd(conf, vertx, log);
 
       final Map<String, Set<Client>> vhosts = new HashMap<>();
       final Map<String, Set<Client>> badVhosts = new HashMap<>();
@@ -45,10 +37,10 @@ public class RouterVerticle extends Verticle {
       queueMap.registerQueueAdd();
       queueMap.registerQueueDel();
 
-      final Server server = new Server(vertx, container, statsdClient);
+      final Server server = new Server(vertx, container, counter);
 
       final Handler<HttpServerRequest> handlerHttpServerRequest = 
-              new RouterRequestHandler(vertx, container, vhosts, server, statsdClient);
+              new RouterRequestHandler(vertx, container, vhosts, server, counter);
 
       server.start(this, handlerHttpServerRequest, 9000);
       log.info(String.format("Instance %s started", this.toString()));

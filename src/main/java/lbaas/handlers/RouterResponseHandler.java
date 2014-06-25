@@ -5,10 +5,9 @@
 package lbaas.handlers;
 
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
-import static lbaas.StatsdClient.TypeStatsdMessage;
 import lbaas.Client;
+import lbaas.ICounter;
 import lbaas.Server;
-import lbaas.StatsdClient;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -28,7 +27,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     private final boolean clientForceKeepAlive;
     private final Client client;
     private final Server server;
-    private final StatsdClient statsdClient;
+    private final ICounter counter;
     private final Logger log;
     private final String headerHost;
     private Long initialRequestTime;
@@ -49,10 +48,13 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.endHandler(new VoidHandler() {
             @Override
             public void handle() {
-                if (headerHost!=null && initialRequestTime!=null && statsdClient!=null) {
-                    sendRequestTime(headerHost.replace('.', '~'), initialRequestTime);
+                if (headerHost!=null) {
+                    if (initialRequestTime!=null) {
+                        counter.requestTime(getKey(), initialRequestTime);
+                    }
+                    counter.decrActiveSessions(getKey());
                 }
-                server.returnStatus(sRequest, 200, null);
+                server.returnStatus(sRequest, 200, null, getKey());
 
                 if (connectionKeepalive) {
                     if (client.isKeepAliveLimit()) {
@@ -71,13 +73,19 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.exceptionHandler(new Handler<Throwable>() {
             @Override
             public void handle(Throwable event) {
-                log.error(event.getMessage());
+                log.error(String.format("host+client: %s, message: %s", getKey(), event.getMessage()));
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
-                server.showErrorAndClose(sRequest, event);
+                server.showErrorAndClose(sRequest, event, getKey());
                 client.close();
             }
         });
 
+    }
+
+    private String getKey() {
+        return String.format("%s.%s",
+                headerHost!=null?headerHost.replaceAll("[^\\w]", "_"):"UNDEF",
+                client!=null?client.toString().replaceAll("[^\\w]", "_"):"UNDEF");
     }
 
     public RouterResponseHandler(
@@ -89,7 +97,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             final boolean clientForceKeepAlive,
             final Client client,
             final Server server,
-            final StatsdClient statsdClient,
+            final ICounter counter,
             final String headerHost,
             final Long initialRequestTime) {
         this.vertx = vertx;
@@ -102,13 +110,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         this.log = container.logger();
         this.headerHost = headerHost;
         this.initialRequestTime = initialRequestTime;
-        this.statsdClient = statsdClient;
-    }
-
-    private void sendRequestTime(final String virtualhost, final Long initialRequestTime) {
-        Long requestTime = System.currentTimeMillis() - initialRequestTime;
-        statsdClient.sendStatsd(TypeStatsdMessage.TIME,
-                String.format("%s.requestTime:%d", virtualhost, requestTime));
+        this.counter = counter;
     }
 
 }

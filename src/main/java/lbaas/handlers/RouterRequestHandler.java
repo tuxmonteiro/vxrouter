@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.Set;
 
 import lbaas.Client;
+import lbaas.ICounter;
 import lbaas.Server;
-import lbaas.StatsdClient;
 import lbaas.exceptions.BadRequestException;
 
 import org.vertx.java.core.Handler;
@@ -36,7 +36,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Map<String, Set<Client>> vhosts;
     private final Server server;
     private final Container container;
-    private StatsdClient statsdClient;
+    private final ICounter counter;
+    private String headerHost = null;
+    private String clientId = null;
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
@@ -54,28 +56,27 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
-                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException());
+                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getKey());
             }
         });
 
-        final String headerHost;
         if (sRequest.headers().contains("Host")) {
-            headerHost = sRequest.headers().get("Host").split(":")[0];
+            this.headerHost = sRequest.headers().get("Host").split(":")[0];
             if (!vhosts.containsKey(headerHost)) {
                 log.error(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest, new BadRequestException());
+                server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
                 return;
             }
         } else {
             log.error("Host UNDEF");
-            server.showErrorAndClose(sRequest, new BadRequestException());
+            server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
             return;
         }
 
         final Set<Client> clients = vhosts.get(headerHost);
         if (clients==null ? true : clients.isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
-            server.showErrorAndClose(sRequest, new BadRequestException());
+            server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
             return;
         }
 
@@ -90,17 +91,22 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 .setConnectionTimeout(clientConnectionTimeOut)
                 .setMaxPoolSize(clientMaxPoolSize);
 
+        this.clientId = client.toString();
+
         Long initialRequestTime = System.currentTimeMillis();
         final Handler<HttpClientResponse> handlerHttpClientResponse = 
                 new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
-                        connectionKeepalive, clientForceKeepAlive, client, server, statsdClient,
+                        connectionKeepalive, clientForceKeepAlive, client, server, counter,
                         headerHost, initialRequestTime);
         final HttpClient httpClient = client.connect();
+        if (httpClient!=null && headerHost!=null) {
+            counter.incrActiveSessions(getKey());
+        }
         final HttpClientRequest cRequest =
                 httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                     .setChunked(enableChunked);
 
-        changeHeader(sRequest, headerHost);
+        changeHeader(sRequest);
 
         cRequest.headers().set(sRequest.headers());
         if (clientForceKeepAlive) {
@@ -124,8 +130,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             @Override
             public void handle(Throwable event) {
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
-
-                server.showErrorAndClose(sRequest, event);
+                server.showErrorAndClose(sRequest, event, getKey());
                 try {
                     client.close();
                 } catch (RuntimeException e) {
@@ -148,17 +153,17 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             final Container container, 
             final Map<String, Set<Client>> vhosts,
             final Server server,
-            final StatsdClient statsdClient) {
+            final ICounter counter) {
         this.vertx = vertx;
         this.container = container;
         this.conf = container.config();
         this.log = container.logger();
         this.vhosts = vhosts;
         this.server = server;
-        this.statsdClient = statsdClient;
+        this.counter = counter;
     }
 
-    private void changeHeader(final HttpServerRequest sRequest, final String vhost) {
+    private void changeHeader(final HttpServerRequest sRequest) {
         String xff;
         String remote = sRequest.remoteAddress().getAddress().getHostAddress();
         sRequest.headers().set("X-Real-IP", remote);
@@ -180,7 +185,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         sRequest.headers().set("Forwarded-For", xff);
 
         if (!sRequest.headers().contains("X-Forwarded-Host")) {
-            sRequest.headers().set("X-Forwarded-Host", vhost);
+            sRequest.headers().set("X-Forwarded-Host", this.headerHost);
         }
 
         if (!sRequest.headers().contains("X-Forwarded-Proto")) {
@@ -190,6 +195,12 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
     private int getChoice(int size) {
         return (int) (Math.random() * (size - Float.MIN_VALUE));
+    }
+
+    private String getKey() {
+        return String.format("%s.%s",
+                headerHost!=null?headerHost.replaceAll("[^\\w]", "_"):"UNDEF",
+                clientId!=null?clientId.replaceAll("[^\\w]", "_"):"UNDEF");
     }
 
 }
