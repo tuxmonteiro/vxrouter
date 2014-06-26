@@ -100,12 +100,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                                     throw new RouterException("Virtualhost: inconsistent reference");
                                 }
                             }
-                            server.returnStatus(req,200, null, routeManagerId);
+                            server.returnStatus(req,200, "", routeManagerId);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("routeHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            server.returnStatus(req,400, null, routeManagerId);
+                            server.returnStatus(req,400, "", routeManagerId);
                         }
                     }
                 });
@@ -144,9 +144,9 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (json.containsField("version")) {
                                 sendAction(String.format("%d", json.getLong("version")), Action.VERSION);
                             }
-                            server.returnStatus(req, 200, null, routeManagerId);
+                            server.returnStatus(req, 200, "", routeManagerId);
                         } catch (RuntimeException e) {
-                            server.returnStatus(req, 400, null, routeManagerId);
+                            server.returnStatus(req, 400, "", routeManagerId);
                         }
                     }
                 });
@@ -191,7 +191,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         // Others methods/uris/etc
         routeMatcher.noMatch(new Handler<HttpServerRequest>() {
             public void handle(HttpServerRequest req) {
-                server.returnStatus(req, 400, null, routeManagerId);
+                server.returnStatus(req, 400, "", routeManagerId);
                 log.warn(String.format("%s %s not supported", req.method(), req.uri()));
             }
         });
@@ -227,12 +227,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if ("".equals(jsonVirtualHost)) {
                                 throw new RouterException("Virtualhost name null");
                             }
-                            server.returnStatus(req, 200, null, routeManagerId);
+                            server.returnStatus(req, 200, "", routeManagerId);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("realHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            server.returnStatus(req, 400, null, routeManagerId);
+                            server.returnStatus(req, 400, "", routeManagerId);
                         }
                     }
                 });
@@ -281,12 +281,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             if (action==Action.DEL && !jsonVirtualHost.equals(virtualhost) && "".equals(virtualhost)) {
                                 throw new RouterException("Virtualhost: inconsistent reference");
                             }
-                            server.returnStatus(req, 200, null, routeManagerId);
+                            server.returnStatus(req, 200, "", routeManagerId);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
                             log.error(String.format("virtualHostHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
-                            server.returnStatus(req, 400, null, routeManagerId);
+                            server.returnStatus(req, 400, "", routeManagerId);
                         }
                     }
                 });
