@@ -11,7 +11,11 @@ public interface ICounter {
 
     public abstract void incrHttpCode(String key, Integer code);
 
+    public abstract void incrHttpCode(String key, Integer code, double sample);
+
     public abstract void decrHttpCode(String key, Integer code);
+
+    public abstract void decrHttpCode(String key, Integer code, double sample);
 
     public abstract void requestTime(String key, Long initialRequestTime);
 

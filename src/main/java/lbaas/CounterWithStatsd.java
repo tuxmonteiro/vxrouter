@@ -35,17 +35,29 @@ public class CounterWithStatsd implements ICounter {
 
     @Override
     public void incrHttpCode(String key, Integer code) {
+        incrHttpCode(key, code, 1.0);
+    }
+
+    @Override
+    public void incrHttpCode(String key, Integer code, double sample) {
+        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%d", sample) : "";
         if (statsdClient!=null && key!=null && !("".equals(key))) {
             statsdClient.sendStatsd(TypeStatsdMessage.COUNT,
-                    String.format("%s.httpCode%d:%d", key, code, 1));
+                    String.format("%s.httpCode%d:%d%s", key, code, 1, srtSample));
         }
     }
 
     @Override
     public void decrHttpCode(String key, Integer code) {
+        decrHttpCode(key, code, 1.0);
+    }
+
+    @Override
+    public void decrHttpCode(String key, Integer code, double sample) {
+        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%d", sample) : "";
         if (statsdClient!=null && key!=null && !("".equals(key))) {
             statsdClient.sendStatsd(TypeStatsdMessage.COUNT,
-                    String.format("%s.httpCode%d:%d", key, code, -1));
+                    String.format("%s.httpCode%d:%d%s", key, code, -1, srtSample));
         }
     }
 
