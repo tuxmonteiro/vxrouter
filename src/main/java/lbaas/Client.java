@@ -33,15 +33,19 @@ public class Client {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj==null||!(obj instanceof Client)) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-
-        Client objClient = (Client)obj;
-        return objClient.toString().equals(this.toString());
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        Client other = (Client) obj;
+        if (host == null) {
+            if (other.host != null) return false;
+        } else
+            if (!host.equalsIgnoreCase(other.host)) return false;
+        if (port == null) {
+            if (other.port != null) return false;
+        } else
+            if (!port.equals(other.port)) return false;
+        return true;
     }
 
     @Override
