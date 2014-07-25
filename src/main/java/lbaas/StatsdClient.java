@@ -1,16 +1,13 @@
 package lbaas;
 
-import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
-
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.logging.Logger;
 
 public class StatsdClient {
-    private final static String PATTERN_COUNT = "%s:%d|c";
-    private final static String PATTERN_TIME  = "%s:%d|ms";
-    private final static String PATTERN_GAUGE = "%s:%d|g";
-    private final static String PATTERN_SET   = "%s:%d|s";
+    private final static String PATTERN_COUNT = "%s:%s|c";
+    private final static String PATTERN_TIME  = "%s:%s|ms";
+    private final static String PATTERN_GAUGE = "%s:%s|g";
+    private final static String PATTERN_SET   = "%s:%s|s";
 
     public static enum TypeStatsdMessage {
         COUNT(PATTERN_COUNT),
@@ -34,24 +31,25 @@ public class StatsdClient {
     private final DatagramSocket socket;
 
     public StatsdClient(String statsDhost, Integer statsDPort, String prefix,
-                        final Vertx vertx, final Logger log) {
+                        final DatagramSocket socket, final Logger log) {
         this.statsDhost = statsDhost;
         this.statsDPort = statsDPort;
         this.prefix = "".equals(prefix) ? "stats" : prefix;
         this.log = log;
-        this.socket = vertx.createDatagramSocket(IPv4).setReuseAddress(true);
+        this.socket = socket;
     }
 
-    public StatsdClient(final Vertx vertx, final Logger log) {
-        this("localhost", 8125, "", vertx, log);
+    public StatsdClient(final DatagramSocket socket, final Logger log) {
+        this("localhost", 8125, "", socket, log);
     }
 
-    public void sendStatsd(final TypeStatsdMessage type, String message) {
+    public void send(final TypeStatsdMessage type, String message) {
         String[] data = message.split(":");
-        Long num = Long.parseLong(data[1]);
+        String key = data[0];
+        String value = data[1];
         try {
-            String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, data[0]);
-            socket.send(String.format(type.getPattern(), id, num), statsDhost, statsDPort, null);
+            String id = String.format("".equals(prefix) ? "%s%s": "%s.%s", prefix, key);
+            socket.send(String.format(type.getPattern(), id, value), statsDhost, statsDPort, null);
         } catch (io.netty.channel.ChannelException e) {
             log.error("io.netty.channel.ChannelException: Failed to open a socket.");
         } catch (RuntimeException e) {

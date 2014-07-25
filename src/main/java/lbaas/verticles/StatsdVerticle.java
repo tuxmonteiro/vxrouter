@@ -1,13 +1,16 @@
-/* 
+/*
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
 package lbaas.verticles;
 
+import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
 import static lbaas.StatsdClient.TypeStatsdMessage;
+
 import lbaas.StatsdClient;
 
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -21,6 +24,7 @@ public class StatsdVerticle extends Verticle {
     private Integer statsDPort;
     private String prefix;
 
+    @Override
     public void start() {
 
         final Logger log = container.logger();
@@ -28,7 +32,8 @@ public class StatsdVerticle extends Verticle {
         this.prefix = conf.getString("defaultPrefix", "stats.");
         this.statsDhost = conf.getString("host", "localhost");
         this.statsDPort = conf.getInteger("port", 8125);
-        statsdClient = new StatsdClient(statsDhost, statsDPort, prefix, vertx, container.logger());
+        final DatagramSocket dgram = vertx.createDatagramSocket(IPv4).setReuseAddress(true);
+        statsdClient = new StatsdClient(statsDhost, statsDPort, prefix, dgram, container.logger());
 
         final EventBus eb = vertx.eventBus();
 
@@ -48,7 +53,7 @@ public class StatsdVerticle extends Verticle {
         return new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
-                statsdClient.sendStatsd(type, message.body());
+                statsdClient.send(type, message.body());
             }
         };
     }
