@@ -35,4 +35,12 @@ public class Virtualhost {
         return virtualhostName;
     }
 
+    public Boolean removeClient(String endpoint, boolean endPointOk) {
+        if (endPointOk) {
+            return endpoints.remove(new Client(endpoint, vertx));
+        } else {
+            return badEndpoints.remove(new Client(endpoint, vertx));
+        }
+    }
+
 }
