@@ -1,6 +1,7 @@
 package lbaas.unit;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.*;
+
 import lbaas.Virtualhost;
 
 import org.junit.Before;
@@ -28,8 +29,8 @@ public class TestVirtualhost {
 
         boolean notExist = virtualhost.addClient(endpoint, endPointOk);
 
-        assertTrue(notExist);
-        assertEquals(1, virtualhost.getClients(endPointOk).size());
+        assertThat(notExist).isTrue();
+        assertThat(virtualhost.getClients(endPointOk)).hasSize(1);
     }
 
     @Test
@@ -38,8 +39,8 @@ public class TestVirtualhost {
 
         boolean notExist = virtualhost.addClient(endpoint, endPointOk);
 
-        assertTrue(notExist);
-        assertEquals(1, virtualhost.getClients(endPointOk).size());
+        assertThat(notExist).isTrue();
+        assertThat(virtualhost.getClients(endPointOk)).hasSize(1);
     }
 
     @Test
@@ -49,8 +50,8 @@ public class TestVirtualhost {
         virtualhost.addClient(endpoint, endPointOk);
         boolean notExist = virtualhost.addClient(endpoint, endPointOk);
 
-        assertFalse(notExist);
-        assertEquals(1, virtualhost.getClients(endPointOk).size());
+        assertThat(notExist).isFalse();
+        assertThat(virtualhost.getClients(endPointOk)).hasSize(1);
     }
 
     @Test
@@ -60,7 +61,7 @@ public class TestVirtualhost {
         virtualhost.addClient(endpoint, endPointOk);
         boolean notExist = virtualhost.addClient(endpoint, endPointOk);
 
-        assertFalse(notExist);
-        assertEquals(1, virtualhost.getClients(endPointOk).size());
+        assertThat(notExist).isFalse();
+        assertThat(virtualhost.getClients(endPointOk)).hasSize(1);
     }
 }
