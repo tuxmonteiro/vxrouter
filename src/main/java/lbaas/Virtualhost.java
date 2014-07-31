@@ -43,4 +43,12 @@ public class Virtualhost {
         }
     }
 
+	public void clear(boolean endPointOk) {
+		if (endPointOk) {
+            endpoints.clear();
+        } else {
+            badEndpoints.clear();
+        }
+	}
+
 }

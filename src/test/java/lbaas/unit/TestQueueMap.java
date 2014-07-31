@@ -6,10 +6,10 @@ import static lbaas.Constants.SEPARATOR;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-import lbaas.Client;
+
 import lbaas.QueueMap;
+import lbaas.Virtualhost;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,8 +29,7 @@ public class TestQueueMap {
     private String endpointStr = "0.0.0.0";
     private String portStr = "00";
 
-    private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
-    private final Map<String, Set<Client>> badGraphRoutes = new HashMap<>();
+    private Map<String, Virtualhost> virtualhosts = new HashMap<String, Virtualhost>();
 
     private String buildMessage(String virtualhostStr,
                                 String endpointStr,
@@ -61,9 +60,6 @@ public class TestQueueMap {
         when(verticle.getVertx().eventBus()).thenReturn(null);
         when(verticle.getContainer()).thenReturn(container);
         when(verticle.getContainer().logger()).thenReturn(logger);
-
-        graphRoutes.clear();
-        badGraphRoutes.clear();
     }
 
     @Test
@@ -71,11 +67,11 @@ public class TestQueueMap {
         String uriStr = "/virtualhost";
         String statusStr = "";
         String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
-        QueueMap queueMap = new QueueMap(verticle, graphRoutes, badGraphRoutes);
+        QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(message);
 
-        assertThat(graphRoutes).containsKey(virtualhostStr);
+        assertThat(virtualhosts).containsKey(virtualhostStr);
         assertThat(isOk).isTrue();
     }
 
@@ -84,12 +80,12 @@ public class TestQueueMap {
         String uriStr = "/virtualhost";
         String statusStr = "";
         String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
-        QueueMap queueMap = new QueueMap(verticle, graphRoutes, badGraphRoutes);
+        QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
         boolean isOk = queueMap.processAddMessage(message);
 
-        assertThat(graphRoutes).containsKey(virtualhostStr);
+        assertThat(virtualhosts).containsKey(virtualhostStr);
         assertThat(isOk).isFalse();
     }
 
@@ -100,12 +96,12 @@ public class TestQueueMap {
         String endpointStr = "";
         String portStr = "";
         String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
-        QueueMap queueMap = new QueueMap(verticle, graphRoutes, badGraphRoutes);
+        QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
         boolean isOk = queueMap.processDelMessage(message);
 
-        assertThat(graphRoutes).doesNotContainKey(virtualhostStr);
+        assertThat(virtualhosts).doesNotContainKey(virtualhostStr);
         assertThat(isOk).isTrue();
     }
 
@@ -116,11 +112,11 @@ public class TestQueueMap {
         String endpointStr = "";
         String portStr = "";
         String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
-        QueueMap queueMap = new QueueMap(verticle, graphRoutes, badGraphRoutes);
+        QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processDelMessage(message);
 
-        assertThat(graphRoutes).doesNotContainKey(virtualhostStr);
+        assertThat(virtualhosts).doesNotContainKey(virtualhostStr);
         assertThat(isOk).isFalse();
     }
 }
