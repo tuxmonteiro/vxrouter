@@ -45,7 +45,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
         final Long checkInterval = conf.getLong("checkInterval", 5000L); // Milliseconds Interval
         final String uriHealthCheck = conf.getString("uriHealthCheck","/"); // Recommended = "/health"
 
-        final QueueMap queueMap = new QueueMap(this, null, null);
+        final QueueMap queueMap = new QueueMap(this, null);
         queueMap.registerQueueAdd();
         queueMap.registerQueueDel();
 

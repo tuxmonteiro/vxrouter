@@ -4,6 +4,7 @@
  */
 package lbaas.verticles;
 
+import static lbaas.Constants.SEPARATOR;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
@@ -12,14 +13,13 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
 import lbaas.Client;
 import lbaas.CounterWithStatsd;
 import lbaas.ICounter;
 import lbaas.IEventObserver;
 import lbaas.QueueMap;
 import lbaas.Server;
+import lbaas.Virtualhost;
 import lbaas.exceptions.RouterException;
 
 import org.vertx.java.core.Handler;
@@ -35,8 +35,7 @@ import org.vertx.java.platform.Verticle;
 public class RouteManagerVerticle extends Verticle implements IEventObserver {
     private static String routeManagerId = "route_manager";
 
-    private final Map<String, Set<Client>> graphRoutes = new HashMap<>();
-    private final Map<String, Set<Client>> badGraphRoutes = new HashMap<>();
+    private final Map<String, Virtualhost> virtualhosts = new HashMap<>();
     private Server server;
 
     private Long version = 0L;
@@ -55,11 +54,11 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         server = new Server(vertx, container, counter);
 
         startHttpServer(conf);
-        final QueueMap queueMap = new QueueMap(this, graphRoutes, badGraphRoutes);
+        final QueueMap queueMap = new QueueMap(this, virtualhosts);
         queueMap.registerQueueAdd();
         queueMap.registerQueueDel();
         queueMap.registerQueueVersion();
- 
+
         log.info(String.format("Instance %s started", this.toString()));
     }
 
@@ -90,6 +89,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             public void handle(final HttpServerRequest req) {
                 final String virtualHost = req.params() != null && req.params().contains("id") ? req.params().get("id") : "";
                 req.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         try {
                             JsonObject json = new JsonObject(body.toString());
@@ -113,6 +113,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         };
     }
 
+    // TODO: REFACTOR THIS, PLEASE
     private void startHttpServer(final JsonObject serverConf) throws RuntimeException {
         final EventBus eb = this.getVertx().eventBus();
         final Logger log = this.getContainer().logger();
@@ -190,6 +191,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
 
         // Others methods/uris/etc
         routeMatcher.noMatch(new Handler<HttpServerRequest>() {
+            @Override
             public void handle(HttpServerRequest req) {
                 server.returnStatus(req, 400, "", routeManagerId);
                 log.warn(String.format("%s %s not supported", req.method(), req.uri()));
@@ -206,7 +208,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             public void handle(final HttpServerRequest req) {
                 String[] realWithPort = null;
                 try {
-                    realWithPort = req.params() != null && req.params().contains("id") ? 
+                    realWithPort = req.params() != null && req.params().contains("id") ?
                             java.net.URLDecoder.decode(req.params().get("id"), "UTF-8").split(":") : null;
                 } catch (UnsupportedEncodingException e) {}
 
@@ -264,13 +266,14 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             public void handle(final HttpServerRequest req) {
                 String virtualhostRequest = "";
                 try {
-                    virtualhostRequest = req.params() != null && req.params().contains("id") ? 
+                    virtualhostRequest = req.params() != null && req.params().contains("id") ?
                             java.net.URLDecoder.decode(req.params().get("id"), "UTF-8") : "";
                 } catch (UnsupportedEncodingException e) {
                     log.error(e.getMessage());
                 }
                 final String virtualhost = virtualhostRequest;
                 req.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         try {
                             final JsonObject json = new JsonObject(body.toString());
@@ -328,11 +331,26 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                     if ("".equals(host) || port==null) {
                         throw new RouterException("Endpoint host or port undef");
                     }
-                    String message = String.format("%s:%s:%d:%d:%s", vhost, host, port, status ? 1 : 0, uri);
+                    String message = String.format("%s%s%s%s%d%s%d%s%s",
+                                                    vhost,
+                                                    SEPARATOR,
+                                                    host,
+                                                    SEPARATOR,
+                                                    port,
+                                                    SEPARATOR,
+                                                    status ? 1 : 0,
+                                                    SEPARATOR,
+                                                    uri);
                     sendAction(message, action);
                 }
             } else {
-                String message = String.format("%s::::%s", vhost, uri);
+                String message = String.format("%s%s%s%s%s%s",
+                                                vhost,
+                                                SEPARATOR,
+                                                SEPARATOR,
+                                                SEPARATOR,
+                                                SEPARATOR,
+                                                uri);
                 sendAction(message, action);
             }
 
@@ -366,25 +384,33 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         routes.putNumber("version", getVersion());
         JsonArray vhosts = new JsonArray();
 
-        for (String vhost : graphRoutes.keySet()) {
+        for (String vhost : virtualhosts.keySet()) {
             JsonObject vhostObj = new JsonObject();
             vhostObj.putString("name", vhost);
             JsonArray endpoints = new JsonArray();
-            for (Client value : graphRoutes.get(vhost)) {
-                JsonObject endpointObj = new JsonObject();
-                endpointObj.putString("host", value.toString().split(":")[0]);
-                endpointObj.putNumber("port", Integer.parseInt(value.toString().split(":")[1]));
-                endpoints.add(endpointObj);
+            Virtualhost virtualhost = virtualhosts.get(vhost);
+            if (virtualhost==null) {
+                continue;
+            }
+            for (Client value : virtualhost.getClients(true)) {
+                if (value!=null) {
+                    JsonObject endpointObj = new JsonObject();
+                    endpointObj.putString("host", value.toString().split(":")[0]);
+                    endpointObj.putNumber("port", Integer.parseInt(value.toString().split(":")[1]));
+                    endpoints.add(endpointObj);
+                }
             }
             vhostObj.putArray("endpoints", endpoints);
             JsonArray badEndpoints = new JsonArray();
-            if (badGraphRoutes.containsKey(vhost)) {
-                for (Client value : badGraphRoutes.get(vhost)) {
-                    JsonObject endpointObj = new JsonObject();
-                    String[] hostWithPort = value.toString().split(":");
-                    endpointObj.putString("host", hostWithPort[0]);
-                    endpointObj.putNumber("port", Integer.parseInt(hostWithPort[1]));
-                    badEndpoints.add(endpointObj);
+            if (!virtualhost.getClients(false).isEmpty()) {
+                for (Client value : virtualhost.getClients(false)) {
+                    if (value!=null) {
+                        JsonObject endpointObj = new JsonObject();
+                        String[] hostWithPort = value.toString().split(":");
+                        endpointObj.putString("host", hostWithPort[0]);
+                        endpointObj.putNumber("port", Integer.parseInt(hostWithPort[1]));
+                        badEndpoints.add(endpointObj);
+                    }
                 }
             }
             vhostObj.putArray("badEndpoints", badEndpoints);

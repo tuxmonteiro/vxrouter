@@ -6,13 +6,12 @@ package lbaas.verticles;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-import lbaas.Client;
 import lbaas.CounterWithStatsd;
 import lbaas.ICounter;
 import lbaas.QueueMap;
 import lbaas.Server;
+import lbaas.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
 
 import org.vertx.java.core.Handler;
@@ -30,17 +29,16 @@ public class RouterVerticle extends Verticle {
       final JsonObject conf = container.config();
       final ICounter counter = new CounterWithStatsd(conf, vertx, log);
 
-      final Map<String, Set<Client>> vhosts = new HashMap<>();
-      final Map<String, Set<Client>> badVhosts = new HashMap<>();
-      final QueueMap queueMap = new QueueMap(this, vhosts, badVhosts);
+      final Map<String, Virtualhost> virtualhosts = new HashMap<>();
+      final QueueMap queueMap = new QueueMap(this, virtualhosts);
 
       queueMap.registerQueueAdd();
       queueMap.registerQueueDel();
 
       final Server server = new Server(vertx, container, counter);
 
-      final Handler<HttpServerRequest> handlerHttpServerRequest = 
-              new RouterRequestHandler(vertx, container, vhosts, server, counter);
+      final Handler<HttpServerRequest> handlerHttpServerRequest =
+              new RouterRequestHandler(vertx, container, virtualhosts, server, counter);
 
       server.start(this, handlerHttpServerRequest, 9000);
       log.info(String.format("Instance %s started", this.toString()));

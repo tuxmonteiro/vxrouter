@@ -7,11 +7,10 @@ package lbaas.handlers;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 import java.util.Map;
-import java.util.Set;
-
 import lbaas.Client;
 import lbaas.ICounter;
 import lbaas.Server;
+import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
 
 import org.vertx.java.core.Handler;
@@ -33,7 +32,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Vertx vertx;
     private final JsonObject conf;
     private final Logger log;
-    private final Map<String, Set<Client>> vhosts;
+    private final Map<String, Virtualhost> virtualhosts;
     private final Server server;
     private final Container container;
     private final ICounter counter;
@@ -62,7 +61,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         if (sRequest.headers().contains("Host")) {
             this.headerHost = sRequest.headers().get("Host").split(":")[0];
-            if (!vhosts.containsKey(headerHost)) {
+            if (!virtualhosts.containsKey(headerHost)) {
                 log.error(String.format("Host: %s UNDEF", headerHost));
                 server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
                 return;
@@ -73,18 +72,18 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             return;
         }
 
-        final Set<Client> clients = vhosts.get(headerHost);
-        if (clients==null ? true : clients.isEmpty()) {
+        final Virtualhost virtualhost = virtualhosts.get(headerHost);
+        if (virtualhost.getClients(true).isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
             return;
         }
 
         final boolean connectionKeepalive = sRequest.headers().contains("Connection") ?
-                !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) : 
+                !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) :
                 sRequest.version().equals(HttpVersion.HTTP_1_1);
 
-        final Client client = ((Client)clients.toArray()[getChoice(clients.size())])
+        final Client client = ((Client) (virtualhost.getClients(true).toArray()[getChoice(virtualhost.getClients(true).size())]))
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
@@ -94,7 +93,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         this.clientId = client.toString();
 
         Long initialRequestTime = System.currentTimeMillis();
-        final Handler<HttpClientResponse> handlerHttpClientResponse = 
+        final Handler<HttpClientResponse> handlerHttpClientResponse =
                 new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
                         connectionKeepalive, clientForceKeepAlive, client, server, counter,
                         headerHost, initialRequestTime);
@@ -149,16 +148,16 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     }
 
     public RouterRequestHandler(
-            final Vertx vertx, 
-            final Container container, 
-            final Map<String, Set<Client>> vhosts,
+            final Vertx vertx,
+            final Container container,
+            final Map<String, Virtualhost> virtualhosts,
             final Server server,
             final ICounter counter) {
         this.vertx = vertx;
         this.container = container;
         this.conf = container.config();
         this.log = container.logger();
-        this.vhosts = vhosts;
+        this.virtualhosts = virtualhosts;
         this.server = server;
         this.counter = counter;
     }
