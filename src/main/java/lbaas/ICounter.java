@@ -23,4 +23,6 @@ public interface ICounter {
 
     public abstract void decrActiveSessions(String key);
 
+    public String cleanupString(String aString, String strDefault);
+
 }

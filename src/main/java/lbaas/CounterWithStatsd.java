@@ -87,4 +87,9 @@ public class CounterWithStatsd implements ICounter {
         }
     }
 
+    @Override
+    public String cleanupString(String aString, String strDefault) {
+        return !"".equals(aString)?aString.replaceAll("[^\\w]", "_"):strDefault;
+    }
+
 }
