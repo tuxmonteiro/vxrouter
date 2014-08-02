@@ -4,7 +4,6 @@
  */
 package lbaas.verticles;
 
-import static lbaas.Constants.SEPARATOR;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
@@ -327,30 +326,21 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                     JsonObject endpointJson = (JsonObject) endpointsIterator.next();
                     host = endpointJson.containsField("host") ? endpointJson.getString("host"):"";
                     port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
+                    String portStr = String.format("%d", port);
                     status = endpointJson.containsField("status") ? endpointJson.getBoolean("status"):true;
+                    String statusStr = status ? "1" : "0";
                     if ("".equals(host) || port==null) {
                         throw new RouterException("Endpoint host or port undef");
                     }
-                    String message = String.format("%s%s%s%s%d%s%d%s%s",
-                                                    vhost,
-                                                    SEPARATOR,
-                                                    host,
-                                                    SEPARATOR,
-                                                    port,
-                                                    SEPARATOR,
-                                                    status ? 1 : 0,
-                                                    SEPARATOR,
-                                                    uri);
+                    String message = QueueMap.buildMessage(vhost,
+                                                           host,
+                                                           portStr,
+                                                           statusStr,
+                                                           uri);
                     sendAction(message, action);
                 }
             } else {
-                String message = String.format("%s%s%s%s%s%s",
-                                                vhost,
-                                                SEPARATOR,
-                                                SEPARATOR,
-                                                SEPARATOR,
-                                                SEPARATOR,
-                                                uri);
+                String message = QueueMap.buildMessage(vhost, "", "", "", uri);
                 sendAction(message, action);
             }
 

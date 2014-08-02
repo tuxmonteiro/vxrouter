@@ -2,8 +2,6 @@ package lbaas.unit;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static lbaas.Constants.SEPARATOR;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,30 +22,11 @@ public class TestQueueMap {
     private Vertx vertx;
     private Container container;
     private Logger logger;
-    private final String messageFormat = "%s%s%s%s%s%s%s%s%s";
     private String virtualhostStr = "test.virtualhost.com";
     private String endpointStr = "0.0.0.0";
     private String portStr = "00";
 
     private Map<String, Virtualhost> virtualhosts = new HashMap<String, Virtualhost>();
-
-    private String buildMessage(String virtualhostStr,
-                                String endpointStr,
-                                String portStr,
-                                String uriStr,
-                                String statusStr)
-    {
-        return String.format(messageFormat,
-                virtualhostStr,
-                SEPARATOR,
-                endpointStr,
-                SEPARATOR,
-                portStr,
-                SEPARATOR,
-                statusStr,
-                SEPARATOR,
-                uriStr);
-    }
 
     @Before
     public void setUp() {
@@ -66,7 +45,7 @@ public class TestQueueMap {
     public void insertNewVirtualhostToRouteMap() {
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(message);
@@ -79,7 +58,7 @@ public class TestQueueMap {
     public void insertDuplicatedVirtualhostToRouteMap() {
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -95,7 +74,7 @@ public class TestQueueMap {
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -111,7 +90,7 @@ public class TestQueueMap {
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String message = buildMessage(virtualhostStr, endpointStr, portStr, uriStr, statusStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processDelMessage(message);

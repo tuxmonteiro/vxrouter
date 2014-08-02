@@ -55,7 +55,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
             public void handle(Message<String> message) {
                 String endpoint = message.body();
                 try {
-                    moveEndpoint(endpoint, true);
+                    moveEndpoint(endpoint, true, eb);
                 } catch (UnsupportedEncodingException e) {
                     log.error(e.getMessage());
                 }
@@ -67,7 +67,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
             public void handle(Message<String> message) {
                 String endpoint = message.body();
                 try {
-                    moveEndpoint(endpoint, false);
+                    moveEndpoint(endpoint, false, eb);
                 } catch (UnsupportedEncodingException e) {
                     log.error(e.getMessage());
                 }
@@ -148,9 +148,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
         }
     };
 
-    private void moveEndpoint(final String endpoint, final Boolean status) throws UnsupportedEncodingException {
-
-        final EventBus eb = this.getVertx().eventBus();
+    private void moveEndpoint(final String endpoint, final Boolean status, final EventBus eb) throws UnsupportedEncodingException {
 
         Set<String> virtualhosts = status ? badEndPointsMap.get(endpoint) : endPointsMap.get(endpoint);
 
@@ -162,30 +160,25 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                 String[] endpointArray = endpoint.split(":");
                 String host = endpointArray[0];
                 String port = endpointArray[1];
+                String statusStr = status ? "0" : "1";
 
-                message = String.format("%s%s%s%s%s%s%d%s%s",
-                        virtualhost,
-                        SEPARATOR,
-                        host,
-                        SEPARATOR,
-                        port,
-                        SEPARATOR,
-                        status ? 0 : 1,
-                        SEPARATOR,
-                        String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
-                eb.publish(QUEUE_ROUTE_DEL, message);
+                message = QueueMap.buildMessage(virtualhost,
+                                                host,
+                                                port,
+                                                statusStr,
+                                                String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
+                if (eb!=null) {
+                    eb.publish(QUEUE_ROUTE_DEL, message);
+                }
 
-                message = String.format("%s%s%s%s%s%s%d%s%s",
-                        virtualhost,
-                        SEPARATOR,
-                        host,
-                        SEPARATOR,
-                        port,
-                        SEPARATOR,
-                        status ? 1 : 0,
-                        SEPARATOR,
-                        "/real");
-                eb.publish(QUEUE_ROUTE_ADD, message);
+                message = QueueMap.buildMessage(virtualhost,
+                                                host,
+                                                port,
+                                                statusStr,
+                                                "/real");
+                if (eb!=null) {
+                    eb.publish(QUEUE_ROUTE_ADD, message);
+                }
             }
         }
     }

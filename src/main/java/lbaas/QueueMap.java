@@ -9,6 +9,7 @@ import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
 
 import java.util.Map;
+
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
@@ -26,6 +27,25 @@ public class QueueMap {
     private final EventBus eb;
     private final Logger log;
     private final Map<String, Virtualhost> virtualhosts;
+
+    public static String buildMessage(String virtualhostStr,
+            String endpointStr,
+            String portStr,
+            String statusStr,
+            String uriStr)
+    {
+        final String messageFormat = "%s%s%s%s%s%s%s%s%s";
+        return String.format(messageFormat,
+            virtualhostStr,
+            SEPARATOR,
+            endpointStr,
+            SEPARATOR,
+            portStr,
+            SEPARATOR,
+            statusStr,
+            SEPARATOR,
+            uriStr);
+    }
 
     public QueueMap(final Verticle verticle, final Map<String, Virtualhost> virtualhosts) {
         this.verticle = verticle;
@@ -176,5 +196,4 @@ public class QueueMap {
             ((IEventObserver)verticle).postAddEvent(message);
         }
     }
-
 }
