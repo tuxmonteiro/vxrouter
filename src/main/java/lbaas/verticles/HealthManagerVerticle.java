@@ -163,10 +163,28 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                 String host = endpointArray[0];
                 String port = endpointArray[1];
 
-                message = String.format("%s:%s:%s:%d:%s", virtualhost, host, port, status ? 0 : 1, String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
+                message = String.format("%s%s%s%s%s%s%d%s%s",
+                        virtualhost,
+                        SEPARATOR,
+                        host,
+                        SEPARATOR,
+                        port,
+                        SEPARATOR,
+                        status ? 0 : 1,
+                        SEPARATOR,
+                        String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
                 eb.publish(QUEUE_ROUTE_DEL, message);
 
-                message = String.format("%s:%s:%s:%d:%s", virtualhost, host, port, status ? 1 : 0, "/real");
+                message = String.format("%s%s%s%s%s%s%d%s%s",
+                        virtualhost,
+                        SEPARATOR,
+                        host,
+                        SEPARATOR,
+                        port,
+                        SEPARATOR,
+                        status ? 1 : 0,
+                        SEPARATOR,
+                        "/real");
                 eb.publish(QUEUE_ROUTE_ADD, message);
             }
         }
