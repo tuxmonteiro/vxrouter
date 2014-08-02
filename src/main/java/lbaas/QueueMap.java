@@ -74,7 +74,7 @@ public class QueueMap {
                 return isOk;
             }
             if (!virtualhosts.containsKey(virtualhost)) {
-            	virtualhosts.put(virtualhost, new Virtualhost(virtualhost, vertx));
+                virtualhosts.put(virtualhost, new Virtualhost(virtualhost, vertx));
                 log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
                 return isOk;
             } else {
@@ -111,8 +111,8 @@ public class QueueMap {
 
             if ("".equals(endpoint)) {
                 if (virtualhosts.containsKey(virtualhost)) {
-                	virtualhosts.get(virtualhost).clear(status);
-                	virtualhosts.remove(virtualhost);
+                    virtualhosts.get(virtualhost).clear(status);
+                    virtualhosts.remove(virtualhost);
                     log.info(String.format("[%s] Virtualhost %s removed", verticle.toString(), virtualhost));
                 } else {
                     log.warn(String.format("[%s] Virtualhost not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
@@ -124,7 +124,8 @@ public class QueueMap {
                 isOk = false;
                 return isOk;
             }
-            if (((Virtualhost) virtualhosts).removeClient(endpoint, status)) {
+            final Virtualhost virtualhostObj = virtualhosts.get(virtualhost);
+            if (virtualhostObj!=null && virtualhostObj.removeClient(endpoint, status)) {
                 log.info(String.format("[%s] Real %s (%s) removed", verticle.toString(), endpoint, virtualhost));
             } else {
                 log.warn(String.format("[%s] Real not removed. Real %s (%s) not exist", verticle.toString(), endpoint, virtualhost));
