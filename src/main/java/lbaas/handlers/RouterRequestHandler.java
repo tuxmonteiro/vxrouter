@@ -7,6 +7,7 @@ package lbaas.handlers;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 import java.util.Map;
+
 import lbaas.Client;
 import lbaas.ICounter;
 import lbaas.Server;
@@ -14,6 +15,7 @@ import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
 
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.VoidHandler;
 import org.vertx.java.core.buffer.Buffer;
@@ -36,8 +38,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Server server;
     private final Container container;
     private final ICounter counter;
-    private String headerHost = null;
-    private String clientId = null;
+    private String headerHost = "";
+    private String clientId = "";
+    private String counterKey = null;
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
@@ -55,7 +58,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
-                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getKey());
+                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getCounterKey(headerHost, clientId));
             }
         });
 
@@ -63,25 +66,23 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             this.headerHost = sRequest.headers().get("Host").split(":")[0];
             if (!virtualhosts.containsKey(headerHost)) {
                 log.error(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
+                server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
                 return;
             }
         } else {
             log.error("Host UNDEF");
-            server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
+            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
             return;
         }
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
         if (virtualhost.getClients(true).isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
-            server.showErrorAndClose(sRequest, new BadRequestException(), getKey());
+            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
             return;
         }
 
-        final boolean connectionKeepalive = sRequest.headers().contains("Connection") ?
-                !"close".equalsIgnoreCase(sRequest.headers().get("Connection")) :
-                sRequest.version().equals(HttpVersion.HTTP_1_1);
+        final boolean connectionKeepalive = isHttpKeepAlive(sRequest.headers(), sRequest.version());
 
         final Client client = ((Client) (virtualhost.getClients(true).toArray()[getChoice(virtualhost.getClients(true).size())]))
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
@@ -99,13 +100,14 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                         headerHost, initialRequestTime);
         final HttpClient httpClient = client.connect();
         if (httpClient!=null && headerHost!=null) {
-            counter.incrActiveSessions(getKey());
+            counter.incrActiveSessions(getCounterKey(headerHost, clientId));
         }
         final HttpClientRequest cRequest =
                 httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                     .setChunked(enableChunked);
 
-        changeHeader(sRequest);
+        String remote = sRequest.remoteAddress().getAddress().getHostAddress();
+        updateHeadersXFF(sRequest.headers(), remote);
 
         cRequest.headers().set(sRequest.headers());
         if (clientForceKeepAlive) {
@@ -129,7 +131,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             @Override
             public void handle(Throwable event) {
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
-                server.showErrorAndClose(sRequest, event, getKey());
+                server.showErrorAndClose(sRequest, event, getCounterKey(headerHost, clientId));
                 try {
                     client.close();
                 } catch (RuntimeException e) {
@@ -162,33 +164,63 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         this.counter = counter;
     }
 
-    private void changeHeader(final HttpServerRequest sRequest) {
+    public String getHeaderHost() {
+        return headerHost;
+    }
+
+    public void setHeaderHost(String headerHost) {
+        this.headerHost = headerHost;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getCounterKey(String aVirtualhost, String aEndPoint) {
+        if (counterKey==null || "".equals(counterKey)) {
+            String strDefault = "UNDEF";
+            String result = String.format("%s.%s",
+                    counter.cleanupString(aVirtualhost, strDefault),
+                    counter.cleanupString(aEndPoint, strDefault));
+            if (!"".equals(aVirtualhost) && !"".equals(aEndPoint)) {
+                counterKey = result;
+            }
+            return result;
+        } else {
+            return counterKey;
+        }
+    }
+
+    private void updateHeadersXFF(final MultiMap headers, String remote) {
         String xff;
-        String remote = sRequest.remoteAddress().getAddress().getHostAddress();
-        sRequest.headers().set("X-Real-IP", remote);
+        headers.set("X-Real-IP", remote);
 
-        if (sRequest.headers().contains("X-Forwarded-For")) {
-            xff = String.format("%s, %s", sRequest.headers().get("X-Forwarded-For"),remote);
-            sRequest.headers().remove("X-Forwarded-For");
+        if (headers.contains("X-Forwarded-For")) {
+            xff = String.format("%s, %s", headers.get("X-Forwarded-For"),remote);
+            headers.remove("X-Forwarded-For");
         } else {
             xff = remote;
         }
-        sRequest.headers().set("X-Forwarded-For", xff);
+        headers.set("X-Forwarded-For", xff);
 
-        if (sRequest.headers().contains("Forwarded-For")) {
-            xff = String.format("%s, %s" , sRequest.headers().get("Forwarded-For"), remote);
-            sRequest.headers().remove("Forwarded-For");
+        if (headers.contains("Forwarded-For")) {
+            xff = String.format("%s, %s" , headers.get("Forwarded-For"), remote);
+            headers.remove("Forwarded-For");
         } else {
             xff = remote;
         }
-        sRequest.headers().set("Forwarded-For", xff);
+        headers.set("Forwarded-For", xff);
 
-        if (!sRequest.headers().contains("X-Forwarded-Host")) {
-            sRequest.headers().set("X-Forwarded-Host", this.headerHost);
+        if (!headers.contains("X-Forwarded-Host")) {
+            headers.set("X-Forwarded-Host", this.headerHost);
         }
 
-        if (!sRequest.headers().contains("X-Forwarded-Proto")) {
-            sRequest.headers().set("X-Forwarded-Proto", "http");
+        if (!headers.contains("X-Forwarded-Proto")) {
+            headers.set("X-Forwarded-Proto", "http");
         }
     }
 
@@ -196,10 +228,10 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         return (int) (Math.random() * (size - Float.MIN_VALUE));
     }
 
-    private String getKey() {
-        return String.format("%s.%s",
-                headerHost!=null?headerHost.replaceAll("[^\\w]", "_"):"UNDEF",
-                clientId!=null?clientId.replaceAll("[^\\w]", "_"):"UNDEF");
+    private boolean isHttpKeepAlive(MultiMap headers, HttpVersion httpVersion) {
+        return headers.contains("Connection") ?
+                !"close".equalsIgnoreCase(headers.get("Connection")) :
+                httpVersion.equals(HttpVersion.HTTP_1_1);
     }
 
 }
