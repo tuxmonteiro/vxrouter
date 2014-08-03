@@ -1,4 +1,4 @@
-package lbaas.unitTest;
+package lbaas.unitTest.assertj.custom;
 
 import lbaas.Client;
 import lbaas.Virtualhost;

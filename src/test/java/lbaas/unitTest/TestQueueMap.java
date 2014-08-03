@@ -3,7 +3,7 @@ package lbaas.unitTest;
 import static lbaas.Constants.SEPARATOR;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static lbaas.unitTest.VirtualHostAssert.*;
+import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

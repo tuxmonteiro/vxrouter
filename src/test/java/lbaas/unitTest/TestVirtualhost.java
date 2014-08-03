@@ -1,7 +1,7 @@
 package lbaas.unitTest;
 
 import static org.assertj.core.api.Assertions.*;
-import static lbaas.unitTest.VirtualHostAssert.*;
+import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
 import lbaas.Virtualhost;
 
 import org.junit.Before;
