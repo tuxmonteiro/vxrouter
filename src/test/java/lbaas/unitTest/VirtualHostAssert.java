@@ -1,4 +1,4 @@
-package lbaas.unit;
+package lbaas.unitTest;
 
 import lbaas.Client;
 import lbaas.Virtualhost;

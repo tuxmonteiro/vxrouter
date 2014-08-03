@@ -214,7 +214,7 @@
         <version>${maven.surefire.plugin.version}</version>
         <configuration>
           <includes>
-            <include>**/unit/*Test*.java</include>
+            <include>**/unitTest/*Test*.java</include>
           </includes>
         </configuration>
       </plugin>
@@ -230,7 +230,7 @@
             </property>
           </systemProperties>
           <includes>
-            <include>**/integration/**/*Test*</include>
+            <include>**/integrationTest/*Test*.jar</include>
           </includes>
         </configuration>
         <executions>

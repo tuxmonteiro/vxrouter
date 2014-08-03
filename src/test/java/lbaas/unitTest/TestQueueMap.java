@@ -1,9 +1,9 @@
-package lbaas.unit;
+package lbaas.unitTest;
 
 import static lbaas.Constants.SEPARATOR;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static lbaas.unit.VirtualHostAssert.*;
+import static lbaas.unitTest.VirtualHostAssert.*;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 import lbaas.QueueMap;
 import lbaas.Virtualhost;
-import lbaas.unit.util.FakeLogger;
+import lbaas.unitTest.util.FakeLogger;
 
 import org.junit.Before;
 import org.junit.Test;
