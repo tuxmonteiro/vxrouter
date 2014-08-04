@@ -1,21 +1,20 @@
 package lbaas;
 
-import java.util.HashSet;
-import java.util.Set;
+import lbaas.list.UniqueArrayList;
 
 import org.vertx.java.core.Vertx;
 
 public class Virtualhost {
 
     private final String virtualhostName;
-    private Set<Client> endpoints;
-    private Set<Client> badEndpoints;
+    private UniqueArrayList<Client> endpoints;
+    private UniqueArrayList<Client> badEndpoints;
     private Vertx vertx;
 
     public Virtualhost(String virtualhostName, final Vertx vertx) {
         this.virtualhostName = virtualhostName;
-        this.endpoints = new HashSet<Client>();
-        this.badEndpoints = new HashSet<Client>();
+        this.endpoints = new UniqueArrayList<Client>();
+        this.badEndpoints = new UniqueArrayList<Client>();
         this.vertx = vertx;
     }
 
@@ -27,7 +26,7 @@ public class Virtualhost {
         }
     }
 
-    public Set<Client> getClients(boolean endPointOk) {
+    public UniqueArrayList<Client> getClients(boolean endPointOk) {
         return endPointOk ? endpoints: badEndpoints;
     }
 

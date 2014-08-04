@@ -84,7 +84,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final boolean connectionKeepalive = isHttpKeepAlive(sRequest.headers(), sRequest.version());
 
-        final Client client = ((Client) (virtualhost.getClients(true).toArray()[getChoice(virtualhost.getClients(true).size())]))
+        final Client client = ((Client) (virtualhost.getClients(true).get(getChoice(virtualhost.getClients(true).size()))))
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
