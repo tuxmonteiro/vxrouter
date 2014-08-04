@@ -224,11 +224,11 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         }
     }
 
-    private int getChoice(int size) {
+    public int getChoice(int size) {
         return (int) (Math.random() * (size - Float.MIN_VALUE));
     }
 
-    private boolean isHttpKeepAlive(MultiMap headers, HttpVersion httpVersion) {
+    public boolean isHttpKeepAlive(MultiMap headers, HttpVersion httpVersion) {
         return headers.contains("Connection") ?
                 !"close".equalsIgnoreCase(headers.get("Connection")) :
                 httpVersion.equals(HttpVersion.HTTP_1_1);
