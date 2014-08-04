@@ -51,40 +51,57 @@ public class TestRouterRequestHandler {
     }
 
     @Test
-    public void isHttpKeepAliveEnabledWithConnectionHeaderAndHttpVersion10() {
-        MultiMap headers = new CaseInsensitiveMultiMap();
-        headers.set("Connection", "keep-alive");
+    public void headersWithHttpVersion10() {
+        MultiMap headersWithConnectionKeepAlive = new CaseInsensitiveMultiMap();
+        MultiMap headersWithConnectionClose = new CaseInsensitiveMultiMap();
+        MultiMap headersEmpty = new CaseInsensitiveMultiMap();
 
-        boolean isKeepAlive = routerRequestHandler.isHttpKeepAlive(headers, HttpVersion.HTTP_1_0);
+        headersWithConnectionKeepAlive.set("Connection", "keep-alive");
+        headersWithConnectionClose.set("Connection", "close");
 
-        assertThat(isKeepAlive).as("isKeepAlive").isTrue();
+
+        boolean isKeepAliveWithConnectionKeepAlive = routerRequestHandler.isHttpKeepAlive(headersWithConnectionKeepAlive, HttpVersion.HTTP_1_0);
+        boolean isKeepAliveWithConnectionClose = routerRequestHandler.isHttpKeepAlive(headersWithConnectionClose, HttpVersion.HTTP_1_0);
+        boolean isKeepAliveWithoutConnectionHeader = routerRequestHandler.isHttpKeepAlive(headersEmpty, HttpVersion.HTTP_1_0);
+
+        assertThat(isKeepAliveWithConnectionKeepAlive).as("isKeepAliveWithConnectionKeepAlive").isTrue();
+        assertThat(isKeepAliveWithConnectionClose).as("isKeepAliveWithConnectionClose").isFalse();
+        assertThat(isKeepAliveWithoutConnectionHeader).as("isKeepAliveWithoutConnectionHeader").isFalse();
+
     }
 
     @Test
-    public void isHttpKeepAliveEnabledWithoutConnectionHeaderAndHttpVersion10() {
-        MultiMap headers = new CaseInsensitiveMultiMap();
+    public void headersWithHttpVersion11() {
+        MultiMap headersWithConnectionKeepAlive = new CaseInsensitiveMultiMap();
+        MultiMap headersWithConnectionClose = new CaseInsensitiveMultiMap();
+        MultiMap headersEmpty = new CaseInsensitiveMultiMap();
 
-        boolean isKeepAlive = routerRequestHandler.isHttpKeepAlive(headers, HttpVersion.HTTP_1_0);
+        headersWithConnectionKeepAlive.set("Connection", "keep-alive");
+        headersWithConnectionClose.set("Connection", "close");
 
-        assertThat(isKeepAlive).as("isKeepAlive").isFalse();
+        boolean isKeepAliveWithConnectionKeepAlive = routerRequestHandler.isHttpKeepAlive(headersWithConnectionKeepAlive, HttpVersion.HTTP_1_1);
+        boolean isKeepAliveWithConnectionClose = routerRequestHandler.isHttpKeepAlive(headersWithConnectionClose, HttpVersion.HTTP_1_1);
+        boolean isKeepAliveWithoutConnectionHeader = routerRequestHandler.isHttpKeepAlive(headersEmpty, HttpVersion.HTTP_1_1);
+
+        assertThat(isKeepAliveWithConnectionKeepAlive).as("isKeepAliveWithConnectionKeepAlive").isTrue();
+        assertThat(isKeepAliveWithConnectionClose).as("isKeepAliveWithConnectionClose").isFalse();
+        assertThat(isKeepAliveWithoutConnectionHeader).as("isKeepAliveWithoutConnectionHeader").isTrue();
+
     }
 
     @Test
-    public void isHttpKeepAliveEnabledWithConnectionHeaderAndHttpVersion11() {
-        MultiMap headers = new CaseInsensitiveMultiMap();
-        headers.set("Connection", "keep-alive");
+    public void checkRandomChoice() {
+        int sum = 0;
+        int numEndpoints = 10;
+        int numInterations = 1000;
+        double errorLimit = 0.05;
 
-        boolean isKeepAlive = routerRequestHandler.isHttpKeepAlive(headers, HttpVersion.HTTP_1_1);
+        for (int x=0;x<numInterations;x++) {
+            sum += routerRequestHandler.getChoice(numEndpoints);
+        }
+        int result = (numEndpoints*(numEndpoints-1)/2) * (numInterations/numEndpoints);
 
-        assertThat(isKeepAlive).as("isKeepAlive").isTrue();
+        assertThat(result).isGreaterThanOrEqualTo((int) (sum*(1.0-errorLimit))).isLessThanOrEqualTo((int) (sum*(1.0+errorLimit)));
     }
 
-    @Test
-    public void isHttpKeepAliveEnabledWithoutConnectionHeaderAndHttpVersion11() {
-        MultiMap headers = new CaseInsensitiveMultiMap();
-
-        boolean isKeepAlive = routerRequestHandler.isHttpKeepAlive(headers, HttpVersion.HTTP_1_1);
-
-        assertThat(isKeepAlive).as("isKeepAlive").isTrue();
-    }
 }
