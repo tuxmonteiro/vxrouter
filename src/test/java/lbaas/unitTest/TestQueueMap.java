@@ -1,6 +1,8 @@
 package lbaas.unitTest;
 
 import static lbaas.Constants.SEPARATOR;
+import static lbaas.Constants.STRING_PATTERN;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
@@ -17,6 +19,7 @@ import lbaas.unitTest.util.FakeLogger;
 import org.junit.Before;
 import org.junit.Test;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LogDelegate;
 import org.vertx.java.platform.Container;
@@ -55,7 +58,7 @@ public class TestQueueMap {
     public void insertNewVirtualhostToRouteMap() {
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(message);
@@ -68,7 +71,7 @@ public class TestQueueMap {
     public void insertDuplicatedVirtualhostToRouteMap() {
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -84,7 +87,8 @@ public class TestQueueMap {
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
+        String properties = "{}";
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -100,7 +104,8 @@ public class TestQueueMap {
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
+        String properties = "{}";
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processDelMessage(message);
@@ -113,8 +118,8 @@ public class TestQueueMap {
     public void insertNewRealToExistingVirtualhostSet() {
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
-        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost");
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real");
+        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
+        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
@@ -130,7 +135,7 @@ public class TestQueueMap {
     @Test
     public void insertNewRealToAbsentVirtualhostSet() {
         String statusStr = "";
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real");
+        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(messageReal);
@@ -143,8 +148,8 @@ public class TestQueueMap {
     public void insertDuplicatedRealToExistingVirtualhostSet() {
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
-        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost");
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real");
+        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
+        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
@@ -163,12 +168,13 @@ public class TestQueueMap {
     public void removeExistingRealFromExistingVirtualhostSet() throws UnsupportedEncodingException {
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
-        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost");
+        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
         String messageReal = QueueMap.buildMessage(virtualhostStr,
                                                    endpointStr,
                                                    portStr,
                                                    statusStr,
-                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")));
+                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                   "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
@@ -191,7 +197,8 @@ public class TestQueueMap {
                                                     endpointStr,
                                                     portStr,
                                                     statusStr,
-                                                    String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")));
+                                                    String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                    "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processDelMessage(messageReal);
@@ -204,12 +211,13 @@ public class TestQueueMap {
     public void removeAbsentRealFromVirtualhostSet() throws UnsupportedEncodingException {
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
-        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost");
+        String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
         String messageReal = QueueMap.buildMessage(virtualhostStr,
                                                    endpointStr,
                                                    portStr,
                                                    statusStr,
-                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")));
+                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                   "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
@@ -231,17 +239,17 @@ public class TestQueueMap {
 
             String aVirtualhostStr = String.format("%d%s", idVirtualhost, virtualhostStr);
             String messageVirtualhost = QueueMap.buildMessage(
-                    aVirtualhostStr, "", "", "", "/virtualhost");
+                    aVirtualhostStr, "", "", "", "/virtualhost", "{}");
 
             queueMap.processAddMessage(messageVirtualhost);
 
             for (int idReal=0; idReal<10; idReal++) {
                 String messageReal = QueueMap.buildMessage(
-                        aVirtualhostStr, endpointStr, String.format("%d", idReal), statusStr, "/real");
+                        aVirtualhostStr, endpointStr, String.format("%d", idReal), statusStr, "/real","{}");
                 queueMap.processAddMessage(messageReal);
             }
         }
-        String messageDelRoutes = QueueMap.buildMessage("", "", "", "", "/route");
+        String messageDelRoutes = QueueMap.buildMessage("", "", "", "", "/route", "{}");
         queueMap.processDelMessage(messageDelRoutes);
 
         assertThat(virtualhosts).hasSize(0);
@@ -251,10 +259,16 @@ public class TestQueueMap {
     public void validateBuildMessage() {
         String statusStr = "";
         String uriStr = "/test";
+        JsonObject properties = new JsonObject("{}");
 
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr);
+        String message = QueueMap.buildMessage(virtualhostStr,
+                                               endpointStr,
+                                               portStr,
+                                               statusStr,
+                                               uriStr,
+                                               properties.toString());
 
-        assertThat(message).isEqualTo(String.format("%s%s%s%s%s%s%s%s%s",
+        assertThat(message).isEqualTo(String.format(STRING_PATTERN,
                                                     virtualhostStr,
                                                     SEPARATOR,
                                                     endpointStr,
@@ -263,6 +277,9 @@ public class TestQueueMap {
                                                     SEPARATOR,
                                                     statusStr,
                                                     SEPARATOR,
-                                                    uriStr));
+                                                    uriStr,
+                                                    SEPARATOR,
+                                                    properties
+                                                    ));
     }
 }

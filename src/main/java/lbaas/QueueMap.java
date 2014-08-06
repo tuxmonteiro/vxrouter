@@ -7,6 +7,9 @@ package lbaas;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
+import static lbaas.Constants.SEPARATOR;
+import static lbaas.Constants.NUM_FIELDS;
+import static lbaas.Constants.STRING_PATTERN;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -17,9 +20,6 @@ import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
-
-import static lbaas.Constants.SEPARATOR;
-import static lbaas.Constants.NUM_FIELDS;
 
 public class QueueMap {
 
@@ -33,9 +33,10 @@ public class QueueMap {
             String endpointStr,
             String portStr,
             String statusStr,
-            String uriStr)
+            String uriStr,
+            String properties)
     {
-        final String messageFormat = "%s%s%s%s%s%s%s%s%s";
+        final String messageFormat = STRING_PATTERN;
         return String.format(messageFormat,
             virtualhostStr,
             SEPARATOR,
@@ -45,7 +46,9 @@ public class QueueMap {
             SEPARATOR,
             statusStr,
             SEPARATOR,
-            uriStr);
+            uriStr,
+            SEPARATOR,
+            properties);
     }
 
     public QueueMap(final Verticle verticle, final Map<String, Virtualhost> virtualhosts) {
@@ -68,6 +71,7 @@ public class QueueMap {
             String endpoint = (!"".equals(host) && !"".equals(port)) ?
                     String.format("%s:%s", host, port) : "";
             String uriBase = uri.split("/")[1];
+            String properties = route[5];
 
             if (virtualhosts==null) {
                 return false;
@@ -103,6 +107,8 @@ public class QueueMap {
                     isOk = false;
                     break;
             }
+        } else {
+            isOk = false;
         }
         return isOk;
     }
@@ -119,6 +125,7 @@ public class QueueMap {
             String endpoint = (!"".equals(host) && !"".equals(port)) ?
                     String.format("%s:%s", host, port) : "";
             String uriBase = uri.split("/")[1];
+            String properties = route[5];
 
             if (virtualhosts==null) {
                 return false;
@@ -169,6 +176,8 @@ public class QueueMap {
                     isOk = false;
                     break;
             }
+        } else {
+            isOk = false;
         }
         return isOk;
     }

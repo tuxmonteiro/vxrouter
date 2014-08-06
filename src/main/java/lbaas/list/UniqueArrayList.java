@@ -12,7 +12,11 @@ public class UniqueArrayList<T> extends ArrayList<T> {
 
     public UniqueArrayList(ArrayList<T> aList) {
         this();
-        this.addAll(aList);
+        if (aList!=null) {
+            for (T object: aList) {
+                this.add(object);
+            }
+        }
     }
 
     @Override

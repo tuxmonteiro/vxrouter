@@ -166,7 +166,8 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                                 host,
                                                 port,
                                                 statusStr,
-                                                String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")));
+                                                String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")),
+                                                "{}");
                 if (eb!=null) {
                     eb.publish(QUEUE_ROUTE_DEL, message);
                 }
@@ -175,7 +176,8 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                                 host,
                                                 port,
                                                 statusStr,
-                                                "/real");
+                                                "/real",
+                                                "{}");
                 if (eb!=null) {
                     eb.publish(QUEUE_ROUTE_ADD, message);
                 }

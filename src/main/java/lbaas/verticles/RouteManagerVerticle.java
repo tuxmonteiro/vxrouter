@@ -296,7 +296,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         };
     }
 
-    private void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
+    public void setRoute(final JsonObject json, final Action action, final String uri) throws RuntimeException {
         JsonArray jsonRoutes = null;
         if (json.containsField("routes")) {
             jsonRoutes = json.getArray("routes");
@@ -304,9 +304,11 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             jsonRoutes = new JsonArray();
             jsonRoutes.addObject(json);
         }
+
         Iterator<Object> it = jsonRoutes.iterator();
         while (it.hasNext()) {
             String vhost;
+            String properties;
             String host;
             Integer port;
             boolean status;
@@ -317,6 +319,11 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 vhost = jsonTemp.getString("name");
             } else {
                 throw new RouterException("virtualhost undef");
+            }
+            if (jsonTemp.containsField("properties")) {
+                properties = jsonTemp.getString("properties");
+            } else {
+                properties = "{}";
             }
 
             if (jsonTemp.containsField("endpoints")) {
@@ -336,11 +343,12 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                                                            host,
                                                            portStr,
                                                            statusStr,
-                                                           uri);
+                                                           uri,
+                                                           properties);
                     sendAction(message, action);
                 }
             } else {
-                String message = QueueMap.buildMessage(vhost, "", "", "", uri);
+                String message = QueueMap.buildMessage(vhost, "", "", "", uri, properties);
                 sendAction(message, action);
             }
 

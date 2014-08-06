@@ -10,9 +10,11 @@ import java.util.Map;
 
 import lbaas.Client;
 import lbaas.ICounter;
+import lbaas.RequestData;
 import lbaas.Server;
 import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
+import lbaas.loadbalance.impl.RandomPolicy;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;
@@ -76,6 +78,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         }
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
+        virtualhost.setRequestData(new RequestData(sRequest))
+                   .setConnectPolicy(new RandomPolicy())
+                   .setPersistencePolicy(new RandomPolicy());
         if (virtualhost.getClients(true).isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
@@ -84,7 +89,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final boolean connectionKeepalive = isHttpKeepAlive(sRequest.headers(), sRequest.version());
 
-        final Client client = ((Client) (virtualhost.getClients(true).get(getChoice(virtualhost.getClients(true).size()))))
+        final Client client = virtualhost.getChoice()
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
