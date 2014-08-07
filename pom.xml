@@ -69,6 +69,14 @@
       <version>${vertx.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>17.0</version>
+      <scope>provided</scope>
+    </dependency>
+
     <!--Test dependencies-->
     <dependency>
       <groupId>junit</groupId>
