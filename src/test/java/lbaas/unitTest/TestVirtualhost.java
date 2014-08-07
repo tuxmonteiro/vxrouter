@@ -2,8 +2,6 @@ package lbaas.unitTest;
 
 import static org.assertj.core.api.Assertions.*;
 import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
-import static org.mockito.Mockito.*;
-import lbaas.Client;
 import lbaas.RequestData;
 import lbaas.Virtualhost;
 import lbaas.loadbalance.ILoadBalancePolicy;
@@ -27,6 +25,7 @@ public class TestVirtualhost {
         vertx = null;
         requestData = new RequestData(null);
         virtualhost = new Virtualhost(virtualhostName, vertx);
+        virtualhost.clearProperties();
         endpoint = "0.0.0.0:0";
     }
 
@@ -42,6 +41,7 @@ public class TestVirtualhost {
     @Test
     public void insertNewBadClientInSet() {
         boolean endPointOk = false;
+
         boolean notExist = virtualhost.addClient(endpoint, endPointOk);
 
         assertThat(virtualhost).hasActionOk(notExist).hasSize(1, endPointOk);
@@ -110,80 +110,57 @@ public class TestVirtualhost {
     }
 
     @Test
-    public void getChoiceNewConnectInterface() {
-        boolean endPointOk = true;
-        ILoadBalancePolicy loadBalancePolicy = mock(ILoadBalancePolicy.class);
-        virtualhost.setConnectPolicy(loadBalancePolicy);
-        virtualhost.addClient(endpoint, endPointOk);
+    public void loadBalancePolicyClassFound() {
+        JsonObject properties = new JsonObject();
+        String loadBalancePolicyStr = "RandomPolicy";
+        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
-        when(loadBalancePolicy.getChoice(anyCollectionOf(Client.class), (RequestData) any()))
-            .thenReturn(virtualhost.getClients(endPointOk).iterator().next());
+        virtualhost.setProperties(properties);
+        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
-        String endpointHost = virtualhost.getChoice().getHost();
-        Integer endpointPort = virtualhost.getChoice().getPort();
-
-        assertThat(endpointHost).isEqualToIgnoringCase(endpoint.split(":")[0]);
-        assertThat(endpointPort).isEqualTo(Integer.parseInt(endpoint.split(":")[1]));
+        assertThat(loadBalance.toString()).isEqualTo(loadBalancePolicyStr);
     }
 
     @Test
-    public void getChoicePersistenceInterface() {
-        boolean endPointOk = true;
-        ILoadBalancePolicy loadBalancePolicy = mock(ILoadBalancePolicy.class);
-        virtualhost.setPersistencePolicy(loadBalancePolicy);
-        virtualhost.addClient(endpoint, endPointOk);
+    public void loadBalancePolicyClassNotFound() {
+        JsonObject properties = new JsonObject();
+        String loadBalancePolicyStr = "ClassNotExist";
+        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
-        when(loadBalancePolicy.getChoice(anyCollectionOf(Client.class), (RequestData) any()))
-            .thenReturn(virtualhost.getClients(endPointOk).iterator().next());
+        virtualhost.setProperties(properties);
+        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
-        String endpointHost = virtualhost.getChoice(false).getHost();
-        Integer endpointPort = virtualhost.getChoice(false).getPort();
-
-        assertThat(endpointHost).isEqualToIgnoringCase(endpoint.split(":")[0]);
-        assertThat(endpointPort).isEqualTo(Integer.parseInt(endpoint.split(":")[1]));
-    }
-
-    @Test
-    public void getLoadBalancePolicyClassFound() {
-        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy("RandomPolicy");
-        assertThat(loadBalance.toString()).isEqualTo("RandomPolicy");
-    }
-
-    @Test
-    public void getLoadBalancePolicyClassNotFound() {
-        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy("ClassNotExist");
         assertThat(loadBalance).isNull();
     }
 
     @Test
-    public void getLoadBalancePolicyNewConnection() {
-        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy("RandomPolicy");
+    public void getClientWithLoadBalancePolicy() {
+        JsonObject properties = new JsonObject();
+        String loadBalancePolicyStr = "RandomPolicy";
+        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
-        virtualhost.setConnectPolicy(loadBalance);
+        virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);
 
-        assertThat(virtualhost.getChoice(true)).isEqualTo(new Client(endpoint, null));
+        assertThat(virtualhost.getChoice().toString()).isEqualTo(endpoint);
     }
 
     @Test
-    public void getLoadBalancePolicyPersistence() {
-        ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy("RandomPolicy");
+    public void getClientWithPersistencePolicy() {
+        JsonObject properties = new JsonObject();
+        String loadBalancePolicyStr = "RandomPolicy";
+        properties.putString(virtualhost.getPersistencePolicyFieldName(), loadBalancePolicyStr);
 
-        virtualhost.setPersistencePolicy(loadBalance);
+        virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);
 
         assertThat(virtualhost.getChoice(false).toString()).isEqualTo(endpoint);
     }
 
     @Test
-    public void defineLoadBalancePolicy() {
-        JsonObject properties = new JsonObject();
-        String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString("loadBalancePolicy", loadBalancePolicyStr);
+    public void clearProperties() {
+        virtualhost.clearProperties();
 
-        virtualhost.setProperties(properties);
-        ILoadBalancePolicy loadBalancePolicy = virtualhost.getLoadBalancePolicy();
-
-        assertThat(loadBalancePolicy.toString()).isEqualTo(loadBalancePolicyStr);
+        assertThat(virtualhost.getProperties()).isEqualTo(new JsonObject());
     }
 }

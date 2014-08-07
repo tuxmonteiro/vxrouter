@@ -14,8 +14,6 @@ import lbaas.RequestData;
 import lbaas.Server;
 import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
-import lbaas.loadbalance.impl.RandomPolicy;
-
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
@@ -78,9 +76,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         }
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
-        virtualhost.setRequestData(new RequestData(sRequest))
-                   .setConnectPolicy(new RandomPolicy())
-                   .setPersistencePolicy(new RandomPolicy());
+        virtualhost.setRequestData(new RequestData(sRequest));
         if (virtualhost.getClients(true).isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));

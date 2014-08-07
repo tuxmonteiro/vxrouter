@@ -19,6 +19,10 @@ public class Virtualhost {
     private ILoadBalancePolicy connectPolicy;
     private ILoadBalancePolicy persistencePolicy;
     private JsonObject properties = new JsonObject();
+    private final String loadBalancePolicyFieldName = "loadBalancePolicy";
+    private final String persistencePolicyFieldName = "persistencePolicy";
+    private final String defaultLoadBalancePolicy = "DefaultLoadBalancePolicy";
+    private final String packageOfLoadBalancePolicyClasses = "lbaas.loadbalance.impl";
 
     public Virtualhost(String virtualhostName, final Vertx vertx) {
         this.virtualhostName = virtualhostName;
@@ -32,14 +36,20 @@ public class Virtualhost {
         return this;
     }
 
-    public Virtualhost setConnectPolicy(ILoadBalancePolicy connectPolicy) {
-        this.connectPolicy = connectPolicy;
-        return this;
+    public JsonObject getProperties() {
+        return properties;
     }
 
-    public Virtualhost setPersistencePolicy(ILoadBalancePolicy persistencePolicy) {
-        this.persistencePolicy = persistencePolicy;
-        return this;
+    public void setProperties(JsonObject properties) {
+        this.properties = properties;
+    }
+
+    public String getLoadBalancePolicyFieldName() {
+        return loadBalancePolicyFieldName;
+    }
+
+    public String getPersistencePolicyFieldName() {
+        return persistencePolicyFieldName;
     }
 
     public boolean addClient(String endpoint, boolean endPointOk) {
@@ -81,22 +91,40 @@ public class Virtualhost {
 
     public Client getChoice(boolean isNewConnection) {
         if (isNewConnection) {
+            if (connectPolicy==null) {
+                getLoadBalancePolicy();
+            }
             return connectPolicy.getChoice(endpoints, requestData);
         } else {
+            if (persistencePolicy==null) {
+                getPersistencePolicy();
+            }
             return persistencePolicy.getChoice(endpoints, requestData);
         }
     }
 
-    public ILoadBalancePolicy getLoadBalancePolicy(String loadBalancePolicyStr) {
+    public ILoadBalancePolicy getLoadBalancePolicy() {
+        String loadBalancePolicyStr = properties.getString(loadBalancePolicyFieldName, defaultLoadBalancePolicy);
+        connectPolicy = loadBalancePolicyClassLoader(loadBalancePolicyStr);
+        return connectPolicy;
+    }
+
+    public ILoadBalancePolicy getPersistencePolicy() {
+        String persistencePolicyStr = properties.getString(persistencePolicyFieldName, defaultLoadBalancePolicy);
+        persistencePolicy = loadBalancePolicyClassLoader(persistencePolicyStr);
+        return persistencePolicy;
+    }
+
+    public ILoadBalancePolicy loadBalancePolicyClassLoader(String loadBalancePolicyName) {
         try {
 
             @SuppressWarnings("unchecked")
             Class<ILoadBalancePolicy> classLoader = (Class<ILoadBalancePolicy>) Class.forName(
-                            String.format("lbaas.loadbalance.impl.%s", loadBalancePolicyStr));
-            Constructor<ILoadBalancePolicy> classLoadBalancePolicy =
+                            String.format("%s.%s", packageOfLoadBalancePolicyClasses, loadBalancePolicyName));
+            Constructor<ILoadBalancePolicy> classPersistencePolicy =
                     classLoader.getConstructor();
 
-            return classLoadBalancePolicy.newInstance();
+            return classPersistencePolicy.newInstance();
 
         } catch (   ClassNotFoundException |
                     InstantiationException |
@@ -111,13 +139,8 @@ public class Virtualhost {
         }
     }
 
-    public void setProperties(JsonObject properties) {
-        this.properties = properties;
-    }
-
-    public ILoadBalancePolicy getLoadBalancePolicy() {
-        String loadBalanceProperty = properties.getString("loadBalancePolicy", "DefaultLoadBalancePolicy");
-        return getLoadBalancePolicy(loadBalanceProperty);
+    public void clearProperties() {
+        properties = new JsonObject();
     }
 
 }

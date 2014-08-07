@@ -18,6 +18,8 @@ import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.DecodeException;
+import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
@@ -81,7 +83,18 @@ public class QueueMap {
                 case "route":
                 case "virtualhost":
                     if (!virtualhosts.containsKey(virtualhost)) {
-                        virtualhosts.put(virtualhost, new Virtualhost(virtualhost, vertx));
+                        Virtualhost virtualhostObj = new Virtualhost(virtualhost, vertx);
+                        try {
+                            if (!"".equals(properties)) {
+                                JsonObject propertiesJson = new JsonObject(properties);
+                                virtualhostObj.setProperties(propertiesJson);
+                            }
+                        } catch (DecodeException e1) {
+                            log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
+                        } catch (Exception e2) {
+                            log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace()));
+                        }
+                        virtualhosts.put(virtualhost, virtualhostObj);
                         log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
                         isOk = true;
                     } else {
