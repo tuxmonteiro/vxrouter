@@ -22,7 +22,7 @@ public class TestRandomPolicy {
     @Test
     public void checkAlgorithmChoice() {
         int sum = 0;
-        int numInterations = 1000;
+        int numInterations = 10000;
         double percentMarginOfError = 0.05;
 
         clients.add(new Client("0:0", null));
