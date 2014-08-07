@@ -11,8 +11,8 @@ public class RequestData {
     final MultiMap headers;
     final MultiMap params;
     final URI uri;
-    final String remoteAddress;
-    final String remotePort;
+    String remoteAddress;
+    String remotePort;
 
     public RequestData(HttpServerRequest request) {
         if (request!=null) {
@@ -46,8 +46,16 @@ public class RequestData {
         return remoteAddress;
     }
 
+    public void setRemoteAddress(String remoteAddress) {
+        this.remoteAddress = remoteAddress;
+    }
+
     public String getRemotePort() {
         return remotePort;
+    }
+
+    public void setRemotePort(String remotePort) {
+        this.remotePort = remotePort;
     }
 
     public String getFrontEnd() {
