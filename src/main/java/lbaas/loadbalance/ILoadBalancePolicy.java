@@ -9,6 +9,8 @@ public interface ILoadBalancePolicy {
 
     public Client getChoice(Collection<Client> clients, RequestData requestData);
 
+    public boolean isDefault();
+
     @Override
     public String toString();
 

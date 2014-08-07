@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import lbaas.list.UniqueArrayList;
 import lbaas.loadbalance.ILoadBalancePolicy;
+import lbaas.loadbalance.impl.DefaultLoadBalancePolicy;
 
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.json.JsonObject;
@@ -134,8 +135,7 @@ public class Virtualhost {
                     NoSuchMethodException |
                     SecurityException e1 ) {
 //            log.error(String.format("[%s] LoadBalancePolicy Problem. Using DefaultLoadBalancePolicy. Message: %s", verticleId, e1.getMessage()));
-//            return new DefaultLoadBalancePolicy();
-            return null;
+            return new DefaultLoadBalancePolicy();
         }
     }
 

@@ -26,4 +26,9 @@ public class RandomPolicy implements ILoadBalancePolicy {
     public String toString() {
         return RandomPolicy.class.getSimpleName();
     }
+
+    @Override
+    public boolean isDefault() {
+        return false;
+    }
 }

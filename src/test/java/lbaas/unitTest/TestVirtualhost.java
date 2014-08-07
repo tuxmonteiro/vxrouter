@@ -118,7 +118,7 @@ public class TestVirtualhost {
         virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
-        assertThat(loadBalance.toString()).isEqualTo(loadBalancePolicyStr);
+        assertThat(loadBalance.isDefault()).isFalse();
     }
 
     @Test
@@ -130,7 +130,7 @@ public class TestVirtualhost {
         virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
-        assertThat(loadBalance).isNull();
+        assertThat(loadBalance.isDefault()).isTrue();
     }
 
     @Test

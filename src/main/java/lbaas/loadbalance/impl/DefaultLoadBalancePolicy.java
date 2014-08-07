@@ -8,4 +8,9 @@ public class DefaultLoadBalancePolicy extends RandomPolicy implements ILoadBalan
     public String toString() {
         return super.toString();
     }
+
+    @Override
+    public boolean isDefault() {
+        return true;
+    }
 }
