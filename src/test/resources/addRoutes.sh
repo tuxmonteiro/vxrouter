@@ -28,9 +28,15 @@ else
   ENDPOINT2_PORT=${ENDPOINT2##*:}
 fi
 
+LOADBALANCE=$5
+if [ "x$LOADBALANCE" == "x" ]; then
+  LOADBALANCE="RandomPolicy"
+fi
+
 curl -XPOST "http://$ROUTE/virtualhost" -d '
 {
   "name": "'$VHOST'",
+  "loadBalancePolicy": "'$LOADBALANCE'",
   "endpoints": []}' \
   && curl -XPOST "http://$ROUTE/version" -d '
   {

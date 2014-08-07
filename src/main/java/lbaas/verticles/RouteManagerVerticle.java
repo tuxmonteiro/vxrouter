@@ -390,6 +390,8 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             if (virtualhost==null) {
                 continue;
             }
+            JsonObject properties = virtualhost.getProperties();
+            vhostObj.putObject("properties", properties);
             for (Client value : virtualhost.getClients(true)) {
                 if (value!=null) {
                     JsonObject endpointObj = new JsonObject();
