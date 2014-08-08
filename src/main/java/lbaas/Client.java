@@ -146,24 +146,26 @@ public class Client {
     // Lazy initialization
     public HttpClient connect() {
         final String endpoint = this.toString();
-        if (client==null && vertx!=null) {
-            client = vertx.createHttpClient()
-                .setKeepAlive(keepalive)
-                .setTCPKeepAlive(keepalive)
-                .setConnectTimeout(timeout)
-                .setHost(host)
-                .setPort(port)
-                .setMaxPoolSize(maxPoolSize);
-            client.exceptionHandler(new Handler<Throwable>() {
-                @Override
-                public void handle(Throwable e) {
-                    vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, endpoint);
-                }
-            });
-            return client;
-        } else {
-            throw new RuntimeException(String.format("FAIL: Connect impossible (%s). vertx is null", this.toString()));
+        if (client==null) {
+            if (vertx!=null) {
+                client = vertx.createHttpClient()
+                    .setKeepAlive(keepalive)
+                    .setTCPKeepAlive(keepalive)
+                    .setConnectTimeout(timeout)
+                    .setHost(host)
+                    .setPort(port)
+                    .setMaxPoolSize(maxPoolSize);
+                client.exceptionHandler(new Handler<Throwable>() {
+                    @Override
+                    public void handle(Throwable e) {
+                        vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, endpoint);
+                    }
+                });
+            } else {
+                throw new RuntimeException(String.format("FAIL: Connect impossible (%s). vertx is null", this.toString()));
+            }
         }
+        return client;
     }
 
     public void close() {
