@@ -18,13 +18,13 @@ public class RequestData {
     String remoteAddress;
     String remotePort;
 
-    public RequestData(HttpServerRequest request) {
+    public RequestData(final HttpServerRequest request) {
         if (request!=null) {
             this.headers = request.headers();
             this.params = request.params();
             this.uri = request.absoluteURI();
-            this.remoteAddress = request.netSocket().remoteAddress().getHostString();
-            this.remotePort = String.format("%d", request.netSocket().remoteAddress().getPort());
+            this.remoteAddress = request.remoteAddress().getAddress().getHostAddress();
+            this.remotePort = String.format("%d", request.remoteAddress().getPort());
         } else {
             this.headers = new CaseInsensitiveMultiMap();
             this.params = new CaseInsensitiveMultiMap();
