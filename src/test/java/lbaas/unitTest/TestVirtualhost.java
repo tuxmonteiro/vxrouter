@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas.unitTest;
 
 import static org.assertj.core.api.Assertions.*;
@@ -113,7 +117,7 @@ public class TestVirtualhost {
     public void loadBalancePolicyClassFound() {
         JsonObject properties = new JsonObject();
         String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
         virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
@@ -125,7 +129,7 @@ public class TestVirtualhost {
     public void loadBalancePolicyClassNotFound() {
         JsonObject properties = new JsonObject();
         String loadBalancePolicyStr = "ClassNotExist";
-        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
         virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
@@ -137,7 +141,7 @@ public class TestVirtualhost {
     public void getClientWithLoadBalancePolicy() {
         JsonObject properties = new JsonObject();
         String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
 
         virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);
@@ -149,7 +153,7 @@ public class TestVirtualhost {
     public void getClientWithPersistencePolicy() {
         JsonObject properties = new JsonObject();
         String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(virtualhost.getPersistencePolicyFieldName(), loadBalancePolicyStr);
+        properties.putString(Virtualhost.getPersistencePolicyFieldName(), loadBalancePolicyStr);
 
         virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas.loadbalance.impl;
 
 import static lbaas.util.HashAlgorithm.HashType.MURMUR3_128;
@@ -13,7 +17,7 @@ import lbaas.util.HashAlgorithm;
 public class HashPolicy implements ILoadBalancePolicy {
 
     @Override
-    public Client getChoice(Collection<Client> clients, RequestData requestData) {
+    public Client getChoice(final Collection<Client> clients, final RequestData requestData) {
         String sourceIp = requestData.getRemoteAddress();
         int numberOfReplicas = 1;
         ConsistentHash<Client> consistentHash = new ConsistentHash<Client>(new HashAlgorithm(MURMUR3_128),

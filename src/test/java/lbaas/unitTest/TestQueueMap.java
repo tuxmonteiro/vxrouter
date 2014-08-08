@@ -1,8 +1,5 @@
 package lbaas.unitTest;
 
-import static lbaas.Constants.SEPARATOR;
-import static lbaas.Constants.STRING_PATTERN;
-
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
@@ -35,6 +32,8 @@ public class TestQueueMap {
     private String virtualhostStr = "test.virtualhost.com";
     private String endpointStr = "0.0.0.0";
     private String portStr = "00";
+    private JsonObject properties;
+    private JsonObject propertiesData;
 
     private Map<String, Virtualhost> virtualhosts = new HashMap<String, Virtualhost>();
 
@@ -43,8 +42,14 @@ public class TestQueueMap {
         verticle = mock(Verticle.class);
         vertx = mock(Vertx.class);
         container = mock(Container.class);
+        properties = new JsonObject();
+        propertiesData = new JsonObject();
+        propertiesData.putString(Virtualhost.getLoadBalancePolicyFieldName(), Virtualhost.getDefaultloadbalancepolicy());
+        properties.putObject("properties", propertiesData);
         logDelegate = mock(LogDelegate.class);
         logger = new FakeLogger(logDelegate);
+        ((FakeLogger)logger).setQuiet(false);
+        ((FakeLogger)logger).setTestId("");
 
         when(verticle.getVertx()).thenReturn(vertx);
         when(verticle.getVertx().eventBus()).thenReturn(null);
@@ -56,9 +61,11 @@ public class TestQueueMap {
 
     @Test
     public void insertNewVirtualhostToRouteMap() {
+        ((FakeLogger)logger).setTestId("insertNewVirtualhostToRouteMap");
+
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "{}");
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(message);
@@ -69,9 +76,11 @@ public class TestQueueMap {
 
     @Test
     public void insertDuplicatedVirtualhostToRouteMap() {
+        ((FakeLogger)logger).setTestId("insertDuplicatedVirtualhostToRouteMap");
+
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "{}");
+        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -83,28 +92,34 @@ public class TestQueueMap {
 
     @Test
     public void removeExistingVirtualhostFromRouteMap() {
-        String uriStr = "/virtualhost";
+        ((FakeLogger)logger).setTestId("removeExistingVirtualhostFromRouteMap");
+
+        String uriStr = String.format("/virtualhost/%s", virtualhostStr);
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String properties = "{}";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties);
+        String messageAdd = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
+        String messageDel = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "");
+
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
-        queueMap.processAddMessage(message);
-        boolean isOk = queueMap.processDelMessage(message);
+        boolean isOkAdd = queueMap.processAddMessage(messageAdd);
+        boolean isOkDel = queueMap.processDelMessage(messageDel);
 
+        assertThat(isOkAdd).isTrue();
+        assertThat(isOkDel).isTrue();
         assertThat(virtualhosts).doesNotContainKey(virtualhostStr);
-        assertThat(isOk).isTrue();
     }
 
     @Test
     public void removeAbsentVirtualhostFromRouteMap() {
-        String uriStr = "/virtualhost";
+        ((FakeLogger)logger).setTestId("removeAbsentVirtualhostFromRouteMap");
+
+        String uriStr = String.format("/virtualhost/%s", virtualhostStr);
         String statusStr = "";
         String endpointStr = "";
         String portStr = "";
-        String properties = "{}";
+        String properties = "";
         String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
@@ -116,6 +131,8 @@ public class TestQueueMap {
 
     @Test
     public void insertNewRealToExistingVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertNewRealToExistingVirtualhostSet");
+
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
@@ -134,6 +151,8 @@ public class TestQueueMap {
 
     @Test
     public void insertNewRealToAbsentVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertNewRealToAbsentVirtualhostSet");
+
         String statusStr = "";
         String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
@@ -146,6 +165,8 @@ public class TestQueueMap {
 
     @Test
     public void insertDuplicatedRealToExistingVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertDuplicatedRealToExistingVirtualhostSet");
+
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
@@ -166,6 +187,8 @@ public class TestQueueMap {
 
     @Test
     public void removeExistingRealFromExistingVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeExistingRealFromExistingVirtualhostSet");
+
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
@@ -191,6 +214,8 @@ public class TestQueueMap {
 
     @Test
     public void removeRealFromAbsentVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeRealFromAbsentVirtualhostSet");
+
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
         String messageReal = QueueMap.buildMessage(virtualhostStr,
@@ -209,6 +234,8 @@ public class TestQueueMap {
 
     @Test
     public void removeAbsentRealFromVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeAbsentRealFromVirtualhostSet");
+
         String statusStr = "";
         String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
@@ -232,6 +259,9 @@ public class TestQueueMap {
 
     @Test
     public void removeAllRoutes() {
+        ((FakeLogger)logger).setTestId("removeAllRoutes");
+        ((FakeLogger)logger).setQuiet(true);
+
         String statusStr = "";
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
@@ -257,9 +287,10 @@ public class TestQueueMap {
 
     @Test
     public void validateBuildMessage() {
+        ((FakeLogger)logger).setTestId("validateBuildMessage");
         String statusStr = "";
         String uriStr = "/test";
-        JsonObject properties = new JsonObject("{}");
+        JsonObject properties = new JsonObject();
 
         String message = QueueMap.buildMessage(virtualhostStr,
                                                endpointStr,
@@ -268,18 +299,16 @@ public class TestQueueMap {
                                                uriStr,
                                                properties.toString());
 
-        assertThat(message).isEqualTo(String.format(STRING_PATTERN,
-                                                    virtualhostStr,
-                                                    SEPARATOR,
-                                                    endpointStr,
-                                                    SEPARATOR,
-                                                    portStr,
-                                                    SEPARATOR,
-                                                    statusStr,
-                                                    SEPARATOR,
-                                                    uriStr,
-                                                    SEPARATOR,
-                                                    properties
-                                                    ));
+        JsonObject messageJsonOrig = new JsonObject(message);
+
+        JsonObject messageJson = new JsonObject();
+        messageJson.putString("virtualhost", virtualhostStr);
+        messageJson.putString("host", endpointStr);
+        messageJson.putString("port", portStr);
+        messageJson.putString("status", statusStr);
+        messageJson.putString("uri", uriStr);
+        messageJson.putString("properties", properties.toString());
+
+        assertThat(messageJsonOrig).isEqualTo(messageJson);
     }
 }

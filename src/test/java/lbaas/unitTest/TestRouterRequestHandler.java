@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
-import org.vertx.java.core.http.HttpServerRequest;
+//import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpVersion;
 import org.vertx.java.core.logging.impl.LogDelegate;
 import org.vertx.java.platform.Container;
@@ -24,7 +24,7 @@ import org.vertx.java.platform.Verticle;
 public class TestRouterRequestHandler {
 
     private RouterRequestHandler routerRequestHandler;
-    private HttpServerRequest httpServerRequest;
+//    private HttpServerRequest httpServerRequest;
     private Verticle verticle;
     private Vertx vertx;
     private Container container;
@@ -35,7 +35,7 @@ public class TestRouterRequestHandler {
 
     @Before
     public void setUp() {
-        httpServerRequest = mock(HttpServerRequest.class);
+//        httpServerRequest = mock(HttpServerRequest.class);
         verticle = mock(Verticle.class);
         vertx = mock(Vertx.class);
         container = mock(Container.class);
@@ -87,21 +87,6 @@ public class TestRouterRequestHandler {
         assertThat(isKeepAliveWithConnectionClose).as("isKeepAliveWithConnectionClose").isFalse();
         assertThat(isKeepAliveWithoutConnectionHeader).as("isKeepAliveWithoutConnectionHeader").isTrue();
 
-    }
-
-    @Test
-    public void checkRandomChoice() {
-        int sum = 0;
-        int numEndpoints = 10;
-        int numInterations = 1000;
-        double errorLimit = 0.05;
-
-        for (int x=0;x<numInterations;x++) {
-            sum += routerRequestHandler.getChoice(numEndpoints);
-        }
-        int result = (numEndpoints*(numEndpoints-1)/2) * (numInterations/numEndpoints);
-
-        assertThat(result).isGreaterThanOrEqualTo((int) (sum*(1.0-errorLimit))).isLessThanOrEqualTo((int) (sum*(1.0+errorLimit)));
     }
 
 }

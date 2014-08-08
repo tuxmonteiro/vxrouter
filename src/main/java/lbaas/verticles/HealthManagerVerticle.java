@@ -25,12 +25,10 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-import static lbaas.Constants.NUM_FIELDS;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_OK;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
-import static lbaas.Constants.SEPARATOR;
 
 public class HealthManagerVerticle extends Verticle implements IEventObserver {
 
@@ -186,15 +184,19 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
     }
 
     private void messageToMap(final String message, final Map<String, String> map) {
-        final String[] route = message.split(SEPARATOR.toString());
-        if (route.length == NUM_FIELDS && map!=null) {
-            map.put("virtualhost", route[0]);
-            map.put("host",route[1]);
-            map.put("port",route[2]);
-            map.put("status",!route[3].equals("0") ? "true":"false");
-            map.put("uri",route[4]);
-            map.put("endpoint",(!"".equals(route[1]) && !"".equals(route[2])) ? String.format("%s:%s", route[1], route[2]) : "");
-            map.put("uriBase", route[4].contains("/")?route[4].split("/")[1]:"");
+        if (map!=null) {
+            JsonObject messageJson = new JsonObject(message);
+            map.put("virtualhost", messageJson.getString("virtualhost", ""));
+            String host = messageJson.getString("host", "");
+            map.put("host", host);
+            String port = messageJson.getString("port", "");
+            map.put("port", port);
+            map.put("status", !"0".equals(messageJson.getString("status", "")) ? "true":"false");
+            String uri = messageJson.getString("uri", "");
+            map.put("uri", uri);
+            map.put("properties", messageJson.getString("properties", "{}"));
+            map.put("endpoint",(!"".equals(host) && !"".equals(port)) ? String.format("%s:%s", host, port) : "");
+            map.put("uriBase", uri.contains("/")? uri.split("/")[1]:"");
         }
     }
 

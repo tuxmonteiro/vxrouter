@@ -12,6 +12,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
 import lbaas.Client;
 import lbaas.CounterWithStatsd;
 import lbaas.ICounter;
@@ -26,6 +27,7 @@ import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
+import org.vertx.java.core.json.DecodeException;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
@@ -308,7 +310,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         Iterator<Object> it = jsonRoutes.iterator();
         while (it.hasNext()) {
             String vhost;
-            String properties;
+            JsonObject properties;
             String host;
             Integer port;
             boolean status;
@@ -321,9 +323,13 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 throw new RouterException("virtualhost undef");
             }
             if (jsonTemp.containsField("properties")) {
-                properties = jsonTemp.getString("properties");
+                try {
+                    properties = jsonTemp.getObject("properties");
+                } catch (DecodeException e) {
+                    properties = new JsonObject();
+                }
             } else {
-                properties = "{}";
+                properties = new JsonObject();
             }
 
             if (jsonTemp.containsField("endpoints")) {
@@ -344,11 +350,11 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                                                            portStr,
                                                            statusStr,
                                                            uri,
-                                                           properties);
+                                                           properties.toString());
                     sendAction(message, action);
                 }
             } else {
-                String message = QueueMap.buildMessage(vhost, "", "", "", uri, properties);
+                String message = QueueMap.buildMessage(vhost, "", "", "", uri, properties.toString());
                 sendAction(message, action);
             }
 

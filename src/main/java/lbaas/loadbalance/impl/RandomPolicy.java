@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas.loadbalance.impl;
 
 import java.util.Collection;
@@ -10,7 +14,7 @@ import lbaas.loadbalance.ILoadBalancePolicy;
 public class RandomPolicy implements ILoadBalancePolicy {
 
     @Override
-    public Client getChoice(Collection<Client> clients, RequestData requestData) {
+    public Client getChoice(final Collection<Client> clients, final RequestData requestData) {
         if (clients!=null && !clients.isEmpty() && clients instanceof ArrayList<?>) {
             return ((ArrayList<Client>)clients).get(getIntRandom(clients.size()));
         } else {

@@ -50,6 +50,8 @@ public class Server {
             returnStatus(req, 400, null, key);
         } else {
             returnStatus(req, 502, null, key);
+            log.error(String.format("ERROR 502: Virtualhost %s",
+                    req.headers().contains("Host")? req.headers().get("Host"): "UNDEF"), event);
         }
 
         close(req);

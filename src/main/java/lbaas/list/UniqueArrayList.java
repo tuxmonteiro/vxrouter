@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas.list;
 
 import java.util.ArrayList;

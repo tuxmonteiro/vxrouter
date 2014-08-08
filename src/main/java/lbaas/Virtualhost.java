@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 The original author or authors.
+ * All rights reserved.
+ */
 package lbaas;
 
 import java.lang.reflect.Constructor;
@@ -13,17 +17,17 @@ import org.vertx.java.core.json.JsonObject;
 public class Virtualhost {
 
     private final String virtualhostName;
-    private UniqueArrayList<Client> endpoints;
-    private UniqueArrayList<Client> badEndpoints;
+    private final UniqueArrayList<Client> endpoints;
+    private final UniqueArrayList<Client> badEndpoints;
     private Vertx vertx;
     private RequestData requestData = null;
     private ILoadBalancePolicy connectPolicy;
     private ILoadBalancePolicy persistencePolicy;
     private JsonObject properties = new JsonObject();
-    private final String loadBalancePolicyFieldName = "loadBalancePolicy";
-    private final String persistencePolicyFieldName = "persistencePolicy";
-    private final String defaultLoadBalancePolicy = "DefaultLoadBalancePolicy";
-    private final String packageOfLoadBalancePolicyClasses = "lbaas.loadbalance.impl";
+    private final static String loadBalancePolicyFieldName = "loadBalancePolicy";
+    private final static String persistencePolicyFieldName = "persistencePolicy";
+    private final static String defaultLoadBalancePolicy = "DefaultLoadBalancePolicy";
+    private final static String packageOfLoadBalancePolicyClasses = "lbaas.loadbalance.impl";
 
     public Virtualhost(String virtualhostName, final Vertx vertx) {
         this.virtualhostName = virtualhostName;
@@ -45,12 +49,16 @@ public class Virtualhost {
         this.properties = properties;
     }
 
-    public String getLoadBalancePolicyFieldName() {
+    public static String getLoadBalancePolicyFieldName() {
         return loadBalancePolicyFieldName;
     }
 
-    public String getPersistencePolicyFieldName() {
+    public static String getPersistencePolicyFieldName() {
         return persistencePolicyFieldName;
+    }
+
+    public static String getDefaultloadbalancepolicy() {
+        return defaultLoadBalancePolicy;
     }
 
     public boolean addClient(String endpoint, boolean endPointOk) {
@@ -83,6 +91,11 @@ public class Virtualhost {
         } else {
             badEndpoints.clear();
         }
+    }
+
+    public void clearAll() {
+        endpoints.clear();
+        badEndpoints.clear();
     }
 
     public Client getChoice() {
@@ -135,7 +148,9 @@ public class Virtualhost {
                     NoSuchMethodException |
                     SecurityException e1 ) {
 //            log.error(String.format("[%s] LoadBalancePolicy Problem. Using DefaultLoadBalancePolicy. Message: %s", verticleId, e1.getMessage()));
-            return new DefaultLoadBalancePolicy();
+            ILoadBalancePolicy defaultLoadBalance = new DefaultLoadBalancePolicy();
+            properties.putString(loadBalancePolicyFieldName, defaultLoadBalance.toString());
+            return defaultLoadBalance;
         }
     }
 

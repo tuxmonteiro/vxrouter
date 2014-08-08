@@ -7,10 +7,6 @@ package lbaas;
 import static lbaas.Constants.QUEUE_ROUTE_ADD;
 import static lbaas.Constants.QUEUE_ROUTE_DEL;
 import static lbaas.Constants.QUEUE_ROUTE_VERSION;
-import static lbaas.Constants.SEPARATOR;
-import static lbaas.Constants.NUM_FIELDS;
-import static lbaas.Constants.STRING_PATTERN;
-
 import java.util.Iterator;
 import java.util.Map;
 
@@ -32,25 +28,21 @@ public class QueueMap {
     private final Map<String, Virtualhost> virtualhosts;
 
     public static String buildMessage(String virtualhostStr,
-            String endpointStr,
-            String portStr,
-            String statusStr,
-            String uriStr,
-            String properties)
+                                      String hostStr,
+                                      String portStr,
+                                      String statusStr,
+                                      String uriStr,
+                                      String properties)
     {
-        final String messageFormat = STRING_PATTERN;
-        return String.format(messageFormat,
-            virtualhostStr,
-            SEPARATOR,
-            endpointStr,
-            SEPARATOR,
-            portStr,
-            SEPARATOR,
-            statusStr,
-            SEPARATOR,
-            uriStr,
-            SEPARATOR,
-            properties);
+        JsonObject messageJson = new JsonObject();
+        messageJson.putString("virtualhost", virtualhostStr);
+        messageJson.putString("host", hostStr);
+        messageJson.putString("port", portStr);
+        messageJson.putString("status", statusStr);
+        messageJson.putString("uri", uriStr);
+        messageJson.putString("properties", properties);
+
+        return messageJson.toString();
     }
 
     public QueueMap(final Verticle verticle, final Map<String, Virtualhost> virtualhosts) {
@@ -62,135 +54,130 @@ public class QueueMap {
     }
 
     public boolean processAddMessage(String message) {
+        if (virtualhosts==null) {
+            return false;
+        }
+
         boolean isOk = true;
-        final String[] route = message.split(SEPARATOR.toString());
-        if (route.length == NUM_FIELDS && virtualhosts!=null) {
-            String virtualhost = route[0];
-            String host = route[1];
-            String port = route[2];
-            boolean status = !route[3].equals("0");
-            String uri = route[4];
-            String endpoint = (!"".equals(host) && !"".equals(port)) ?
-                    String.format("%s:%s", host, port) : "";
-            String uriBase = uri.split("/")[1];
-            String properties = route[5];
+        JsonObject messageJson = new JsonObject(message);
+        String virtualhost = messageJson.getString("virtualhost", "");
+        String host = messageJson.getString("host", "");
+        String port = messageJson.getString("port");
+        boolean status = !"0".equals(messageJson.getString("status", ""));
+        String uri = messageJson.getString("uri", "");
+        String properties = messageJson.getString("properties", "{}");
 
-            if (virtualhosts==null) {
-                return false;
-            }
+        String endpoint = (!"".equals(host) && !"".equals(port)) ?
+                String.format("%s:%s", host, port) : "";
+        String uriBase = uri.split("/")[1];
 
-            switch (uriBase) {
-                case "route":
-                case "virtualhost":
-                    if (!virtualhosts.containsKey(virtualhost)) {
-                        Virtualhost virtualhostObj = new Virtualhost(virtualhost, vertx);
-                        try {
-                            if (!"".equals(properties)) {
-                                JsonObject propertiesJson = new JsonObject(properties);
-                                virtualhostObj.setProperties(propertiesJson);
-                            }
-                        } catch (DecodeException e1) {
-                            log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
-                        } catch (Exception e2) {
-                            log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace()));
+        switch (uriBase) {
+            case "route":
+            case "virtualhost":
+                if (!virtualhosts.containsKey(virtualhost)) {
+                    Virtualhost virtualhostObj = new Virtualhost(virtualhost, vertx);
+                    JsonObject propertiesJson = new JsonObject();
+                    try {
+                        if (!"".equals(properties)) {
+                            propertiesJson = new JsonObject(properties);
                         }
-                        virtualhosts.put(virtualhost, virtualhostObj);
-                        log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
-                        isOk = true;
-                    } else {
-                        isOk = false;
+                    } catch (DecodeException e1) {
+                        log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
+                    } catch (Exception e2) {
+                        log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace()));
                     }
-                    break;
-                case "real":
-                    if (!virtualhosts.containsKey(virtualhost)) {
-                        log.warn(String.format("[%s] Endpoint %s failed do not created because Virtualhost %s not exist", verticle.toString(), endpoint, virtualhost));
-                        isOk = false;
-                    } else {
-                        final Virtualhost vhost = virtualhosts.get(virtualhost);
-                        if (vhost.addClient(endpoint, status)) {
-                            log.info(String.format("[%s] Real %s (%s) added", verticle.toString(), endpoint, virtualhost));
-                        } else {
-                            log.warn(String.format("[%s] Real %s (%s) already exist", verticle.toString(), endpoint, virtualhost));
-                            isOk = false;
-                        }
-                    }
-                    break;
-                default:
-                    log.warn(String.format("[%s] uriBase %s not supported", verticle.toString(), uriBase));
+                    virtualhostObj.setProperties(propertiesJson);
+                    virtualhosts.put(virtualhost, virtualhostObj);
+                    log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
+                    isOk = true;
+                } else {
                     isOk = false;
-                    break;
-            }
-        } else {
-            isOk = false;
+                }
+                break;
+            case "real":
+                if (!virtualhosts.containsKey(virtualhost)) {
+                    log.warn(String.format("[%s] Endpoint %s failed do not created because Virtualhost %s not exist", verticle.toString(), endpoint, virtualhost));
+                    isOk = false;
+                } else {
+                    final Virtualhost vhost = virtualhosts.get(virtualhost);
+                    if (vhost.addClient(endpoint, status)) {
+                        log.info(String.format("[%s] Real %s (%s) added", verticle.toString(), endpoint, virtualhost));
+                    } else {
+                        log.warn(String.format("[%s] Real %s (%s) already exist", verticle.toString(), endpoint, virtualhost));
+                        isOk = false;
+                    }
+                }
+                break;
+            default:
+                log.warn(String.format("[%s] uriBase %s not supported", verticle.toString(), uriBase));
+                isOk = false;
+                break;
         }
         return isOk;
     }
 
     public boolean processDelMessage(String message) {
+        if (virtualhosts==null) {
+            return false;
+        }
+
         boolean isOk = true;
-        final String[] route = message.split(SEPARATOR.toString());
-        if (route.length == NUM_FIELDS && virtualhosts!=null) {
-            String virtualhost = route[0];
-            String host = route[1];
-            String port = route[2];
-            boolean status = !route[3].equals("0");
-            String uri = route[4];
-            String endpoint = (!"".equals(host) && !"".equals(port)) ?
-                    String.format("%s:%s", host, port) : "";
-            String uriBase = uri.split("/")[1];
-            String properties = route[5];
+        JsonObject messageJson = new JsonObject(message);
+        String virtualhost = messageJson.getString("virtualhost", "");
+        String host = messageJson.getString("host", "");
+        String port = messageJson.getString("port");
+        boolean status = !"0".equals(messageJson.getString("status", ""));
+        String uri = messageJson.getString("uri", "");
+//        String properties = messageJson.getString("properties", "{}");
 
-            if (virtualhosts==null) {
-                return false;
-            }
+        String endpoint = (!"".equals(host) && !"".equals(port)) ?
+                String.format("%s:%s", host, port) : "";
+        String uriBase = uri.split("/")[1];
 
-            switch (uriBase) {
-                case "route":
-                    Iterator<Virtualhost> iterVirtualhost = virtualhosts.values().iterator();
-                    while (iterVirtualhost.hasNext()) {
-                        Virtualhost aVirtualhost = iterVirtualhost.next();
-                        if (aVirtualhost!=null) {
-                            aVirtualhost.clear(true);
-                            aVirtualhost.clear(false);
-                        }
+        switch (uriBase) {
+            case "route":
+                Iterator<Virtualhost> iterVirtualhost = virtualhosts.values().iterator();
+                while (iterVirtualhost.hasNext()) {
+                    Virtualhost aVirtualhost = iterVirtualhost.next();
+                    if (aVirtualhost!=null) {
+                        aVirtualhost.clear(true);
+                        aVirtualhost.clear(false);
                     }
-                    virtualhosts.clear();
-                    log.info(String.format("[%s] All routes were cleaned", verticle.toString()));
-                    break;
-                case "virtualhost":
-                    if (virtualhosts.containsKey(virtualhost)) {
-                        virtualhosts.get(virtualhost).clear(status);
-                        virtualhosts.remove(virtualhost);
-                        log.info(String.format("[%s] Virtualhost %s removed", verticle.toString(), virtualhost));
-                    } else {
-                        log.warn(String.format("[%s] Virtualhost not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
-                        isOk = false;
-                    }
-                    break;
-                case "real":
-                    if ("".equals(endpoint)) {
-                        log.warn(String.format("[%s] Real UNDEF", verticle.toString(), endpoint));
-                        isOk = false;
-                    } else if (!virtualhosts.containsKey(virtualhost)) {
-                        log.warn(String.format("[%s] Real not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
-                        isOk = false;
-                    } else {
-                        final Virtualhost virtualhostObj = virtualhosts.get(virtualhost);
-                        if (virtualhostObj!=null && virtualhostObj.removeClient(endpoint, status)) {
-                            log.info(String.format("[%s] Real %s (%s) removed", verticle.toString(), endpoint, virtualhost));
-                        } else {
-                            log.warn(String.format("[%s] Real not removed. Real %s (%s) not exist", verticle.toString(), endpoint, virtualhost));
-                            isOk = false;
-                        }
-                    }
-                    break;
-                default:
-                    log.warn(String.format("[%s] uriBase %s not supported", verticle.toString(), uriBase));
+                }
+                virtualhosts.clear();
+                log.info(String.format("[%s] All routes were cleaned", verticle.toString()));
+                break;
+            case "virtualhost":
+                if (virtualhosts.containsKey(virtualhost)) {
+                    virtualhosts.get(virtualhost).clearAll();
+                    virtualhosts.remove(virtualhost);
+                    log.info(String.format("[%s] Virtualhost %s removed", verticle.toString(), virtualhost));
+                } else {
+                    log.warn(String.format("[%s] Virtualhost not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
                     isOk = false;
-                    break;
-            }
-        } else {
-            isOk = false;
+                }
+                break;
+            case "real":
+                if ("".equals(endpoint)) {
+                    log.warn(String.format("[%s] Real UNDEF", verticle.toString(), endpoint));
+                    isOk = false;
+                } else if (!virtualhosts.containsKey(virtualhost)) {
+                    log.warn(String.format("[%s] Real not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
+                    isOk = false;
+                } else {
+                    final Virtualhost virtualhostObj = virtualhosts.get(virtualhost);
+                    if (virtualhostObj!=null && virtualhostObj.removeClient(endpoint, status)) {
+                        log.info(String.format("[%s] Real %s (%s) removed", verticle.toString(), endpoint, virtualhost));
+                    } else {
+                        log.warn(String.format("[%s] Real not removed. Real %s (%s) not exist", verticle.toString(), endpoint, virtualhost));
+                        isOk = false;
+                    }
+                }
+                break;
+            default:
+                log.warn(String.format("[%s] uriBase %s not supported", verticle.toString(), uriBase));
+                isOk = false;
+                break;
         }
         return isOk;
     }

@@ -77,6 +77,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
         virtualhost.setRequestData(new RequestData(sRequest));
+
         if (virtualhost.getClients(true).isEmpty()) {
             log.error(String.format("Host %s without endpoints", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
@@ -99,10 +100,20 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
                         connectionKeepalive, clientForceKeepAlive, client, server, counter,
                         headerHost, initialRequestTime);
-        final HttpClient httpClient = client.connect();
+
+        final HttpClient httpClient;
+        try {
+            httpClient = client.connect();
+        } catch (RuntimeException e) {
+            log.error(e.getMessage());
+            server.showErrorAndClose(sRequest, e, getCounterKey(headerHost, clientId));
+            return;
+        }
+
         if (httpClient!=null && headerHost!=null) {
             counter.incrActiveSessions(getCounterKey(headerHost, clientId));
         }
+
         final HttpClientRequest cRequest =
                 httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
                     .setChunked(enableChunked);
@@ -223,10 +234,6 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         if (!headers.contains("X-Forwarded-Proto")) {
             headers.set("X-Forwarded-Proto", "http");
         }
-    }
-
-    public int getChoice(int size) {
-        return (int) (Math.random() * (size - Float.MIN_VALUE));
     }
 
     public boolean isHttpKeepAlive(MultiMap headers, HttpVersion httpVersion) {
