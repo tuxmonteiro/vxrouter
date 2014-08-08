@@ -61,20 +61,15 @@ public class QueueMap {
         boolean isOk = true;
         JsonObject messageJson = new JsonObject(message);
         String virtualhost = messageJson.getString("virtualhost", "");
-        String host = messageJson.getString("host", "");
-        String port = messageJson.getString("port");
-        boolean status = !"0".equals(messageJson.getString("status", ""));
         String uri = messageJson.getString("uri", "");
-        String properties = messageJson.getString("properties", "{}");
-
-        String endpoint = (!"".equals(host) && !"".equals(port)) ?
-                String.format("%s:%s", host, port) : "";
         String uriBase = uri.split("/")[1];
 
         switch (uriBase) {
             case "route":
             case "virtualhost":
                 if (!virtualhosts.containsKey(virtualhost)) {
+                    String properties = messageJson.getString("properties", "{}");
+
                     Virtualhost virtualhostObj = new Virtualhost(virtualhost, vertx);
                     JsonObject propertiesJson = new JsonObject();
                     try {
@@ -96,9 +91,16 @@ public class QueueMap {
                 break;
             case "real":
                 if (!virtualhosts.containsKey(virtualhost)) {
-                    log.warn(String.format("[%s] Endpoint %s failed do not created because Virtualhost %s not exist", verticle.toString(), endpoint, virtualhost));
+                    log.warn(String.format("[%s] Endpoint didnt create, because Virtualhost %s not exist", verticle.toString(), virtualhost));
                     isOk = false;
                 } else {
+
+                    String host = messageJson.getString("host", "");
+                    String port = messageJson.getString("port", "");
+                    boolean status = !"0".equals(messageJson.getString("status", ""));
+                    String endpoint = (!"".equals(host) && !"".equals(port)) ?
+                            String.format("%s:%s", host, port) : "";
+
                     final Virtualhost vhost = virtualhosts.get(virtualhost);
                     if (vhost.addClient(endpoint, status)) {
                         log.info(String.format("[%s] Real %s (%s) added", verticle.toString(), endpoint, virtualhost));
