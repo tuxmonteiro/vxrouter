@@ -120,12 +120,18 @@ public class Virtualhost {
     public ILoadBalancePolicy getLoadBalancePolicy() {
         String loadBalancePolicyStr = properties.getString(loadBalancePolicyFieldName, defaultLoadBalancePolicy);
         connectPolicy = loadBalancePolicyClassLoader(loadBalancePolicyStr);
+        if (connectPolicy.isDefault()) {
+            properties.putString(loadBalancePolicyFieldName, connectPolicy.toString());
+        }
         return connectPolicy;
     }
 
     public ILoadBalancePolicy getPersistencePolicy() {
         String persistencePolicyStr = properties.getString(persistencePolicyFieldName, defaultLoadBalancePolicy);
         persistencePolicy = loadBalancePolicyClassLoader(persistencePolicyStr);
+        if (persistencePolicy.isDefault()) {
+            properties.putString(loadBalancePolicyFieldName, persistencePolicy.toString());
+        }
         return persistencePolicy;
     }
 
@@ -149,7 +155,6 @@ public class Virtualhost {
                     SecurityException e1 ) {
 //            log.error(String.format("[%s] LoadBalancePolicy Problem. Using DefaultLoadBalancePolicy. Message: %s", verticleId, e1.getMessage()));
             ILoadBalancePolicy defaultLoadBalance = new DefaultLoadBalancePolicy();
-            properties.putString(loadBalancePolicyFieldName, defaultLoadBalance.toString());
             return defaultLoadBalance;
         }
     }
