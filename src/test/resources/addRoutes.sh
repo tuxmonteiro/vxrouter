@@ -36,7 +36,9 @@ fi
 curl -XPOST "http://$ROUTE/virtualhost" -d '
 {
   "name": "'$VHOST'",
-  "loadBalancePolicy": "'$LOADBALANCE'",
+  "properties": {
+    "loadBalancePolicy": "'$LOADBALANCE'"
+  },
   "endpoints": []}' \
   && curl -XPOST "http://$ROUTE/version" -d '
   {
