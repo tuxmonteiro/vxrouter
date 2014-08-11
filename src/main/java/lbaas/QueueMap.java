@@ -74,7 +74,7 @@ public class QueueMap {
                     try {
                         if (!"".equals(properties)) {
                             JsonObject propertiesJson = new JsonObject(properties);
-                            virtualhostObj.mergeIn(propertiesJson.getObject("properties", new JsonObject()));
+                            virtualhostObj.mergeIn(propertiesJson);
                         }
                     } catch (DecodeException e1) {
                         log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));

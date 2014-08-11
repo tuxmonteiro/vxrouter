@@ -34,7 +34,6 @@ public class TestQueueMap {
     private String endpointStr = "0.0.0.0";
     private String portStr = "00";
     private JsonObject properties;
-    private JsonObject propertiesData;
 
     private Map<String, Virtualhost> virtualhosts = new HashMap<String, Virtualhost>();
 
@@ -44,9 +43,7 @@ public class TestQueueMap {
         vertx = mock(Vertx.class);
         container = mock(Container.class);
         properties = new JsonObject();
-        propertiesData = new JsonObject();
-        propertiesData.putString(loadBalancePolicyFieldName, defaultLoadBalancePolicy);
-        properties.putObject("properties", propertiesData);
+        properties.putString(loadBalancePolicyFieldName, defaultLoadBalancePolicy);
         logDelegate = mock(LogDelegate.class);
         logger = new FakeLogger(logDelegate);
         ((FakeLogger)logger).setQuiet(false);
