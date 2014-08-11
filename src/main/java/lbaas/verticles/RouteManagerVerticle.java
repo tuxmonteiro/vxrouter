@@ -332,7 +332,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 properties = new JsonObject();
             }
 
-            if (jsonTemp.containsField("endpoints")) {
+            if (jsonTemp.containsField("endpoints") && jsonTemp.getArray("endpoints").size()>0) {
                 endpoints = jsonTemp.getArray("endpoints");
                 Iterator<Object> endpointsIterator = endpoints.iterator();
                 while (endpointsIterator.hasNext()) {
@@ -396,8 +396,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             if (virtualhost==null) {
                 continue;
             }
-            JsonObject properties = virtualhost.getProperties();
-            vhostObj.putObject("properties", properties);
+            vhostObj.putObject("properties", virtualhost.copy());
             for (Client value : virtualhost.getClients(true)) {
                 if (value!=null) {
                     JsonObject endpointObj = new JsonObject();
