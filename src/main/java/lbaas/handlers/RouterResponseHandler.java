@@ -34,7 +34,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
     @Override
     public void handle(HttpClientResponse cResponse) {
- 
+
         vertx.cancelTimer(requestTimeoutTimer);
 
         // Pump cResponse => sResponse
