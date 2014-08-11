@@ -4,27 +4,52 @@
  */
 package lbaas;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.json.JsonObject;
 
 public class RequestData {
 
-    final MultiMap headers;
-    final MultiMap params;
-    final URI uri;
-    String remoteAddress;
-    String remotePort;
+    private final MultiMap headers;
+    private final MultiMap params;
+    private final URI uri;
+    private String remoteAddress;
+    private String remotePort;
+    private JsonObject properties;
+
+    public RequestData() {
+        this(null, null, null, null, null);
+    }
+
+    public RequestData(final String remoteAddress,
+                       final String remotePort) {
+        this(null, null, null, remoteAddress, remotePort);
+    }
+
+    public RequestData(final MultiMap headers,
+                       final MultiMap params,
+                       final URI uri,
+                       final String remoteAddress,
+                       final String remotePort) {
+        this.headers = headers;
+        this.params = params;
+        this.uri = uri;
+        this.remoteAddress = remoteAddress;
+        this.remotePort = remotePort;
+    }
 
     public RequestData(final HttpServerRequest request) {
         if (request!=null) {
             this.headers = request.headers();
             this.params = request.params();
             this.uri = request.absoluteURI();
-            this.remoteAddress = request.remoteAddress().getAddress().getHostAddress();
-            this.remotePort = String.format("%d", request.remoteAddress().getPort());
+            InetSocketAddress localRemoteAddress = request.remoteAddress();
+            this.remoteAddress = localRemoteAddress.getHostString();
+            this.remotePort = Integer.toString(localRemoteAddress.getPort());
         } else {
             this.headers = new CaseInsensitiveMultiMap();
             this.params = new CaseInsensitiveMultiMap();
@@ -50,20 +75,19 @@ public class RequestData {
         return remoteAddress;
     }
 
-    public void setRemoteAddress(String remoteAddress) {
-        this.remoteAddress = remoteAddress;
-    }
-
     public String getRemotePort() {
         return remotePort;
     }
 
-    public void setRemotePort(String remotePort) {
-        this.remotePort = remotePort;
-    }
-
-    public String getFrontEnd() {
+    public String getHeaderHost() {
         return headers.contains("Host") ? headers.get("Host") : "";
     }
 
+    public JsonObject getProperties() {
+        return properties;
+    }
+
+    public void setProperties(final JsonObject properties) {
+        this.properties = properties;
+    }
 }
