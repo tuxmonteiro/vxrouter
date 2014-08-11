@@ -76,9 +76,8 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         }
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
-        virtualhost.setRequestData(new RequestData(sRequest));
 
-        if (virtualhost.getClients(true).isEmpty()) {
+        if (!virtualhost.hasClients()) {
             log.error(String.format("Host %s without endpoints", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
             return;
@@ -86,7 +85,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final boolean connectionKeepalive = isHttpKeepAlive(sRequest.headers(), sRequest.version());
 
-        final Client client = virtualhost.getChoice()
+        final Client client = virtualhost.getChoice(new RequestData(sRequest))
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
@@ -115,7 +114,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         }
 
         final HttpClientRequest cRequest =
-                httpClient.request(sRequest.method(), sRequest.uri(),handlerHttpClientResponse)
+                httpClient.request(sRequest.method(), sRequest.uri(), handlerHttpClientResponse)
                     .setChunked(enableChunked);
 
         String remote = sRequest.remoteAddress().getAddress().getHostAddress();
