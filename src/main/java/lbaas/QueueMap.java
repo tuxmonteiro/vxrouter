@@ -71,17 +71,16 @@ public class QueueMap {
                     String properties = messageJson.getString("properties", "{}");
 
                     Virtualhost virtualhostObj = new Virtualhost(virtualhost, vertx);
-                    JsonObject propertiesJson = new JsonObject();
                     try {
                         if (!"".equals(properties)) {
-                            propertiesJson = new JsonObject(properties);
+                            JsonObject propertiesJson = new JsonObject(properties);
+                            virtualhostObj.mergeIn(propertiesJson.getObject("properties", new JsonObject()));
                         }
                     } catch (DecodeException e1) {
                         log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
                     } catch (Exception e2) {
                         log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace()));
                     }
-                    virtualhostObj.setProperties(propertiesJson);
                     virtualhosts.put(virtualhost, virtualhostObj);
                     log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
                     isOk = true;

@@ -5,15 +5,17 @@
 package lbaas.unitTest;
 
 import static org.assertj.core.api.Assertions.*;
+import static lbaas.Constants.*;
 import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
 import lbaas.RequestData;
 import lbaas.Virtualhost;
 import lbaas.loadbalance.ILoadBalancePolicy;
+import lbaas.loadbalance.impl.DefaultLoadBalancePolicy;
+import lbaas.loadbalance.impl.RandomPolicy;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.core.json.JsonObject;
 
 public class TestVirtualhost {
 
@@ -29,7 +31,6 @@ public class TestVirtualhost {
         vertx = null;
         requestData = new RequestData(null);
         virtualhost = new Virtualhost(virtualhostName, vertx);
-        virtualhost.clearProperties();
         endpoint = "0.0.0.0:0";
     }
 
@@ -115,11 +116,8 @@ public class TestVirtualhost {
 
     @Test
     public void loadBalancePolicyClassFound() {
-        JsonObject properties = new JsonObject();
-        String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        virtualhost.putString(loadBalancePolicyFieldName, RandomPolicy.class.getSimpleName());
 
-        virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
         assertThat(loadBalance.isDefault()).isFalse();
@@ -127,11 +125,9 @@ public class TestVirtualhost {
 
     @Test
     public void loadBalancePolicyClassNotFound() {
-        JsonObject properties = new JsonObject();
         String loadBalancePolicyStr = "ClassNotExist";
-        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        virtualhost.putString(loadBalancePolicyFieldName, loadBalancePolicyStr);
 
-        virtualhost.setProperties(properties);
         ILoadBalancePolicy loadBalance = virtualhost.getLoadBalancePolicy();
 
         assertThat(loadBalance.isDefault()).isTrue();
@@ -139,32 +135,20 @@ public class TestVirtualhost {
 
     @Test
     public void getClientWithLoadBalancePolicy() {
-        JsonObject properties = new JsonObject();
-        String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(Virtualhost.getLoadBalancePolicyFieldName(), loadBalancePolicyStr);
+        virtualhost.putString(loadBalancePolicyFieldName, DefaultLoadBalancePolicy.class.getSimpleName());
 
-        virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);
 
-        assertThat(virtualhost.getChoice().toString()).isEqualTo(endpoint);
+        assertThat(virtualhost.getChoice(requestData).toString()).isEqualTo(endpoint);
     }
 
     @Test
     public void getClientWithPersistencePolicy() {
-        JsonObject properties = new JsonObject();
-        String loadBalancePolicyStr = "RandomPolicy";
-        properties.putString(Virtualhost.getPersistencePolicyFieldName(), loadBalancePolicyStr);
+        virtualhost.putString(persistencePolicyFieldName, DefaultLoadBalancePolicy.class.getSimpleName());
 
-        virtualhost.setProperties(properties);
         virtualhost.addClient(endpoint, true);
 
-        assertThat(virtualhost.getChoice(false).toString()).isEqualTo(endpoint);
+        assertThat(virtualhost.getChoice(requestData, false).toString()).isEqualTo(endpoint);
     }
 
-    @Test
-    public void clearProperties() {
-        virtualhost.clearProperties();
-
-        assertThat(virtualhost.getProperties()).isEqualTo(new JsonObject());
-    }
 }
