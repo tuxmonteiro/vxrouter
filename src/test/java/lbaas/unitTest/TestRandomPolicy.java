@@ -4,10 +4,11 @@
  */
 package lbaas.unitTest;
 
+import static lbaas.Constants.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import lbaas.Client;
-import lbaas.list.UniqueArrayList;
-import lbaas.loadbalance.ILoadBalancePolicy;
+
+import lbaas.RequestData;
+import lbaas.Virtualhost;
 import lbaas.loadbalance.impl.RandomPolicy;
 
 import org.junit.Before;
@@ -15,34 +16,44 @@ import org.junit.Test;
 
 public class TestRandomPolicy {
 
-    UniqueArrayList<Client> clients = new UniqueArrayList<>();
-    ILoadBalancePolicy randomPolicy = new RandomPolicy();
+    Virtualhost virtualhost;
 
     @Before
     public void setUp() throws Exception {
-        clients.clear();
+        virtualhost = new Virtualhost("test.localdomain", null);
+
+        virtualhost.putString(loadBalancePolicyFieldName, RandomPolicy.class.getSimpleName());
+
+        int numClients = 10;
+        for (int x=0; x<numClients; x++) {
+            virtualhost.addClient(String.format("0:%s", x), true);
+        }
     }
 
     @Test
-    public void checkAlgorithmChoice() {
-        int sum = 0;
-        int numInterations = 10000;
-        double percentMarginOfError = 0.05;
+    public void checkUniformDistribution() {
+        long sum = 0;
+        double percentMarginOfError = 0.01;
+        long samples = 100000L;
+        int numEndpoints = virtualhost.getClients(true).size();
 
-        clients.add(new Client("0:0", null));
-        clients.add(new Client("0:1", null));
-        clients.add(new Client("0:2", null));
-        clients.add(new Client("0:3", null));
-        clients.add(new Client("0:4", null));
-        int numEndpoints = clients.size();
-
-        for (int x=0; x<numInterations; x++) {
-            sum += randomPolicy.getChoice(clients, null).getPort();
+        long initialTime = System.currentTimeMillis();
+        for (int x=0; x<samples; x++) {
+            RequestData requestData = new RequestData("127.0.0.1", null);
+            sum += virtualhost.getChoice(requestData).getPort();
         }
-        int result = (numEndpoints*(numEndpoints-1)/2) * (numInterations/numEndpoints);
+        long finishTime = System.currentTimeMillis();
 
-        assertThat(result).isGreaterThanOrEqualTo((int) (sum*(1.0-percentMarginOfError)))
-                          .isLessThanOrEqualTo((int) (sum*(1.0+percentMarginOfError)));
+        double result = (numEndpoints*(numEndpoints-1)/2.0) * (1.0*samples/numEndpoints);
+
+        System.out.println(String.format("TestRandomPolicy.checkUniformDistribution: %d samples. Total time (ms): %d. NonUniformDistRatio%%: %.10f",
+                    samples, finishTime-initialTime, Math.abs(100.0*(result-sum)/result)));
+
+        double topLimit = sum*(1.0+percentMarginOfError);
+        double bottomLimit = sum*(1.0-percentMarginOfError);
+
+        assertThat(result).isGreaterThanOrEqualTo(bottomLimit)
+                          .isLessThanOrEqualTo(topLimit);
     }
 
 }
