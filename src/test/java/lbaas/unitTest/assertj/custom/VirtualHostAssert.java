@@ -58,4 +58,20 @@ public class VirtualHostAssert extends AbstractAssert<VirtualHostAssert, Virtual
         }
         return this;
     }
+
+    public VirtualHostAssert hasProperty(String property) {
+        isNotNull();
+        if (!actual.containsField(property)) {
+            failWithMessage("%s haven't the %s property", actual.getVirtualhostName(), property);
+        }
+        return this;
+    }
+
+    public VirtualHostAssert haventProperty(String property) {
+        isNotNull();
+        if (!actual.containsField(property)) {
+            failWithMessage("%s has the %s property", actual.getVirtualhostName(), property);
+        }
+        return this;
+    }
 }

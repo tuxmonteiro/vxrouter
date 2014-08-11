@@ -3,6 +3,7 @@ package lbaas.unitTest;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
+import static lbaas.Constants.*;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -44,7 +45,7 @@ public class TestQueueMap {
         container = mock(Container.class);
         properties = new JsonObject();
         propertiesData = new JsonObject();
-        propertiesData.putString(Virtualhost.getLoadBalancePolicyFieldName(), Virtualhost.getDefaultloadbalancepolicy());
+        propertiesData.putString(loadBalancePolicyFieldName, defaultLoadBalancePolicy);
         properties.putObject("properties", propertiesData);
         logDelegate = mock(LogDelegate.class);
         logger = new FakeLogger(logDelegate);
@@ -71,6 +72,7 @@ public class TestQueueMap {
         boolean isOk = queueMap.processAddMessage(message);
 
         assertThat(virtualhosts).containsKey(virtualhostStr);
+        assertThat(virtualhosts.get(virtualhostStr)).hasProperty(loadBalancePolicyFieldName);
         assertThat(isOk).isTrue();
     }
 
