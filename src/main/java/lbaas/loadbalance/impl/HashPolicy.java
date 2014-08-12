@@ -27,7 +27,7 @@ public class HashPolicy implements ILoadBalancePolicy {
 
         String sourceIp = requestData.getRemoteAddress();
         JsonObject properties = requestData.getProperties();
-        String hashType = properties.getString(hashAlgorithmFieldName);
+        String hashType = properties.getString(hashAlgorithmFieldName, defaultHashAlgorithm);
         long timeout = properties.getLong(cacheTimeOutFieldName, 0L);
         boolean transientState = properties.getBoolean(transientStateFieldName, false);
 
