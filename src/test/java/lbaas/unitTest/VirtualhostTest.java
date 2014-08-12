@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.vertx.java.core.Vertx;
 
-public class TestVirtualhost {
+public class VirtualhostTest {
 
     String virtualhostName;
     Vertx vertx;

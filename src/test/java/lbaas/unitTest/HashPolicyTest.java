@@ -20,7 +20,7 @@ import lbaas.util.HashAlgorithm;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestHashPolicy {
+public class HashPolicyTest {
 
     Virtualhost virtualhost;
     int numEndpoints;

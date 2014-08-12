@@ -21,7 +21,7 @@ import org.vertx.java.core.logging.impl.LogDelegate;
 import org.vertx.java.platform.Container;
 import org.vertx.java.platform.Verticle;
 
-public class TestRouterRequestHandler {
+public class RouterRequestHandlerTest {
 
     private RouterRequestHandler routerRequestHandler;
 //    private HttpServerRequest httpServerRequest;

@@ -12,7 +12,7 @@ import lbaas.list.UniqueArrayList;
 
 import org.junit.Test;
 
-public class TestUniqueArrayList {
+public class UniqueArrayListTest {
 
     @Test
     public void constructorWithArrayList() {

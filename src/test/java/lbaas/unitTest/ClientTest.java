@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.testtools.TestVerticle;
 
-public class TestClient extends TestVerticle {
+public class ClientTest extends TestVerticle {
 
     @Before
     public void setUp() {

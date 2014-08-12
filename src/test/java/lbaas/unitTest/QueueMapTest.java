@@ -23,7 +23,7 @@ import org.vertx.java.core.logging.impl.LogDelegate;
 import org.vertx.java.platform.Container;
 import org.vertx.java.platform.Verticle;
 
-public class TestQueueMap {
+public class QueueMapTest {
 
     private Verticle verticle;
     private Vertx vertx;

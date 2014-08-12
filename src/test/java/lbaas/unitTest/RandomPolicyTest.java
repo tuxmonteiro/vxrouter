@@ -14,7 +14,7 @@ import lbaas.loadbalance.impl.RandomPolicy;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestRandomPolicy {
+public class RandomPolicyTest {
 
     Virtualhost virtualhost;
 
