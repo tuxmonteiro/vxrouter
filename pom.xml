@@ -235,9 +235,13 @@
               <name>vertx.mods</name>
               <value>${mods.directory}</value>
             </property>
+            <property>
+              <name>vertx.modulename</name>
+              <value>${module.name}</value>
+            </property>
           </systemProperties>
           <includes>
-            <include>**/integrationTest/*Test*.jar</include>
+            <include>**/integrationTest/*Test*.java</include>
           </includes>
         </configuration>
         <executions>
