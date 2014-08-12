@@ -15,10 +15,9 @@ public class Client {
     private final Vertx vertx;
     private HttpClient client;
 
-    private String host;
-    private Integer port;
+    private final String host;
+    private final Integer port;
     private Integer timeout;
-    private Integer maxPoolSize;
     private boolean keepalive;
     private Long keepAliveMaxRequest;
     private Long keepAliveTimeOut;
@@ -54,11 +53,16 @@ public class Client {
     }
 
     public Client(final String hostWithPort, final Vertx vertx) {
-        String[] hostWithPortArray = hostWithPort.split(":");
+        String[] hostWithPortArray = hostWithPort!=null ? hostWithPort.split(":") : null;
         this.vertx = vertx;
         this.client = null;
-        this.host = hostWithPortArray[0];
-        this.port = Integer.parseInt(hostWithPortArray[1]);
+        if (hostWithPortArray != null && hostWithPortArray.length>1) {
+            this.host = hostWithPortArray[0];
+            this.port = Integer.parseInt(hostWithPortArray[1]);
+        } else {
+            this.host = null;
+            this.port = null;
+        }
         this.timeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
@@ -71,18 +75,8 @@ public class Client {
         return host;
     }
 
-    public Client setHost(String host) {
-        this.host = host;
-        return this;
-    }
-
     public Integer getPort() {
         return port;
-    }
-
-    public Client setPort(Integer port) {
-        this.port = port;
-        return this;
     }
 
     public Integer getConnectionTimeout() {
@@ -135,11 +129,17 @@ public class Client {
     }
 
     public Integer getMaxPoolSize() {
+        int maxPoolSize = 0;
+        if (client!=null) {
+            maxPoolSize = client.getMaxPoolSize();
+        }
         return maxPoolSize;
     }
 
     public Client setMaxPoolSize(Integer maxPoolSize) {
-        this.maxPoolSize = maxPoolSize;
+        if (client!=null) {
+            client.setMaxPoolSize(maxPoolSize);
+        }
         return this;
     }
 
@@ -151,10 +151,11 @@ public class Client {
                 client = vertx.createHttpClient()
                     .setKeepAlive(keepalive)
                     .setTCPKeepAlive(keepalive)
-                    .setConnectTimeout(timeout)
-                    .setHost(host)
-                    .setPort(port)
-                    .setMaxPoolSize(maxPoolSize);
+                    .setConnectTimeout(timeout);
+                if (host!=null || port!=null) {
+                    client.setHost(host)
+                          .setPort(port);
+                }
                 client.exceptionHandler(new Handler<Throwable>() {
                     @Override
                     public void handle(Throwable e) {
@@ -178,6 +179,19 @@ public class Client {
                 client=null;
             }
         }
+    }
+
+    public boolean isClosed() {
+        if (client==null) {
+            return true;
+        }
+        boolean httpClientClosed = false;
+        try {
+            client.getReceiveBufferSize();
+        } catch (IllegalStateException e) {
+            httpClientClosed = true;
+        }
+        return httpClientClosed;
     }
 
 }
