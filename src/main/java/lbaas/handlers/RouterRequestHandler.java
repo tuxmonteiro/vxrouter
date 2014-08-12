@@ -89,9 +89,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
-                .setConnectionTimeout(clientConnectionTimeOut)
-                .setMaxPoolSize(clientMaxPoolSize);
-
+                .setConnectionTimeout(clientConnectionTimeOut);
         this.clientId = client.toString();
 
         Long initialRequestTime = System.currentTimeMillis();
@@ -102,7 +100,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final HttpClient httpClient;
         try {
-            httpClient = client.connect();
+            httpClient = client.connect()
+                    .setMaxPoolSize(clientMaxPoolSize);
+
         } catch (RuntimeException e) {
             log.error(e.getMessage());
             server.showErrorAndClose(sRequest, e, getCounterKey(headerHost, clientId));
