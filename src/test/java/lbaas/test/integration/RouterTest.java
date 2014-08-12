@@ -1,4 +1,4 @@
-package lbaas.integrationTest;
+package lbaas.test.integration;
 
 import static org.vertx.testtools.VertxAssert.assertEquals;
 import static org.vertx.testtools.VertxAssert.testComplete;

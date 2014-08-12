@@ -2,7 +2,7 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas.unitTest;
+package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static lbaas.Constants.*;

@@ -1,4 +1,4 @@
-package lbaas.unitTest.util;
+package lbaas.test.unit.util;
 
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LogDelegate;

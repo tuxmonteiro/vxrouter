@@ -1,4 +1,4 @@
-package lbaas.unitTest;
+package lbaas.test.unit;
 
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.*;
@@ -8,7 +8,7 @@ import java.util.Map;
 import lbaas.Server;
 import lbaas.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
-import lbaas.unitTest.util.FakeLogger;
+import lbaas.test.unit.util.FakeLogger;
 
 import org.junit.Before;
 import org.junit.Test;

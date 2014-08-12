@@ -2,11 +2,11 @@
  * Copyright (c) 2014 The original author or authors.
  * All rights reserved.
  */
-package lbaas.unitTest;
+package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.*;
 import static lbaas.Constants.*;
-import static lbaas.unitTest.assertj.custom.VirtualHostAssert.*;
+import static lbaas.test.unit.assertj.custom.VirtualHostAssert.*;
 import lbaas.RequestData;
 import lbaas.Virtualhost;
 import lbaas.loadbalance.ILoadBalancePolicy;

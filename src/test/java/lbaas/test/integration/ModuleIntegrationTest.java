@@ -1,3 +1,4 @@
+package lbaas.test.integration;
 //package lbaas.integrationTest;
 ///*
 // * Copyright 2013 Red Hat, Inc.
