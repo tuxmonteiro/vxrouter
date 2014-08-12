@@ -120,7 +120,8 @@ public class Client {
         if (requestCount<=keepAliveMaxRequest) {
             requestCount++;
         }
-        if ((requestCount>=keepAliveMaxRequest) || (now-keepAliveTimeMark)>keepAliveTimeOut) {
+        if ((requestCount>=keepAliveMaxRequest) || (requestCount==Long.MAX_VALUE) ||
+                (now-keepAliveTimeMark)>keepAliveTimeOut) {
             keepAliveTimeMark = now;
             requestCount = 0L;
             return true;
