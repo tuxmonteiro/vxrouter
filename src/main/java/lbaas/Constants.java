@@ -23,6 +23,7 @@ public class Constants {
     public static final String cacheTimeOutFieldName             = "cacheTimeout";
     public static final String hashAlgorithmFieldName            = "hashAlgorithm";
     public static final String transientStateFieldName           = "transientState";
+    public static final String defaultHashAlgorithm              = "SIP24";
 
     public static final String defaultLoadBalancePolicy          = "DefaultLoadBalancePolicy";
     public static final String packageOfLoadBalancePolicyClasses = "lbaas.loadbalance.impl";
