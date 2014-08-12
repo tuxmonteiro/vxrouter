@@ -40,7 +40,6 @@ public class TestHashPolicy {
     @Test
     public void checkPersistentChoice() {
         long numTests = 256L*256L;
-        virtualhost.putString(hashAlgorithmFieldName, "SIP24");
 
         for (int counter=0; counter<numTests; counter++) {
 
