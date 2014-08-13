@@ -120,4 +120,119 @@ public class BackendTest extends TestVerticle {
         testComplete();
     }
 
+    @Test
+    public void zeroActiveConnections() {
+        Backend backendTested = new Backend(null, vertx);
+
+        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+
+        testComplete();
+    }
+
+    @Test
+    public void multiplesActiveConnections() {
+        Backend backendTested = new Backend(null, vertx);
+
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            backendTested.addConnection(String.format("%s", counter), "0");
+        }
+
+        assertThat(backendTested.getActiveConnections()).isEqualTo(1000);
+
+        testComplete();
+    }
+
+    @Test
+    public void multiplesRequestsButOneActiveConnection() {
+        Backend backendTested = new Backend(null, vertx);
+
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            // same remote IP and port
+            backendTested.addConnection("127.0.0.1", "0");
+        }
+
+        assertThat(backendTested.getActiveConnections()).isEqualTo(1);
+
+        testComplete();
+    }
+
+    @Test
+    public void zeroActiveConnectionsBecauseMaxRequestsExceeded() {
+        Backend backendTested = new Backend("127.0.0.1:0", vertx);
+
+        backendTested.setKeepAliveMaxRequest(1000L);
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            backendTested.addConnection(String.format("%s", counter), "0");
+            boolean isKeepAliveLimitExceeded = backendTested.isKeepAliveLimit();
+            if (isKeepAliveLimitExceeded) {
+                backendTested.close();
+                break;
+            }
+        }
+
+        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+
+        testComplete();
+    }
+
+    @Test
+    public void multiplesActiveConnectionsBecauseMaxRequestsNotExceeded() {
+        Backend backendTested = new Backend("127.0.0.1:0", vertx);
+
+        backendTested.setKeepAliveMaxRequest(1001L);
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            backendTested.addConnection(String.format("%s", counter), "0");
+            boolean isKeepAliveLimitExceeded = backendTested.isKeepAliveLimit();
+            if (isKeepAliveLimitExceeded) {
+                backendTested.close();
+                break;
+            }
+        }
+
+        assertThat(backendTested.getActiveConnections()).isNotEqualTo(0);
+
+        testComplete();
+    }
+
+    @Test
+    public void zeroActiveConnectionsBecauseTimeoutExceeded() {
+        Backend backendTested = new Backend("127.0.0.1:0", vertx);
+        backendTested.setKeepAliveTimeOut(-1L);
+
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            backendTested.addConnection(String.format("%s", counter), "0");
+            if (backendTested.isKeepAliveLimit()) {
+                backendTested.close();
+                break;
+            }
+        }
+
+        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+
+        testComplete();
+    }
+
+    @Test
+    public void multiplesActiveConnectionsBecauseTimeoutNotExceeded() {
+        Backend backendTested = new Backend("127.0.0.1:0", vertx);
+        backendTested.setKeepAliveTimeOut(86400000L); // one day
+
+        for (int counter=0;counter < 1000; counter++) {
+            backendTested.connect();
+            backendTested.addConnection(String.format("%s", counter), "0");
+            if (backendTested.isKeepAliveLimit()) {
+                backendTested.close();
+                break;
+            }
+        }
+
+        assertThat(backendTested.getActiveConnections()).isNotEqualTo(0);
+
+        testComplete();
+    }
 }
