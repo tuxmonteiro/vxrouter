@@ -101,6 +101,7 @@ public class Virtualhost extends JsonObject {
             }
             chosen = persistencePolicy.getChoice(backends, requestData);
         }
+        putBoolean(transientStateFieldName, false);
         return chosen;
     }
 

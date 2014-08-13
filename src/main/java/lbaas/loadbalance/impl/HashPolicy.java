@@ -54,7 +54,6 @@ public class HashPolicy implements ILoadBalancePolicy {
             lastReset = now;
         }
 
-        properties.putBoolean(transientStateFieldName, false);
         return consistentHash.get(sourceIp);
     }
 

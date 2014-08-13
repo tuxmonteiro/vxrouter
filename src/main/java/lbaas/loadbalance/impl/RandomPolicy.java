@@ -4,8 +4,6 @@
  */
 package lbaas.loadbalance.impl;
 
-import static lbaas.Constants.transientStateFieldName;
-
 import java.util.Collection;
 import java.util.ArrayList;
 
@@ -17,7 +15,6 @@ public class RandomPolicy implements ILoadBalancePolicy {
 
     @Override
     public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
-        requestData.getProperties().putBoolean(transientStateFieldName, false);
 
         if (backends!=null && !backends.isEmpty() && backends instanceof ArrayList<?>) {
             return ((ArrayList<Backend>)backends).get(getIntRandom(backends.size()));
