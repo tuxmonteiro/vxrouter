@@ -4,11 +4,12 @@
  */
 package lbaas;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpClient;
 
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
@@ -17,10 +18,11 @@ public class Client {
 
     private final Vertx vertx;
     private HttpClient client;
+    private EventBus eb;
 
     private final String host;
     private final Integer port;
-    private Integer timeout;
+    private Integer connectionTimeout;
     private boolean keepalive;
     private Long keepAliveMaxRequest;
     private Long keepAliveTimeOut;
@@ -28,7 +30,10 @@ public class Client {
     private Long keepAliveTimeMark;
     private Long requestCount;
 
-    private Set<String> connections = new HashSet<>();
+    private Long schedulerId = 0L;
+    private Long schedulerDelay = 10000L;
+
+    private Map<String, Long> connections = new HashMap<>();
 
     @Override
     public String toString() {
@@ -68,12 +73,13 @@ public class Client {
             this.host = null;
             this.port = null;
         }
-        this.timeout = 60000;
+        this.connectionTimeout = 60000;
         this.keepalive = true;
         this.keepAliveMaxRequest = Long.MAX_VALUE-1;
         this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
+
     }
 
     public String getHost() {
@@ -85,11 +91,11 @@ public class Client {
     }
 
     public Integer getConnectionTimeout() {
-        return timeout;
+        return connectionTimeout;
     }
 
     public Client setConnectionTimeout(Integer timeout) {
-        this.timeout = timeout;
+        this.connectionTimeout = timeout;
         return this;
     }
 
@@ -157,7 +163,7 @@ public class Client {
                 client = vertx.createHttpClient()
                     .setKeepAlive(keepalive)
                     .setTCPKeepAlive(keepalive)
-                    .setConnectTimeout(timeout);
+                    .setConnectTimeout(connectionTimeout);
                 if (host!=null || port!=null) {
                     client.setHost(host)
                           .setPort(port);
@@ -202,15 +208,56 @@ public class Client {
     }
 
     public boolean addConnection(String connectionId) {
-        return connections.add(connectionId);
+        return connections.put(connectionId, System.currentTimeMillis()) == null;
+    }
+
+    public boolean addConnection(String host, String port) {
+        String connectionId = String.format("%s:%s", host, port);
+        return addConnection(connectionId);
     }
 
     public boolean removeConnection(String connectionId) {
-        return connections.remove(connectionId);
+        return connections.remove(connectionId) != null;
     }
 
     public int getActiveConnections() {
         return connections.size();
+    }
+
+    public Long getSchedulerDelay() {
+        return schedulerDelay;
+    }
+
+    public void setSchedulerDelay(Long schedulerDelay) {
+        this.schedulerDelay = schedulerDelay;
+        cancelScheduler();
+        activeScheduler();
+    }
+
+    public void activeScheduler() {
+        if (schedulerId==0L && vertx!=null) {
+            schedulerId = vertx.setPeriodic(schedulerDelay, new Handler<Long>() {
+
+                @Override
+                public void handle(Long event) {
+                    Long timeout = System.currentTimeMillis() - schedulerDelay;
+                    for (String remote : connections.keySet()) {
+                        if (connections.get(remote)<timeout) {
+                            removeConnection(remote);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    public void cancelScheduler() {
+        if (schedulerId!=0L && vertx!=null) {
+            boolean canceled = vertx.cancelTimer(schedulerId);
+            if (canceled) {
+                schedulerId=0L;
+            }
+        }
     }
 
 }

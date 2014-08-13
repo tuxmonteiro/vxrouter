@@ -98,10 +98,14 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                         connectionKeepalive, clientForceKeepAlive, client, server, counter,
                         headerHost, initialRequestTime);
 
+        String remoteIP = sRequest.remoteAddress().getAddress().getHostAddress();
+        String remotePort = String.format("%d", sRequest.remoteAddress().getPort());
+
         final HttpClient httpClient;
         try {
             httpClient = client.connect()
                     .setMaxPoolSize(clientMaxPoolSize);
+            client.addConnection(remoteIP, remotePort);
 
         } catch (RuntimeException e) {
             log.error(e.getMessage());
@@ -117,8 +121,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 httpClient.request(sRequest.method(), sRequest.uri(), handlerHttpClientResponse)
                     .setChunked(enableChunked);
 
-        String remote = sRequest.remoteAddress().getAddress().getHostAddress();
-        updateHeadersXFF(sRequest.headers(), remote);
+        updateHeadersXFF(sRequest.headers(), remoteIP);
 
         cRequest.headers().set(sRequest.headers());
         if (clientForceKeepAlive) {

@@ -97,7 +97,6 @@ public class ClientTest extends TestVerticle {
         testComplete();
     }
 
-
     @Test
     public void connectSuccessful() {
         Client clientTested = new Client(null, vertx);
