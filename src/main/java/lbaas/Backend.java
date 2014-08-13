@@ -47,6 +47,7 @@ public class Backend {
 
     private final String queueActiveConnections;
     private final String myUUID;
+    private boolean registered = false;
 
     @Override
     public String toString() {
@@ -186,24 +187,30 @@ public class Backend {
                         eb.publish(queueActiveConnections, 0);
                     }
                 });
-
-                eb.registerLocalHandler(queueActiveConnections, new Handler<Message<JsonObject>>() {
-
-                    @Override
-                    public void handle(Message<JsonObject> message) {
-                        JsonObject messageJson = message.body();
-                        String uuid = messageJson.getString(uuidFieldName);
-                        if (uuid != myUUID) {
-                            int numConnections = messageJson.getInteger(numConnectionFieldName);
-                            globalConnections.put(uuid, numConnections);
-                        }
-                    }
-                });
+                if (!registered) {
+                    eb.registerLocalHandler(queueActiveConnections, getHandlerListenGlobalConnections());
+                    registered = true;
+                }
             } else {
                 throw new RuntimeException(String.format("FAIL: Connect impossible (%s). vertx is null", this.toString()));
             }
         }
         return client;
+    }
+
+    private Handler<Message<JsonObject>> getHandlerListenGlobalConnections() {
+        return new Handler<Message<JsonObject>>() {
+
+            @Override
+            public void handle(Message<JsonObject> message) {
+                JsonObject messageJson = message.body();
+                String uuid = messageJson.getString(uuidFieldName);
+                if (uuid != myUUID) {
+                    int numConnections = messageJson.getInteger(numConnectionFieldName);
+                    globalConnections.put(uuid, numConnections);
+                }
+            }
+        };
     }
 
     public void close() {
@@ -214,10 +221,14 @@ public class Backend {
                 // Already closed. Ignore exception.
             } finally {
                 client=null;
-                connections.clear();
                 eb.publish(queueActiveConnections, 0);
+                if (registered) {
+                    eb.unregisterHandler(queueActiveConnections, getHandlerListenGlobalConnections());
+                    registered = false;
+                }
             }
         }
+        connections.clear();
     }
 
     public boolean isClosed() {
