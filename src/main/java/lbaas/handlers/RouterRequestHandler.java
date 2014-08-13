@@ -89,7 +89,8 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 .setKeepAlive(connectionKeepalive||backendForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
-                .setConnectionTimeout(backendConnectionTimeOut);
+                .setConnectionTimeout(backendConnectionTimeOut)
+                .setMaxPoolSize(backendMaxPoolSize);
         this.backendId = backend.toString();
 
         Long initialRequestTime = System.currentTimeMillis();
@@ -103,8 +104,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final HttpClient httpClient;
         try {
-            httpClient = backend.connect()
-                    .setMaxPoolSize(backendMaxPoolSize);
+            httpClient = backend.connect();
             backend.addConnection(remoteIP, remotePort);
 
         } catch (RuntimeException e) {
