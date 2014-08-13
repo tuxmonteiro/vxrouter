@@ -9,16 +9,13 @@ import java.util.Map;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpClient;
-
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Backend {
 
     private final Vertx vertx;
     private HttpClient client;
-    private EventBus eb;
 
     private final String host;
     private final Integer port;
@@ -34,6 +31,7 @@ public class Backend {
     private Long schedulerDelay = 10000L;
 
     private Map<String, Long> connections = new HashMap<>();
+    private int backendMaxPoolSize;
 
     @Override
     public String toString() {
@@ -141,17 +139,11 @@ public class Backend {
     }
 
     public Integer getMaxPoolSize() {
-        int maxPoolSize = 0;
-        if (client!=null) {
-            maxPoolSize = client.getMaxPoolSize();
-        }
-        return maxPoolSize;
+        return backendMaxPoolSize;
     }
 
     public Backend setMaxPoolSize(Integer maxPoolSize) {
-        if (client!=null) {
-            client.setMaxPoolSize(maxPoolSize);
-        }
+        this.backendMaxPoolSize = maxPoolSize;
         return this;
     }
 
@@ -163,7 +155,8 @@ public class Backend {
                 client = vertx.createHttpClient()
                     .setKeepAlive(keepalive)
                     .setTCPKeepAlive(keepalive)
-                    .setConnectTimeout(connectionTimeout);
+                    .setConnectTimeout(connectionTimeout)
+                    .setMaxPoolSize(backendMaxPoolSize);
                 if (host!=null || port!=null) {
                     client.setHost(host)
                           .setPort(port);
