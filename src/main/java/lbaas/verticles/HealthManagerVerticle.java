@@ -32,8 +32,8 @@ import static lbaas.Constants.QUEUE_ROUTE_ADD;
 
 public class HealthManagerVerticle extends Verticle implements IEventObserver {
 
-    private final Map<String, Set<String>> endPointsMap = new HashMap<>();
-    private final Map<String, Set<String>> badEndPointsMap = new HashMap<>();
+    private final Map<String, Set<String>> backendsMap = new HashMap<>();
+    private final Map<String, Set<String>> badBackendsMap = new HashMap<>();
 
     @Override
     public void start() {
@@ -51,37 +51,37 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
         eb.registerHandler(QUEUE_HEALTHCHECK_OK, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
-                String endpoint = message.body();
+                String backend = message.body();
                 try {
-                    moveEndpoint(endpoint, true, eb);
+                    moveBackend(backend, true, eb);
                 } catch (UnsupportedEncodingException e) {
                     log.error(e.getMessage());
                 }
-                log.debug(String.format("Endpoint %s OK", message.body()));
+                log.debug(String.format("Backend %s OK", message.body()));
             };
         });
         eb.registerHandler(QUEUE_HEALTHCHECK_FAIL, new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
-                String endpoint = message.body();
+                String backend = message.body();
                 try {
-                    moveEndpoint(endpoint, false, eb);
+                    moveBackend(backend, false, eb);
                 } catch (UnsupportedEncodingException e) {
                     log.error(e.getMessage());
                 }
-                log.error(String.format("Endpoint %s FAIL", endpoint));
+                log.error(String.format("Backend %s FAIL", backend));
             };
         });
 
         vertx.setPeriodic(checkInterval, new Handler<Long>() {
             @Override
             public void handle(Long timerID) {
-                log.info("Checking bad endpoints...");
-                if (badEndPointsMap!=null) {
-                    Iterator<String> it = badEndPointsMap.keySet().iterator();
+                log.info("Checking bad backends...");
+                if (badBackendsMap!=null) {
+                    Iterator<String> it = badBackendsMap.keySet().iterator();
                     while (it.hasNext()) {
-                        final String endpoint = it.next();
-                        String[] hostWithPort = endpoint.split(":");
+                        final String backend = it.next();
+                        String[] hostWithPort = backend.split(":");
                         String host = hostWithPort[0];
                         Integer port = Integer.parseInt(hostWithPort[1]);
                         try {
@@ -96,12 +96,12 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                     @Override
                                     public void handle(HttpClientResponse cResp) {
                                         if (cResp!=null && cResp.statusCode()==200) {
-                                            eb.publish(QUEUE_HEALTHCHECK_OK, endpoint);
-                                            log.info(String.format("Real %s OK. Enabling it", endpoint));
+                                            eb.publish(QUEUE_HEALTHCHECK_OK, backend);
+                                            log.info(String.format("Backend %s OK. Enabling it", backend));
                                         }
                                     }
                                 });
-                            cReq.headers().set("Host", (String) badEndPointsMap.get(endpoint).toArray()[0]);
+                            cReq.headers().set("Host", (String) badBackendsMap.get(backend).toArray()[0]);
                             cReq.exceptionHandler(new Handler<Throwable>() {
                                 @Override
                                 public void handle(Throwable event) {}
@@ -122,12 +122,12 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
     public void postAddEvent(String message) {
         Map<String, String> map = new HashMap<>();
         messageToMap(message, map);
-        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? backendsMap : badBackendsMap;
 
-        if (!tempMap.containsKey(map.get("endpoint"))) {
-            tempMap.put(map.get("endpoint"), new HashSet<String>());
+        if (!tempMap.containsKey(map.get("backend"))) {
+            tempMap.put(map.get("backend"), new HashSet<String>());
         }
-        Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+        Set<String> virtualhosts = tempMap.get(map.get("backend"));
         virtualhosts.add(map.get("virtualhost"));
     };
 
@@ -135,36 +135,36 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
     public void postDelEvent(String message) {
         Map<String, String> map = new HashMap<>();
         messageToMap(message, map);
-        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? endPointsMap : badEndPointsMap;
+        final Map <String, Set<String>> tempMap = "true".equals(map.get("status")) ? backendsMap : badBackendsMap;
 
-        if (tempMap.containsKey(map.get("endpoint"))) {
-            Set<String> virtualhosts = tempMap.get(map.get("endpoint"));
+        if (tempMap.containsKey(map.get("backend"))) {
+            Set<String> virtualhosts = tempMap.get(map.get("backend"));
             virtualhosts.remove(map.get("virtualhost"));
             if (virtualhosts.isEmpty()) {
-                tempMap.remove(map.get("endpoint"));
+                tempMap.remove(map.get("backend"));
             }
         }
     };
 
-    private void moveEndpoint(final String endpoint, final Boolean status, final EventBus eb) throws UnsupportedEncodingException {
+    private void moveBackend(final String backend, final Boolean status, final EventBus eb) throws UnsupportedEncodingException {
 
-        Set<String> virtualhosts = status ? badEndPointsMap.get(endpoint) : endPointsMap.get(endpoint);
+        Set<String> virtualhosts = status ? badBackendsMap.get(backend) : backendsMap.get(backend);
 
         if (virtualhosts!=null) {
             Iterator<String> it = virtualhosts.iterator();
             while (it.hasNext()) {
                 String message;
                 String virtualhost = it.next();
-                String[] endpointArray = endpoint.split(":");
-                String host = endpointArray[0];
-                String port = endpointArray[1];
+                String[] backendArray = backend.split(":");
+                String host = backendArray[0];
+                String port = backendArray[1];
                 String statusStr = status ? "0" : "1";
 
                 message = QueueMap.buildMessage(virtualhost,
                                                 host,
                                                 port,
                                                 statusStr,
-                                                String.format("/real/%s", URLEncoder.encode(endpoint,"UTF-8")),
+                                                String.format("/backend/%s", URLEncoder.encode(backend,"UTF-8")),
                                                 "{}");
                 if (eb!=null) {
                     eb.publish(QUEUE_ROUTE_DEL, message);
@@ -174,7 +174,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                                 host,
                                                 port,
                                                 statusStr,
-                                                "/real",
+                                                "/backend",
                                                 "{}");
                 if (eb!=null) {
                     eb.publish(QUEUE_ROUTE_ADD, message);
@@ -195,7 +195,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
             String uri = messageJson.getString("uri", "");
             map.put("uri", uri);
             map.put("properties", messageJson.getString("properties", "{}"));
-            map.put("endpoint",(!"".equals(host) && !"".equals(port)) ? String.format("%s:%s", host, port) : "");
+            map.put("backend",(!"".equals(host) && !"".equals(port)) ? String.format("%s:%s", host, port) : "");
             map.put("uriBase", uri.contains("/")? uri.split("/")[1]:"");
         }
     }

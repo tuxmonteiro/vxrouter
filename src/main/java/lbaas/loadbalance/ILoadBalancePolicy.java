@@ -6,12 +6,12 @@ package lbaas.loadbalance;
 
 import java.util.Collection;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.RequestData;
 
 public interface ILoadBalancePolicy {
 
-    public Client getChoice(final Collection<Client> clients, final RequestData requestData);
+    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData);
 
     public boolean isDefault();
 

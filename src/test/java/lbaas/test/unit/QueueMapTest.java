@@ -31,7 +31,7 @@ public class QueueMapTest {
     private Logger logger;
     private LogDelegate logDelegate;
     private String virtualhostStr = "test.virtualhost.com";
-    private String endpointStr = "0.0.0.0";
+    private String backendStr = "0.0.0.0";
     private String portStr = "00";
     private JsonObject properties;
 
@@ -63,7 +63,7 @@ public class QueueMapTest {
 
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
+        String message = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, uriStr, properties.toString());
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processAddMessage(message);
@@ -79,7 +79,7 @@ public class QueueMapTest {
 
         String uriStr = "/virtualhost";
         String statusStr = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
+        String message = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, uriStr, properties.toString());
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         queueMap.processAddMessage(message);
@@ -95,10 +95,10 @@ public class QueueMapTest {
 
         String uriStr = String.format("/virtualhost/%s", virtualhostStr);
         String statusStr = "";
-        String endpointStr = "";
+        String backendStr = "";
         String portStr = "";
-        String messageAdd = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties.toString());
-        String messageDel = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, "");
+        String messageAdd = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, uriStr, properties.toString());
+        String messageDel = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, uriStr, "");
 
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
@@ -116,10 +116,10 @@ public class QueueMapTest {
 
         String uriStr = String.format("/virtualhost/%s", virtualhostStr);
         String statusStr = "";
-        String endpointStr = "";
+        String backendStr = "";
         String portStr = "";
         String properties = "";
-        String message = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, uriStr, properties);
+        String message = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, uriStr, properties);
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOk = queueMap.processDelMessage(message);
@@ -129,131 +129,131 @@ public class QueueMapTest {
     }
 
     @Test
-    public void insertNewRealToExistingVirtualhostSet() {
-        ((FakeLogger)logger).setTestId("insertNewRealToExistingVirtualhostSet");
+    public void insertNewBackendToExistingVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertNewBackendToExistingVirtualhostSet");
 
         String statusStr = "";
-        String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
+        String backendStrWithPort = String.format("%s:%s", backendStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
+        String messageBackend = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, "/backend", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
-        boolean isOkReal = queueMap.processAddMessage(messageReal);
+        boolean isOkBackend = queueMap.processAddMessage(messageBackend);
         Virtualhost virtualhost = virtualhosts.get(virtualhostStr);
 
         assertThat(virtualhosts).containsKey(virtualhostStr);
-        assertThat(virtualhost).containsReal(endpointStrWithPort, !"0".equals(statusStr));
+        assertThat(virtualhost).containsBackend(backendStrWithPort, !"0".equals(statusStr));
         assertThat(isOkVirtualhost).as("isOkVirtualhost").isTrue();
-        assertThat(isOkReal).as("isOkReal").isTrue();
+        assertThat(isOkBackend).as("isOkBackend").isTrue();
     }
 
     @Test
-    public void insertNewRealToAbsentVirtualhostSet() {
-        ((FakeLogger)logger).setTestId("insertNewRealToAbsentVirtualhostSet");
+    public void insertNewBackendToAbsentVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertNewBackendToAbsentVirtualhostSet");
 
         String statusStr = "";
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
+        String messageBackend = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, "/backend", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
-        boolean isOk = queueMap.processAddMessage(messageReal);
+        boolean isOk = queueMap.processAddMessage(messageBackend);
 
         assertThat(virtualhosts).doesNotContainKey(virtualhostStr);
         assertThat(isOk).isFalse();
     }
 
     @Test
-    public void insertDuplicatedRealToExistingVirtualhostSet() {
-        ((FakeLogger)logger).setTestId("insertDuplicatedRealToExistingVirtualhostSet");
+    public void insertDuplicatedBackendToExistingVirtualhostSet() {
+        ((FakeLogger)logger).setTestId("insertDuplicatedBackendToExistingVirtualhostSet");
 
         String statusStr = "";
-        String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
+        String backendStrWithPort = String.format("%s:%s", backendStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
-        String messageReal = QueueMap.buildMessage(virtualhostStr, endpointStr, portStr, statusStr, "/real", "{}");
+        String messageBackend = QueueMap.buildMessage(virtualhostStr, backendStr, portStr, statusStr, "/backend", "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
-        boolean isOkRealAdd = queueMap.processAddMessage(messageReal);
-        boolean isOkRealAddAgain = queueMap.processAddMessage(messageReal);
+        boolean isOkBackendAdd = queueMap.processAddMessage(messageBackend);
+        boolean isOkBackendAddAgain = queueMap.processAddMessage(messageBackend);
        Virtualhost virtualhost = virtualhosts.get(virtualhostStr);
 
         assertThat(virtualhosts).containsKey(virtualhostStr);
-        assertThat(virtualhost).containsReal(endpointStrWithPort, !"0".equals(statusStr));
+        assertThat(virtualhost).containsBackend(backendStrWithPort, !"0".equals(statusStr));
         assertThat(isOkVirtualhost).as("isOkVirtualhost").isTrue();
-        assertThat(isOkRealAdd).as("isOkRealAdd").isTrue();
-        assertThat(isOkRealAddAgain).as("isOkRealRemove").isFalse();
+        assertThat(isOkBackendAdd).as("isOkBackendAdd").isTrue();
+        assertThat(isOkBackendAddAgain).as("isOkBackendRemove").isFalse();
     }
 
     @Test
-    public void removeExistingRealFromExistingVirtualhostSet() throws UnsupportedEncodingException {
-        ((FakeLogger)logger).setTestId("removeExistingRealFromExistingVirtualhostSet");
+    public void removeExistingBackendFromExistingVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeExistingBackendFromExistingVirtualhostSet");
 
         String statusStr = "";
-        String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
+        String backendStrWithPort = String.format("%s:%s", backendStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
-        String messageReal = QueueMap.buildMessage(virtualhostStr,
-                                                   endpointStr,
+        String messageBackend = QueueMap.buildMessage(virtualhostStr,
+                                                   backendStr,
                                                    portStr,
                                                    statusStr,
-                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                   String.format("/backend/%s", URLEncoder.encode(backendStrWithPort,"UTF-8")),
                                                    "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
-        boolean isOkRealAdd = queueMap.processAddMessage(messageReal);
-        boolean isOkRealRemove = queueMap.processDelMessage(messageReal);
+        boolean isOkBackendAdd = queueMap.processAddMessage(messageBackend);
+        boolean isOkBackendRemove = queueMap.processDelMessage(messageBackend);
         Virtualhost virtualhost = virtualhosts.get(virtualhostStr);
 
         assertThat(virtualhosts).containsKey(virtualhostStr);
-        assertThat(virtualhost).doesNotContainsReal(endpointStrWithPort, !"0".equals(statusStr));
+        assertThat(virtualhost).doesNotContainsBackend(backendStrWithPort, !"0".equals(statusStr));
         assertThat(isOkVirtualhost).as("isOkVirtualhost").isTrue();
-        assertThat(isOkRealAdd).as("isOkRealAdd").isTrue();
-        assertThat(isOkRealRemove).as("isOkRealRemove").isTrue();
+        assertThat(isOkBackendAdd).as("isOkBackendAdd").isTrue();
+        assertThat(isOkBackendRemove).as("isOkBackendRemove").isTrue();
     }
 
     @Test
-    public void removeRealFromAbsentVirtualhostSet() throws UnsupportedEncodingException {
-        ((FakeLogger)logger).setTestId("removeRealFromAbsentVirtualhostSet");
+    public void removeBackendFromAbsentVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeBackendFromAbsentVirtualhostSet");
 
         String statusStr = "";
-        String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
-        String messageReal = QueueMap.buildMessage(virtualhostStr,
-                                                    endpointStr,
+        String backendStrWithPort = String.format("%s:%s", backendStr, portStr);
+        String messageBackend = QueueMap.buildMessage(virtualhostStr,
+                                                    backendStr,
                                                     portStr,
                                                     statusStr,
-                                                    String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                    String.format("/backend/%s", URLEncoder.encode(backendStrWithPort,"UTF-8")),
                                                     "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
-        boolean isOk = queueMap.processDelMessage(messageReal);
+        boolean isOk = queueMap.processDelMessage(messageBackend);
 
         assertThat(virtualhosts).doesNotContainKey(virtualhostStr);
         assertThat(isOk).isFalse();
     }
 
     @Test
-    public void removeAbsentRealFromVirtualhostSet() throws UnsupportedEncodingException {
-        ((FakeLogger)logger).setTestId("removeAbsentRealFromVirtualhostSet");
+    public void removeAbsentBackendFromVirtualhostSet() throws UnsupportedEncodingException {
+        ((FakeLogger)logger).setTestId("removeAbsentBackendFromVirtualhostSet");
 
         String statusStr = "";
-        String endpointStrWithPort = String.format("%s:%s", endpointStr, portStr);
+        String backendStrWithPort = String.format("%s:%s", backendStr, portStr);
         String messageVirtualhost = QueueMap.buildMessage(virtualhostStr, "", "", "", "/virtualhost", "{}");
-        String messageReal = QueueMap.buildMessage(virtualhostStr,
-                                                   endpointStr,
+        String messageBackend = QueueMap.buildMessage(virtualhostStr,
+                                                   backendStr,
                                                    portStr,
                                                    statusStr,
-                                                   String.format("/real/%s", URLEncoder.encode(endpointStrWithPort,"UTF-8")),
+                                                   String.format("/backend/%s", URLEncoder.encode(backendStrWithPort,"UTF-8")),
                                                    "{}");
         QueueMap queueMap = new QueueMap(verticle, virtualhosts);
 
         boolean isOkVirtualhost = queueMap.processAddMessage(messageVirtualhost);
-        boolean isOkRealRemove = queueMap.processDelMessage(messageReal);
+        boolean isOkBackendRemove = queueMap.processDelMessage(messageBackend);
         Virtualhost virtualhost = virtualhosts.get(virtualhostStr);
 
         assertThat(virtualhosts).containsKey(virtualhostStr);
-        assertThat(virtualhost).doesNotContainsReal(endpointStrWithPort, !"0".equals(statusStr));
+        assertThat(virtualhost).doesNotContainsBackend(backendStrWithPort, !"0".equals(statusStr));
         assertThat(isOkVirtualhost).as("isOkVirtualhost").isTrue();
-        assertThat(isOkRealRemove).as("isOkRealRemove").isFalse();
+        assertThat(isOkBackendRemove).as("isOkBackendRemove").isFalse();
     }
 
     @Test
@@ -272,10 +272,10 @@ public class QueueMapTest {
 
             queueMap.processAddMessage(messageVirtualhost);
 
-            for (int idReal=0; idReal<10; idReal++) {
-                String messageReal = QueueMap.buildMessage(
-                        aVirtualhostStr, endpointStr, String.format("%d", idReal), statusStr, "/real","{}");
-                queueMap.processAddMessage(messageReal);
+            for (int idBackend=0; idBackend<10; idBackend++) {
+                String messageBackend = QueueMap.buildMessage(
+                        aVirtualhostStr, backendStr, String.format("%d", idBackend), statusStr, "/backend","{}");
+                queueMap.processAddMessage(messageBackend);
             }
         }
         String messageDelRoutes = QueueMap.buildMessage("", "", "", "", "/route", "{}");
@@ -292,7 +292,7 @@ public class QueueMapTest {
         JsonObject properties = new JsonObject();
 
         String message = QueueMap.buildMessage(virtualhostStr,
-                                               endpointStr,
+                                               backendStr,
                                                portStr,
                                                statusStr,
                                                uriStr,
@@ -302,7 +302,7 @@ public class QueueMapTest {
 
         JsonObject messageJson = new JsonObject();
         messageJson.putString("virtualhost", virtualhostStr);
-        messageJson.putString("host", endpointStr);
+        messageJson.putString("host", backendStr);
         messageJson.putString("port", portStr);
         messageJson.putString("status", statusStr);
         messageJson.putString("uri", uriStr);

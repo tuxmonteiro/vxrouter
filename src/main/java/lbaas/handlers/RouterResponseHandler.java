@@ -5,7 +5,7 @@
 package lbaas.handlers;
 
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.ICounter;
 import lbaas.Server;
 
@@ -24,8 +24,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     private final Long requestTimeoutTimer;
     private final HttpServerRequest sRequest;
     private final boolean connectionKeepalive;
-    private final boolean clientForceKeepAlive;
-    private final Client client;
+    private final boolean backendForceKeepAlive;
+    private final Backend backend;
     private final Server server;
     private final ICounter counter;
     private final Logger log;
@@ -57,13 +57,13 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
                 server.returnStatus(sRequest, 200, null, getKey());
 
                 if (connectionKeepalive) {
-                    if (client.isKeepAliveLimit()) {
-                        client.close();
+                    if (backend.isKeepAliveLimit()) {
+                        backend.close();
                         server.close(sRequest);
                     }
                 } else {
-                    if (!clientForceKeepAlive) {
-                        client.close();
+                    if (!backendForceKeepAlive) {
+                        backend.close();
                     }
                     server.close(sRequest);
                 }
@@ -73,10 +73,10 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.exceptionHandler(new Handler<Throwable>() {
             @Override
             public void handle(Throwable event) {
-                log.error(String.format("host+client: %s, message: %s", getKey(), event.getMessage()));
-                vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
+                log.error(String.format("host+backend: %s, message: %s", getKey(), event.getMessage()));
+                vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend.toString() );
                 server.showErrorAndClose(sRequest, event, getKey());
-                client.close();
+                backend.close();
             }
         });
 
@@ -85,7 +85,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     private String getKey() {
         return String.format("%s.%s",
                 headerHost!=null?headerHost.replaceAll("[^\\w]", "_"):"UNDEF",
-                client!=null?client.toString().replaceAll("[^\\w]", "_"):"UNDEF");
+                backend!=null?backend.toString().replaceAll("[^\\w]", "_"):"UNDEF");
     }
 
     public RouterResponseHandler(
@@ -94,8 +94,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             final Long requestTimeoutTimer,
             final HttpServerRequest sRequest,
             final boolean connectionKeepalive,
-            final boolean clientForceKeepAlive,
-            final Client client,
+            final boolean backendForceKeepAlive,
+            final Backend backend,
             final Server server,
             final ICounter counter,
             final String headerHost,
@@ -104,8 +104,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         this.requestTimeoutTimer = requestTimeoutTimer;
         this.sRequest = sRequest;
         this.connectionKeepalive = connectionKeepalive;
-        this.clientForceKeepAlive = clientForceKeepAlive;
-        this.client = client;
+        this.backendForceKeepAlive = backendForceKeepAlive;
+        this.backend = backend;
         this.server = server;
         this.log = container.logger();
         this.headerHost = headerHost;

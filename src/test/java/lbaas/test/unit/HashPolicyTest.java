@@ -11,7 +11,7 @@ import static lbaas.util.HashAlgorithm.HashType;
 import java.util.EnumSet;
 import java.util.Set;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.RequestData;
 import lbaas.Virtualhost;
 import lbaas.loadbalance.impl.HashPolicy;
@@ -23,7 +23,7 @@ import org.junit.Test;
 public class HashPolicyTest {
 
     Virtualhost virtualhost;
-    int numEndpoints;
+    int numBackends;
 
     @Before
     public void setUp() throws Exception {
@@ -31,9 +31,9 @@ public class HashPolicyTest {
         virtualhost.putString(loadBalancePolicyFieldName, HashPolicy.class.getSimpleName());
         virtualhost.putNumber(cacheTimeOutFieldName, 60*1000L);
 
-        numEndpoints = 10;
-        for (int x=0; x<numEndpoints; x++) {
-            virtualhost.addClient(String.format("0:%s", x), true);
+        numBackends = 10;
+        for (int x=0; x<numBackends; x++) {
+            virtualhost.addBackend(String.format("0:%s", x), true);
         }
     }
 
@@ -44,14 +44,14 @@ public class HashPolicyTest {
         for (int counter=0; counter<numTests; counter++) {
 
             RequestData requestData1 = new RequestData(Long.toString(counter), null);
-            Client client1 = virtualhost.getChoice(requestData1);
+            Backend backend1 = virtualhost.getChoice(requestData1);
             RequestData requestData2 = new RequestData(Long.toString(counter), null);
-            Client client2 = virtualhost.getChoice(requestData2);
+            Backend backend2 = virtualhost.getChoice(requestData2);
             RequestData requestData3 = new RequestData(Long.toString(counter), null);
-            Client client3 = virtualhost.getChoice(requestData3);
+            Backend backend3 = virtualhost.getChoice(requestData3);
 
-            assertThat(client1).isEqualTo(client2);
-            assertThat(client1).isEqualTo(client3);
+            assertThat(backend1).isEqualTo(backend2);
+            assertThat(backend1).isEqualTo(backend3);
         }
     }
 
@@ -76,7 +76,7 @@ public class HashPolicyTest {
                 }
                 long finishTime = System.currentTimeMillis();
 
-                double result = (numEndpoints*(numEndpoints-1)/2.0) * (samples/numEndpoints);
+                double result = (numBackends*(numBackends-1)/2.0) * (samples/numBackends);
 
                 System.out.println(String.format("-> TestHashPolicy.checkUniformDistribution (%s): Time spent (ms): %d. NonUniformDistRatio (smaller is better): %.4f%%",
                         hash, finishTime-initialTime, Math.abs(100.0*(result-sum)/result)));

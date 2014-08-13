@@ -8,7 +8,7 @@ import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 import java.util.Map;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.ICounter;
 import lbaas.RequestData;
 import lbaas.Server;
@@ -39,7 +39,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final Container container;
     private final ICounter counter;
     private String headerHost = "";
-    private String clientId = "";
+    private String backendId = "";
     private String counterKey = null;
 
     @Override
@@ -47,18 +47,18 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 2000L);
         final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 100L);
-        final Integer clientRequestTimeOut = conf.getInteger("clientRequestTimeOut", 60000);
-        final Integer clientConnectionTimeOut = conf.getInteger("clientConnectionTimeOut", 60000);
-        final Boolean clientForceKeepAlive = conf.getBoolean("clientForceKeepAlive", true);
-        final Integer clientMaxPoolSize = conf.getInteger("clientMaxPoolSize",1);
+        final Integer backendRequestTimeOut = conf.getInteger("backendRequestTimeOut", 60000);
+        final Integer backendConnectionTimeOut = conf.getInteger("backendConnectionTimeOut", 60000);
+        final Boolean backendForceKeepAlive = conf.getBoolean("backendForceKeepAlive", true);
+        final Integer backendMaxPoolSize = conf.getInteger("backendMaxPoolSize",1);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
 
         sRequest.response().setChunked(true);
 
-        final Long requestTimeoutTimer = vertx.setTimer(clientRequestTimeOut, new Handler<Long>() {
+        final Long requestTimeoutTimer = vertx.setTimer(backendRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
-                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getCounterKey(headerHost, clientId));
+                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getCounterKey(headerHost, backendId));
             }
         });
 
@@ -66,36 +66,36 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             this.headerHost = sRequest.headers().get("Host").split(":")[0];
             if (!virtualhosts.containsKey(headerHost)) {
                 log.error(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
+                server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
                 return;
             }
         } else {
             log.error("Host UNDEF");
-            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
+            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
             return;
         }
 
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
 
-        if (!virtualhost.hasClients()) {
-            log.error(String.format("Host %s without endpoints", headerHost));
-            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, clientId));
+        if (!virtualhost.hasBackends()) {
+            log.error(String.format("Host %s without backends", headerHost));
+            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
             return;
         }
 
         final boolean connectionKeepalive = isHttpKeepAlive(sRequest.headers(), sRequest.version());
 
-        final Client client = virtualhost.getChoice(new RequestData(sRequest))
-                .setKeepAlive(connectionKeepalive||clientForceKeepAlive)
+        final Backend backend = virtualhost.getChoice(new RequestData(sRequest))
+                .setKeepAlive(connectionKeepalive||backendForceKeepAlive)
                 .setKeepAliveTimeOut(keepAliveTimeOut)
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
-                .setConnectionTimeout(clientConnectionTimeOut);
-        this.clientId = client.toString();
+                .setConnectionTimeout(backendConnectionTimeOut);
+        this.backendId = backend.toString();
 
         Long initialRequestTime = System.currentTimeMillis();
         final Handler<HttpClientResponse> handlerHttpClientResponse =
                 new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
-                        connectionKeepalive, clientForceKeepAlive, client, server, counter,
+                        connectionKeepalive, backendForceKeepAlive, backend, server, counter,
                         headerHost, initialRequestTime);
 
         String remoteIP = sRequest.remoteAddress().getAddress().getHostAddress();
@@ -103,18 +103,18 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         final HttpClient httpClient;
         try {
-            httpClient = client.connect()
-                    .setMaxPoolSize(clientMaxPoolSize);
-            client.addConnection(remoteIP, remotePort);
+            httpClient = backend.connect()
+                    .setMaxPoolSize(backendMaxPoolSize);
+            backend.addConnection(remoteIP, remotePort);
 
         } catch (RuntimeException e) {
             log.error(e.getMessage());
-            server.showErrorAndClose(sRequest, e, getCounterKey(headerHost, clientId));
+            server.showErrorAndClose(sRequest, e, getCounterKey(headerHost, backendId));
             return;
         }
 
         if (httpClient!=null && headerHost!=null) {
-            counter.incrActiveSessions(getCounterKey(headerHost, clientId));
+            counter.incrActiveSessions(getCounterKey(headerHost, backendId));
         }
 
         final HttpClientRequest cRequest =
@@ -124,7 +124,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         updateHeadersXFF(sRequest.headers(), remoteIP);
 
         cRequest.headers().set(sRequest.headers());
-        if (clientForceKeepAlive) {
+        if (backendForceKeepAlive) {
             cRequest.headers().set("Connection", "keep-alive");
         }
 
@@ -144,12 +144,12 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         cRequest.exceptionHandler(new Handler<Throwable>() {
             @Override
             public void handle(Throwable event) {
-                vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, client.toString() );
-                server.showErrorAndClose(sRequest, event, getCounterKey(headerHost, clientId));
+                vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend.toString() );
+                server.showErrorAndClose(sRequest, event, getCounterKey(headerHost, backendId));
                 try {
-                    client.close();
+                    backend.close();
                 } catch (RuntimeException e) {
-                    // Ignore double client close
+                    // Ignore double backend close
                     return;
                 }
             }
@@ -186,21 +186,21 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         this.headerHost = headerHost;
     }
 
-    public String getClientId() {
-        return clientId;
+    public String getBackendId() {
+        return backendId;
     }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
+    public void setBackendId(String backendId) {
+        this.backendId = backendId;
     }
 
-    public String getCounterKey(String aVirtualhost, String aEndPoint) {
+    public String getCounterKey(String aVirtualhost, String aBackend) {
         if (counterKey==null || "".equals(counterKey)) {
             String strDefault = "UNDEF";
             String result = String.format("%s.%s",
                     counter.cleanupString(aVirtualhost, strDefault),
-                    counter.cleanupString(aEndPoint, strDefault));
-            if (!"".equals(aVirtualhost) && !"".equals(aEndPoint)) {
+                    counter.cleanupString(aBackend, strDefault));
+            if (!"".equals(aVirtualhost) && !"".equals(aBackend)) {
                 counterKey = result;
             }
             return result;

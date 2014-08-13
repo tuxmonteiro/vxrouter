@@ -22,7 +22,7 @@ public class VirtualhostTest {
     String virtualhostName;
     Vertx vertx;
     Virtualhost virtualhost;
-    String endpoint;
+    String backend;
     RequestData requestData;
 
     @Before
@@ -31,86 +31,86 @@ public class VirtualhostTest {
         vertx = null;
         requestData = new RequestData(null);
         virtualhost = new Virtualhost(virtualhostName, vertx);
-        endpoint = "0.0.0.0:0";
+        backend = "0.0.0.0:0";
     }
 
     @Test
-    public void insertNewClientInSet() {
-        boolean endPointOk = true;
+    public void insertNewBackendInSet() {
+        boolean backendOk = true;
 
-        boolean notFail = virtualhost.addClient(endpoint, endPointOk);
+        boolean notFail = virtualhost.addBackend(backend, backendOk);
 
-        assertThat(virtualhost).hasActionOk(notFail).hasSize(1, endPointOk);
+        assertThat(virtualhost).hasActionOk(notFail).hasSize(1, backendOk);
     }
 
     @Test
-    public void insertNewBadClientInSet() {
-        boolean endPointOk = false;
+    public void insertNewBadBackendInSet() {
+        boolean backendOk = false;
 
-        boolean notExist = virtualhost.addClient(endpoint, endPointOk);
+        boolean notExist = virtualhost.addBackend(backend, backendOk);
 
-        assertThat(virtualhost).hasActionOk(notExist).hasSize(1, endPointOk);
+        assertThat(virtualhost).hasActionOk(notExist).hasSize(1, backendOk);
     }
 
     @Test
-    public void insertDuplicatedClientInSet() {
-        boolean endPointOk = true;
+    public void insertDuplicatedBackendInSet() {
+        boolean backendOk = true;
 
-        virtualhost.addClient(endpoint, endPointOk);
-        boolean notFail = virtualhost.addClient(endpoint, endPointOk);
+        virtualhost.addBackend(backend, backendOk);
+        boolean notFail = virtualhost.addBackend(backend, backendOk);
 
-        assertThat(virtualhost).hasActionFail(notFail).hasSize(1, endPointOk);
-
-    }
-
-    @Test
-    public void insertDuplicatedBadClientInSet() {
-        boolean endPointOk = false;
-
-        virtualhost.addClient(endpoint, endPointOk);
-        boolean notFail = virtualhost.addClient(endpoint, endPointOk);
-
-        assertThat(virtualhost).hasActionFail(notFail).hasSize(1, endPointOk);
+        assertThat(virtualhost).hasActionFail(notFail).hasSize(1, backendOk);
 
     }
 
     @Test
-    public void removeExistingClientInSet() {
-        boolean endPointOk = true;
+    public void insertDuplicatedBadBackendInSet() {
+        boolean backendOk = false;
 
-        virtualhost.addClient(endpoint, endPointOk);
-        boolean notFail = virtualhost.removeClient(endpoint, endPointOk);
+        virtualhost.addBackend(backend, backendOk);
+        boolean notFail = virtualhost.addBackend(backend, backendOk);
 
-        assertThat(virtualhost).hasActionOk(notFail).hasSize(0, endPointOk);
-    }
-
-    @Test
-    public void removeExistingBadClientInSet() {
-        boolean endPointOk = false;
-
-        virtualhost.addClient(endpoint, endPointOk);
-        boolean notFail = virtualhost.removeClient(endpoint, endPointOk);
-
-        assertThat(virtualhost).hasActionOk(notFail).hasSize(0, endPointOk);
-    }
-
-    @Test
-    public void removeAbsentClientInSet() {
-        boolean endPointOk = true;
-
-        boolean notFail = virtualhost.removeClient(endpoint, endPointOk);
-
-        assertThat(virtualhost).hasActionFail(notFail).hasSize(0, endPointOk);
+        assertThat(virtualhost).hasActionFail(notFail).hasSize(1, backendOk);
 
     }
 
     @Test
-    public void removeAbsentBadClientInSet() {
-        boolean endPointOk = false;
+    public void removeExistingBackendInSet() {
+        boolean backendOk = true;
 
-        boolean notFail = virtualhost.removeClient(endpoint, endPointOk);
+        virtualhost.addBackend(backend, backendOk);
+        boolean notFail = virtualhost.removeBackend(backend, backendOk);
 
-        assertThat(virtualhost).hasActionFail(notFail).hasSize(0, endPointOk);
+        assertThat(virtualhost).hasActionOk(notFail).hasSize(0, backendOk);
+    }
+
+    @Test
+    public void removeExistingBadBackendInSet() {
+        boolean backendOk = false;
+
+        virtualhost.addBackend(backend, backendOk);
+        boolean notFail = virtualhost.removeBackend(backend, backendOk);
+
+        assertThat(virtualhost).hasActionOk(notFail).hasSize(0, backendOk);
+    }
+
+    @Test
+    public void removeAbsentBackendInSet() {
+        boolean backendOk = true;
+
+        boolean notFail = virtualhost.removeBackend(backend, backendOk);
+
+        assertThat(virtualhost).hasActionFail(notFail).hasSize(0, backendOk);
+
+    }
+
+    @Test
+    public void removeAbsentBadBackendInSet() {
+        boolean backendOk = false;
+
+        boolean notFail = virtualhost.removeBackend(backend, backendOk);
+
+        assertThat(virtualhost).hasActionFail(notFail).hasSize(0, backendOk);
 
     }
 
@@ -134,21 +134,21 @@ public class VirtualhostTest {
     }
 
     @Test
-    public void getClientWithLoadBalancePolicy() {
+    public void getBackendWithLoadBalancePolicy() {
         virtualhost.putString(loadBalancePolicyFieldName, DefaultLoadBalancePolicy.class.getSimpleName());
 
-        virtualhost.addClient(endpoint, true);
+        virtualhost.addBackend(backend, true);
 
-        assertThat(virtualhost.getChoice(requestData).toString()).isEqualTo(endpoint);
+        assertThat(virtualhost.getChoice(requestData).toString()).isEqualTo(backend);
     }
 
     @Test
-    public void getClientWithPersistencePolicy() {
+    public void getBackendWithPersistencePolicy() {
         virtualhost.putString(persistencePolicyFieldName, DefaultLoadBalancePolicy.class.getSimpleName());
 
-        virtualhost.addClient(endpoint, true);
+        virtualhost.addBackend(backend, true);
 
-        assertThat(virtualhost.getChoice(requestData, false).toString()).isEqualTo(endpoint);
+        assertThat(virtualhost.getChoice(requestData, false).toString()).isEqualTo(backend);
     }
 
 }

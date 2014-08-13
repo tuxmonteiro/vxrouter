@@ -24,9 +24,9 @@ public class RandomPolicyTest {
 
         virtualhost.putString(loadBalancePolicyFieldName, RandomPolicy.class.getSimpleName());
 
-        int numClients = 10;
-        for (int x=0; x<numClients; x++) {
-            virtualhost.addClient(String.format("0:%s", x), true);
+        int numBackends = 10;
+        for (int x=0; x<numBackends; x++) {
+            virtualhost.addBackend(String.format("0:%s", x), true);
         }
     }
 
@@ -35,7 +35,7 @@ public class RandomPolicyTest {
         long sum = 0;
         double percentMarginOfError = 0.01;
         long samples = 100000L;
-        int numEndpoints = virtualhost.getClients(true).size();
+        int numBackends = virtualhost.getBackends(true).size();
 
         long initialTime = System.currentTimeMillis();
         for (int x=0; x<samples; x++) {
@@ -44,7 +44,7 @@ public class RandomPolicyTest {
         }
         long finishTime = System.currentTimeMillis();
 
-        double result = (numEndpoints*(numEndpoints-1)/2.0) * (1.0*samples/numEndpoints);
+        double result = (numBackends*(numBackends-1)/2.0) * (1.0*samples/numBackends);
 
         System.out.println(String.format("TestRandomPolicy.checkUniformDistribution: %d samples. Total time (ms): %d. NonUniformDistRatio%%: %.10f",
                     samples, finishTime-initialTime, Math.abs(100.0*(result-sum)/result)));

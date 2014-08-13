@@ -9,18 +9,18 @@ import static lbaas.Constants.transientStateFieldName;
 import java.util.Collection;
 import java.util.ArrayList;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.RequestData;
 import lbaas.loadbalance.ILoadBalancePolicy;
 
 public class RandomPolicy implements ILoadBalancePolicy {
 
     @Override
-    public Client getChoice(final Collection<Client> clients, final RequestData requestData) {
+    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
         requestData.getProperties().putBoolean(transientStateFieldName, false);
 
-        if (clients!=null && !clients.isEmpty() && clients instanceof ArrayList<?>) {
-            return ((ArrayList<Client>)clients).get(getIntRandom(clients.size()));
+        if (backends!=null && !backends.isEmpty() && backends instanceof ArrayList<?>) {
+            return ((ArrayList<Backend>)backends).get(getIntRandom(backends.size()));
         } else {
             return null;
         }

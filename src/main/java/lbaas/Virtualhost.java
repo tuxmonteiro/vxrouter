@@ -21,8 +21,8 @@ public class Virtualhost extends JsonObject {
     private static final long serialVersionUID = -3715150640575829972L;
 
     private final String                  virtualhostName;
-    private final UniqueArrayList<Client> endpoints;
-    private final UniqueArrayList<Client> badEndpoints;
+    private final UniqueArrayList<Backend> backends;
+    private final UniqueArrayList<Backend> badBackends;
     private final Vertx                   vertx;
 
     private ILoadBalancePolicy connectPolicy     = null;
@@ -31,8 +31,8 @@ public class Virtualhost extends JsonObject {
     public Virtualhost(String virtualhostName, final Vertx vertx) {
         super();
         this.virtualhostName = virtualhostName;
-        this.endpoints = new UniqueArrayList<Client>();
-        this.badEndpoints = new UniqueArrayList<Client>();
+        this.backends = new UniqueArrayList<Backend>();
+        this.badBackends = new UniqueArrayList<Backend>();
         this.vertx = vertx;
     }
 
@@ -41,65 +41,65 @@ public class Virtualhost extends JsonObject {
         return getVirtualhostName();
     }
 
-    public boolean addClient(String endpoint, boolean endPointOk) {
-        if (endPointOk) {
+    public boolean addBackend(String backend, boolean backendOk) {
+        if (backendOk) {
             putBoolean(transientStateFieldName, true);
-            return endpoints.add(new Client(endpoint, vertx));
+            return backends.add(new Backend(backend, vertx));
         } else {
-            return badEndpoints.add(new Client(endpoint, vertx));
+            return badBackends.add(new Backend(backend, vertx));
         }
     }
 
-    public UniqueArrayList<Client> getClients(boolean endPointOk) {
-        return endPointOk ? endpoints: badEndpoints;
+    public UniqueArrayList<Backend> getBackends(boolean backendOk) {
+        return backendOk ? backends: badBackends;
     }
 
     public String getVirtualhostName() {
         return virtualhostName;
     }
 
-    public Boolean removeClient(String endpoint, boolean endPointOk) {
-        if (endPointOk) {
+    public Boolean removeBackend(String backend, boolean backendOk) {
+        if (backendOk) {
             putBoolean(transientStateFieldName, true);
-            return endpoints.remove(new Client(endpoint, vertx));
+            return backends.remove(new Backend(backend, vertx));
         } else {
-            return badEndpoints.remove(new Client(endpoint, vertx));
+            return badBackends.remove(new Backend(backend, vertx));
         }
     }
 
-    public void clear(boolean endPointOk) {
-        if (endPointOk) {
-            endpoints.clear();
+    public void clear(boolean backendOk) {
+        if (backendOk) {
+            backends.clear();
             putBoolean(transientStateFieldName, true);
         } else {
-            badEndpoints.clear();
+            badBackends.clear();
         }
     }
 
     public void clearAll() {
-        endpoints.clear();
-        badEndpoints.clear();
+        backends.clear();
+        badBackends.clear();
         putBoolean(transientStateFieldName, true);
     }
 
-    public Client getChoice(RequestData requestData) {
+    public Backend getChoice(RequestData requestData) {
         // Default: isNewConnection = true
         return getChoice(requestData, true);
     }
 
-    public Client getChoice(RequestData requestData, boolean isNewConnection) {
+    public Backend getChoice(RequestData requestData, boolean isNewConnection) {
         requestData.setProperties(this);
-        Client chosen;
+        Backend chosen;
         if (isNewConnection) {
             if (connectPolicy==null) {
                 getLoadBalancePolicy();
             }
-            chosen = connectPolicy.getChoice(endpoints, requestData);
+            chosen = connectPolicy.getChoice(backends, requestData);
         } else {
             if (persistencePolicy==null) {
                 getPersistencePolicy();
             }
-            chosen = persistencePolicy.getChoice(endpoints, requestData);
+            chosen = persistencePolicy.getChoice(backends, requestData);
         }
         return chosen;
     }
@@ -144,12 +144,12 @@ public class Virtualhost extends JsonObject {
         }
     }
 
-    public boolean hasClients() {
-        return !endpoints.isEmpty();
+    public boolean hasBackends() {
+        return !backends.isEmpty();
     }
 
-    public boolean hasBadClients() {
-        return !badEndpoints.isEmpty();
+    public boolean hasBadBackends() {
+        return !badBackends.isEmpty();
     }
 
 }

@@ -4,7 +4,7 @@
  */
 package lbaas.test.unit.assertj.custom;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.Virtualhost;
 
 import org.assertj.core.api.AbstractAssert;
@@ -35,26 +35,26 @@ public class VirtualHostAssert extends AbstractAssert<VirtualHostAssert, Virtual
         return this;
     }
 
-    public VirtualHostAssert hasSize(Integer size, boolean endPointOk) {
+    public VirtualHostAssert hasSize(Integer size, boolean backendOk) {
         isNotNull();
-        if (actual.getClients(endPointOk).size() != size) {
-            failWithMessage("Expected size to be <%s> but was <%s>", size, actual.getClients(endPointOk).size());
+        if (actual.getBackends(backendOk).size() != size) {
+            failWithMessage("Expected size to be <%s> but was <%s>", size, actual.getBackends(backendOk).size());
         }
         return this;
     }
 
-    public VirtualHostAssert containsReal(String realWithPort, boolean endPointOk) {
+    public VirtualHostAssert containsBackend(String backendWithPort, boolean backendOk) {
         isNotNull();
-        if (!actual.getClients(endPointOk).contains(new Client(realWithPort, null))) {
-            failWithMessage("%s not found at %s", realWithPort, actual.getVirtualhostName());
+        if (!actual.getBackends(backendOk).contains(new Backend(backendWithPort, null))) {
+            failWithMessage("%s not found at %s", backendWithPort, actual.getVirtualhostName());
         }
         return this;
     }
 
-    public VirtualHostAssert doesNotContainsReal(String realWithPort, boolean endPointOk) {
+    public VirtualHostAssert doesNotContainsBackend(String backendWithPort, boolean backendOk) {
         isNotNull();
-        if (actual.getClients(endPointOk).contains(new Client(realWithPort, null))) {
-            failWithMessage("%s found at %s", realWithPort, actual.getVirtualhostName());
+        if (actual.getBackends(backendOk).contains(new Backend(backendWithPort, null))) {
+            failWithMessage("%s found at %s", backendWithPort, actual.getVirtualhostName());
         }
         return this;
     }

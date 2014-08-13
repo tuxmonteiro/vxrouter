@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import lbaas.Client;
+import lbaas.Backend;
 import lbaas.CounterWithStatsd;
 import lbaas.ICounter;
 import lbaas.IEventObserver;
@@ -186,9 +186,9 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             }
         });
 
-        // Real (field "Virtualhost name" mandatory) - Only POST and DELETE
-        routeMatcher.post("/real", realHandlerAction(eb, log, Action.ADD));
-        routeMatcher.delete("/real/:id", realHandlerAction(eb, log, Action.DEL)); // Only with ID
+        // Backend (field "Virtualhost name" mandatory) - Only POST and DELETE
+        routeMatcher.post("/backend", backendHandlerAction(eb, log, Action.ADD));
+        routeMatcher.delete("/backend/:id", backendHandlerAction(eb, log, Action.DEL)); // Only with ID
 
         // Others methods/uris/etc
         routeMatcher.noMatch(new Handler<HttpServerRequest>() {
@@ -202,19 +202,19 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         server.start(this, routeMatcher, 9090);
     }
 
-    private Handler<HttpServerRequest> realHandlerAction(final EventBus eb, final Logger log, final Action action) {
+    private Handler<HttpServerRequest> backendHandlerAction(final EventBus eb, final Logger log, final Action action) {
         final Server server = this.server;
         return new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest req) {
-                String[] realWithPort = null;
+                String[] backendWithPort = null;
                 try {
-                    realWithPort = req.params() != null && req.params().contains("id") ?
+                    backendWithPort = req.params() != null && req.params().contains("id") ?
                             java.net.URLDecoder.decode(req.params().get("id"), "UTF-8").split(":") : null;
                 } catch (UnsupportedEncodingException e) {}
 
-                final String real = realWithPort != null ? realWithPort[0]:"";
-                final String port = realWithPort != null ? realWithPort[1]:"";
+                final String backend = backendWithPort != null ? backendWithPort[0]:"";
+                final String port = backendWithPort != null ? backendWithPort[1]:"";
                 req.bodyHandler(new Handler<Buffer>() {
                     @Override
                     public void handle(Buffer body) {
@@ -222,9 +222,9 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             final JsonObject json = new JsonObject(body.toString());
                             String jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
                             if (action==Action.DEL) {
-                                JsonArray reals = json.containsField("endpoints") ? json.getArray("endpoints"): null;
-                                if (reals!=null && !reals.toList().isEmpty() && !reals.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", real, port)))) {
-                                    throw new RouterException("Real not found");
+                                JsonArray backends = json.containsField("backends") ? json.getArray("backends"): null;
+                                if (backends!=null && !backends.toList().isEmpty() && !backends.get(0).equals(new JsonObject(String.format("{\"host\":\"%s\",\"port\":%s}", backend, port)))) {
+                                    throw new RouterException("Backend not found");
                                 }
                             }
                             if ("".equals(jsonVirtualHost)) {
@@ -233,7 +233,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                             server.returnStatus(req, 200, "", routeManagerId);
                             setRoute(json, action, req.uri());
                         } catch (Exception e) {
-                            log.error(String.format("realHandlerAction FAIL: %s\nBody: %s",
+                            log.error(String.format("backendHandlerAction FAIL: %s\nBody: %s",
                                     e.getMessage(), body.toString()));
                             server.returnStatus(req, 400, "", routeManagerId);
                         }
@@ -314,7 +314,7 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
             String host;
             Integer port;
             boolean status;
-            JsonArray endpoints = null;
+            JsonArray backends = null;
             JsonObject jsonTemp = (JsonObject) it.next();
 
             if (jsonTemp.containsField("name")) {
@@ -332,18 +332,18 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 properties = new JsonObject();
             }
 
-            if (jsonTemp.containsField("endpoints") && jsonTemp.getArray("endpoints").size()>0) {
-                endpoints = jsonTemp.getArray("endpoints");
-                Iterator<Object> endpointsIterator = endpoints.iterator();
-                while (endpointsIterator.hasNext()) {
-                    JsonObject endpointJson = (JsonObject) endpointsIterator.next();
-                    host = endpointJson.containsField("host") ? endpointJson.getString("host"):"";
-                    port = endpointJson.containsField("port") ? endpointJson.getInteger("port"):null;
+            if (jsonTemp.containsField("backends") && jsonTemp.getArray("backends").size()>0) {
+                backends = jsonTemp.getArray("backends");
+                Iterator<Object> backendsIterator = backends.iterator();
+                while (backendsIterator.hasNext()) {
+                    JsonObject backendJson = (JsonObject) backendsIterator.next();
+                    host = backendJson.containsField("host") ? backendJson.getString("host"):"";
+                    port = backendJson.containsField("port") ? backendJson.getInteger("port"):null;
                     String portStr = String.format("%d", port);
-                    status = endpointJson.containsField("status") ? endpointJson.getBoolean("status"):true;
+                    status = backendJson.containsField("status") ? backendJson.getBoolean("status"):true;
                     String statusStr = status ? "1" : "0";
                     if ("".equals(host) || port==null) {
-                        throw new RouterException("Endpoint host or port undef");
+                        throw new RouterException("Backend host or port undef");
                     }
                     String message = QueueMap.buildMessage(vhost,
                                                            host,
@@ -391,34 +391,34 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
         for (String vhost : virtualhosts.keySet()) {
             JsonObject vhostObj = new JsonObject();
             vhostObj.putString("name", vhost);
-            JsonArray endpoints = new JsonArray();
+            JsonArray backends = new JsonArray();
             Virtualhost virtualhost = virtualhosts.get(vhost);
             if (virtualhost==null) {
                 continue;
             }
             vhostObj.putObject("properties", virtualhost.copy());
-            for (Client value : virtualhost.getClients(true)) {
+            for (Backend value : virtualhost.getBackends(true)) {
                 if (value!=null) {
-                    JsonObject endpointObj = new JsonObject();
-                    endpointObj.putString("host", value.toString().split(":")[0]);
-                    endpointObj.putNumber("port", Integer.parseInt(value.toString().split(":")[1]));
-                    endpoints.add(endpointObj);
+                    JsonObject backendObj = new JsonObject();
+                    backendObj.putString("host", value.toString().split(":")[0]);
+                    backendObj.putNumber("port", Integer.parseInt(value.toString().split(":")[1]));
+                    backends.add(backendObj);
                 }
             }
-            vhostObj.putArray("endpoints", endpoints);
-            JsonArray badEndpoints = new JsonArray();
-            if (!virtualhost.getClients(false).isEmpty()) {
-                for (Client value : virtualhost.getClients(false)) {
+            vhostObj.putArray("backends", backends);
+            JsonArray badBackends = new JsonArray();
+            if (!virtualhost.getBackends(false).isEmpty()) {
+                for (Backend value : virtualhost.getBackends(false)) {
                     if (value!=null) {
-                        JsonObject endpointObj = new JsonObject();
+                        JsonObject backendObj = new JsonObject();
                         String[] hostWithPort = value.toString().split(":");
-                        endpointObj.putString("host", hostWithPort[0]);
-                        endpointObj.putNumber("port", Integer.parseInt(hostWithPort[1]));
-                        badEndpoints.add(endpointObj);
+                        backendObj.putString("host", hostWithPort[0]);
+                        backendObj.putNumber("port", Integer.parseInt(hostWithPort[1]));
+                        badBackends.add(backendObj);
                     }
                 }
             }
-            vhostObj.putArray("badEndpoints", badEndpoints);
+            vhostObj.putArray("badBackends", badBackends);
 
             vhosts.add(vhostObj);
         }

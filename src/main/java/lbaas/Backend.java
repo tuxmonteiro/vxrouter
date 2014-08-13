@@ -14,7 +14,7 @@ import org.vertx.java.core.http.HttpClient;
 
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
-public class Client {
+public class Backend {
 
     private final Vertx vertx;
     private HttpClient client;
@@ -45,7 +45,7 @@ public class Client {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        Client other = (Client) obj;
+        Backend other = (Backend) obj;
         if (host == null) {
             if (other.host != null) return false;
         } else
@@ -62,7 +62,7 @@ public class Client {
         return this.toString().hashCode();
     }
 
-    public Client(final String hostWithPort, final Vertx vertx) {
+    public Backend(final String hostWithPort, final Vertx vertx) {
         String[] hostWithPortArray = hostWithPort!=null ? hostWithPort.split(":") : null;
         this.vertx = vertx;
         this.client = null;
@@ -94,7 +94,7 @@ public class Client {
         return connectionTimeout;
     }
 
-    public Client setConnectionTimeout(Integer timeout) {
+    public Backend setConnectionTimeout(Integer timeout) {
         this.connectionTimeout = timeout;
         return this;
     }
@@ -103,7 +103,7 @@ public class Client {
         return keepalive;
     }
 
-    public Client setKeepAlive(boolean keepalive) {
+    public Backend setKeepAlive(boolean keepalive) {
         this.keepalive = keepalive;
         return this;
     }
@@ -112,7 +112,7 @@ public class Client {
       return keepAliveMaxRequest;
     }
 
-    public Client setKeepAliveMaxRequest(Long maxRequestCount) {
+    public Backend setKeepAliveMaxRequest(Long maxRequestCount) {
       this.keepAliveMaxRequest = maxRequestCount;
       return this;
     }
@@ -121,7 +121,7 @@ public class Client {
         return keepAliveTimeOut;
     }
 
-    public Client setKeepAliveTimeOut(Long keepAliveTimeOut) {
+    public Backend setKeepAliveTimeOut(Long keepAliveTimeOut) {
         this.keepAliveTimeOut = keepAliveTimeOut;
         return this;
     }
@@ -148,7 +148,7 @@ public class Client {
         return maxPoolSize;
     }
 
-    public Client setMaxPoolSize(Integer maxPoolSize) {
+    public Backend setMaxPoolSize(Integer maxPoolSize) {
         if (client!=null) {
             client.setMaxPoolSize(maxPoolSize);
         }
@@ -157,7 +157,7 @@ public class Client {
 
     // Lazy initialization
     public HttpClient connect() {
-        final String endpoint = this.toString();
+        final String backend = this.toString();
         if (client==null) {
             if (vertx!=null) {
                 client = vertx.createHttpClient()
@@ -171,7 +171,7 @@ public class Client {
                 client.exceptionHandler(new Handler<Throwable>() {
                     @Override
                     public void handle(Throwable e) {
-                        vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, endpoint);
+                        vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend);
                     }
                 });
             } else {

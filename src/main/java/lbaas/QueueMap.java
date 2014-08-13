@@ -88,23 +88,23 @@ public class QueueMap {
                     isOk = false;
                 }
                 break;
-            case "real":
+            case "backend":
                 if (!virtualhosts.containsKey(virtualhost)) {
-                    log.warn(String.format("[%s] Endpoint didnt create, because Virtualhost %s not exist", verticle.toString(), virtualhost));
+                    log.warn(String.format("[%s] Backend didnt create, because Virtualhost %s not exist", verticle.toString(), virtualhost));
                     isOk = false;
                 } else {
 
                     String host = messageJson.getString("host", "");
                     String port = messageJson.getString("port", "");
                     boolean status = !"0".equals(messageJson.getString("status", ""));
-                    String endpoint = (!"".equals(host) && !"".equals(port)) ?
+                    String backend = (!"".equals(host) && !"".equals(port)) ?
                             String.format("%s:%s", host, port) : "";
 
                     final Virtualhost vhost = virtualhosts.get(virtualhost);
-                    if (vhost.addClient(endpoint, status)) {
-                        log.info(String.format("[%s] Real %s (%s) added", verticle.toString(), endpoint, virtualhost));
+                    if (vhost.addBackend(backend, status)) {
+                        log.info(String.format("[%s] Backend %s (%s) added", verticle.toString(), backend, virtualhost));
                     } else {
-                        log.warn(String.format("[%s] Real %s (%s) already exist", verticle.toString(), endpoint, virtualhost));
+                        log.warn(String.format("[%s] Backend %s (%s) already exist", verticle.toString(), backend, virtualhost));
                         isOk = false;
                     }
                 }
@@ -131,7 +131,7 @@ public class QueueMap {
         String uri = messageJson.getString("uri", "");
 //        String properties = messageJson.getString("properties", "{}");
 
-        String endpoint = (!"".equals(host) && !"".equals(port)) ?
+        String backend = (!"".equals(host) && !"".equals(port)) ?
                 String.format("%s:%s", host, port) : "";
         String uriBase = uri.split("/")[1];
 
@@ -158,19 +158,19 @@ public class QueueMap {
                     isOk = false;
                 }
                 break;
-            case "real":
-                if ("".equals(endpoint)) {
-                    log.warn(String.format("[%s] Real UNDEF", verticle.toString(), endpoint));
+            case "backend":
+                if ("".equals(backend)) {
+                    log.warn(String.format("[%s] Backend UNDEF", verticle.toString(), backend));
                     isOk = false;
                 } else if (!virtualhosts.containsKey(virtualhost)) {
-                    log.warn(String.format("[%s] Real not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
+                    log.warn(String.format("[%s] Backend not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
                     isOk = false;
                 } else {
                     final Virtualhost virtualhostObj = virtualhosts.get(virtualhost);
-                    if (virtualhostObj!=null && virtualhostObj.removeClient(endpoint, status)) {
-                        log.info(String.format("[%s] Real %s (%s) removed", verticle.toString(), endpoint, virtualhost));
+                    if (virtualhostObj!=null && virtualhostObj.removeBackend(backend, status)) {
+                        log.info(String.format("[%s] Backend %s (%s) removed", verticle.toString(), backend, virtualhost));
                     } else {
-                        log.warn(String.format("[%s] Real not removed. Real %s (%s) not exist", verticle.toString(), endpoint, virtualhost));
+                        log.warn(String.format("[%s] Backend not removed. Backend %s (%s) not exist", verticle.toString(), backend, virtualhost));
                         isOk = false;
                     }
                 }

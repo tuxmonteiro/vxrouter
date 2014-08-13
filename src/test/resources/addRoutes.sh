@@ -10,22 +10,22 @@ if [ "x$VHOST" == "x" ]; then
   VHOST='lol.localdomain'
 fi
 
-ENDPOINT1=$3
-if [ "x$ENDPOINT1" == "x" ]; then
-  ENDPOINT1_HOST='127.0.0.1'
-  ENDPOINT1_PORT='8081'
+BACKEND1=$3
+if [ "x$BACKEND1" == "x" ]; then
+  BACKEND1_HOST='127.0.0.1'
+  BACKEND1_PORT='8081'
 else
-  ENDPOINT1_HOST=${ENDPOINT1%%:*}
-  ENDPOINT1_PORT=${ENDPOINT1##*:}
+  BACKEND1_HOST=${BACKEND1%%:*}
+  BACKEND1_PORT=${BACKEND1##*:}
 fi
 
-ENDPOINT2=$4
-if [ "x$ENDPOINT2" == "x" ]; then
-  ENDPOINT2_HOST='127.0.0.1'
-  ENDPOINT2_PORT='8082'
+BACKEND2=$4
+if [ "x$BACKEND2" == "x" ]; then
+  BACKEND2_HOST='127.0.0.1'
+  BACKEND2_PORT='8082'
 else
-  ENDPOINT2_HOST=${ENDPOINT2%%:*}
-  ENDPOINT2_PORT=${ENDPOINT2##*:}
+  BACKEND2_HOST=${BACKEND2%%:*}
+  BACKEND2_PORT=${BACKEND2##*:}
 fi
 
 LOADBALANCE=$5
@@ -39,19 +39,19 @@ curl -XPOST "http://$ROUTE/virtualhost" -d '
   "properties": {
     "loadBalancePolicy": "'$LOADBALANCE'"
   },
-  "endpoints": []}' \
+  "backends": []}' \
   && curl -XPOST "http://$ROUTE/version" -d '
   {
     "version": 28031976
   }'
 
-curl -XPOST "http://$ROUTE/real" -d '
+curl -XPOST "http://$ROUTE/backend" -d '
 {
   "name": "'$VHOST'",
-  "endpoints": [
+  "backends": [
     {
-        "host":"'$ENDPOINT1_HOST'",
-        "port": '$ENDPOINT1_PORT'
+        "host":"'$BACKEND1_HOST'",
+        "port": '$BACKEND1_PORT'
     }
     ]}' \
     && curl -XPOST "http://$ROUTE/version" -d '
@@ -60,13 +60,13 @@ curl -XPOST "http://$ROUTE/real" -d '
     }'
 
 
-curl -XPOST "http://$ROUTE/real" -d '
+curl -XPOST "http://$ROUTE/backend" -d '
 {
   "name": "'$VHOST'",
-  "endpoints": [
+  "backends": [
     {
-        "host":"'$ENDPOINT2_HOST'",
-        "port": '$ENDPOINT2_PORT'
+        "host":"'$BACKEND2_HOST'",
+        "port": '$BACKEND2_PORT'
     }
     ]}' \
     && curl -XPOST "http://$ROUTE/version" -d '
@@ -74,8 +74,8 @@ curl -XPOST "http://$ROUTE/real" -d '
       "version": 28031978
     }'
 
-#curl -XPOST "http://127.0.0.1:9090/real" -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8082}]}' \
+#curl -XPOST "http://127.0.0.1:9090/backend" -d '{"name": "lol.localdomain", "backends":[{"host":"127.0.0.1", "port": 8082}]}' \
 #  && curl -XPOST "http://$ROUTE/version" -d '{"version": 28031978}'
-#curl -XPOST "http://127.0.0.1:9090/real" -d '{"name": "lol.localdomain", "endpoints":[{"host":"127.0.0.1", "port": 8083}]}' \
+#curl -XPOST "http://127.0.0.1:9090/backend" -d '{"name": "lol.localdomain", "backends":[{"host":"127.0.0.1", "port": 8083}]}' \
 #  && curl -XPOST "http://$ROUTE/version" -d '{"version": 28031978}'
 
