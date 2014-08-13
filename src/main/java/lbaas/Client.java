@@ -4,6 +4,9 @@
  */
 package lbaas;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpClient;
@@ -24,6 +27,8 @@ public class Client {
 
     private Long keepAliveTimeMark;
     private Long requestCount;
+
+    private Set<String> connections = new HashSet<>();
 
     @Override
     public String toString() {
@@ -178,6 +183,7 @@ public class Client {
                 // Already closed. Ignore exception.
             } finally {
                 client=null;
+                connections.clear();
             }
         }
     }
@@ -193,6 +199,18 @@ public class Client {
             httpClientClosed = true;
         }
         return httpClientClosed;
+    }
+
+    public boolean addConnection(String connectionId) {
+        return connections.add(connectionId);
+    }
+
+    public boolean removeConnection(String connectionId) {
+        return connections.remove(connectionId);
+    }
+
+    public int getActiveConnections() {
+        return connections.size();
     }
 
 }
