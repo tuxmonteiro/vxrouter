@@ -4,17 +4,26 @@
  */
 package lbaas;
 
+import static lbaas.Constants.*;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
+import org.vertx.java.core.json.JsonObject;
+
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Backend {
 
     private final Vertx vertx;
+    private final EventBus eb;
+
     private HttpClient client;
 
     private final String host;
@@ -23,6 +32,7 @@ public class Backend {
     private boolean keepalive;
     private Long keepAliveMaxRequest;
     private Long keepAliveTimeOut;
+    private int backendMaxPoolSize;
 
     private Long keepAliveTimeMark;
     private Long requestCount;
@@ -30,8 +40,13 @@ public class Backend {
     private Long schedulerId = 0L;
     private Long schedulerDelay = 10000L;
 
-    private Map<String, Long> connections = new HashMap<>();
-    private int backendMaxPoolSize;
+    // < remoteWithPort, timestamp >
+    private final Map<String, Long> connections = new HashMap<>();
+    // < backendInstanceUUID, numConnections >
+    private final Map<String, Integer> globalConnections = new HashMap<>();
+
+    private final String queueActiveConnections;
+    private final String myUUID;
 
     @Override
     public String toString() {
@@ -63,6 +78,7 @@ public class Backend {
     public Backend(final String hostWithPort, final Vertx vertx) {
         String[] hostWithPortArray = hostWithPort!=null ? hostWithPort.split(":") : null;
         this.vertx = vertx;
+        this.eb = (vertx!=null) ? vertx.eventBus() : null;
         this.client = null;
         if (hostWithPortArray != null && hostWithPortArray.length>1) {
             this.host = hostWithPortArray[0];
@@ -77,6 +93,8 @@ public class Backend {
         this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
+        this.queueActiveConnections = String.format("%s%s", QUEUE_BACKEND_CONNECTIONS_PREFIX, this);
+        this.myUUID = UUID.randomUUID().toString();
 
     }
 
@@ -164,7 +182,21 @@ public class Backend {
                 client.exceptionHandler(new Handler<Throwable>() {
                     @Override
                     public void handle(Throwable e) {
-                        vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend);
+                        eb.publish(QUEUE_HEALTHCHECK_FAIL, backend);
+                        eb.publish(queueActiveConnections, 0);
+                    }
+                });
+
+                eb.registerLocalHandler(queueActiveConnections, new Handler<Message<JsonObject>>() {
+
+                    @Override
+                    public void handle(Message<JsonObject> message) {
+                        JsonObject messageJson = message.body();
+                        String uuid = messageJson.getString(uuidFieldName);
+                        if (uuid != myUUID) {
+                            int numConnections = messageJson.getInteger(numConnectionFieldName);
+                            globalConnections.put(uuid, numConnections);
+                        }
                     }
                 });
             } else {
@@ -183,6 +215,7 @@ public class Backend {
             } finally {
                 client=null;
                 connections.clear();
+                eb.publish(queueActiveConnections, 0);
             }
         }
     }
@@ -214,7 +247,11 @@ public class Backend {
     }
 
     public int getActiveConnections() {
-        return connections.size();
+        int globalSum = connections.size();
+        for (int externalValue: globalConnections.values()) {
+            globalSum =+ externalValue;
+        }
+        return globalSum;
     }
 
     public Long getSchedulerDelay() {
@@ -239,6 +276,10 @@ public class Backend {
                             removeConnection(remote);
                         }
                     }
+                    JsonObject myConnections = new JsonObject();
+                    myConnections.putString(uuidFieldName, myUUID);
+                    myConnections.putNumber(numConnectionFieldName, connections.size());
+                    eb.publish(queueActiveConnections, myConnections);
                 }
             });
         }
