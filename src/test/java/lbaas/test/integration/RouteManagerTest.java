@@ -9,6 +9,8 @@ import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
+import org.vertx.java.core.http.HttpClient;
+import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.json.DecodeException;
 import org.vertx.java.core.json.JsonArray;
@@ -165,5 +167,72 @@ public class RouteManagerTest extends TestVerticle {
 
     }
 
+    // Test POST /virtualhost
+
+    private void checkVhost() {
+        vertx.createHttpClient().setPort(9090).getNow("/virtualhost/www.globo.com", new Handler<HttpClientResponse>() {
+            @Override
+            public void handle(HttpClientResponse resp) {
+                assertEquals(200, resp.statusCode());
+
+                resp.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        // Expected: {
+//                        "name" : "www.globo.com",
+//                        "properties" : {
+//                          "loadBalancePolicy" : "RandomPolicy"
+//                        },
+//                        "backends" : [ ],
+//                        "badBackends" : [ ]
+//                      }
+                        JsonObject expectedJson = new JsonObject()
+                            .putString("name", "www.globo.com")
+                            .putObject("properties", new JsonObject())
+                            .putArray("backends", new JsonArray())
+                            .putArray("badBackends", new JsonArray());
+                        JsonObject respJson = safeExtractJson(body.toString());
+                        assertEquals(expectedJson, respJson);
+                        testComplete();
+                    }
+                });
+            }
+        });
+    }
+
+    private void postVhost() {
+        HttpClient client = vertx.createHttpClient().setPort(9090).setHost("localhost");
+        HttpClientRequest request = client.post("/virtualhost", new Handler<HttpClientResponse>() {
+            @Override
+            public void handle(HttpClientResponse resp) {
+                assertEquals(200, resp.statusCode());
+
+                resp.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        // Expected: { "status_message" : "OK" }
+                        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+                        JsonObject respJson = safeExtractJson(body.toString());
+                        assertEquals(expectedJson, respJson);
+                    }
+                });
+                resp.endHandler(new Handler<Void>() {
+                    public void handle(Void v) {
+                        checkVhost();
+                    }
+                });
+            }
+        });
+        request.setChunked(true); // To avoid calculating content length
+
+        // { "name": "www.globo.com" }
+        JsonObject vhostJson = new JsonObject().putString("name", "www.globo.com");
+        request.write(vhostJson.toString());
+        request.end();
+
+    }
+   
+    @Test
+    public void testPostVHostWhenEmpty() {
+        postVhost();
+    }
 
 }
