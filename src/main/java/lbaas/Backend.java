@@ -166,6 +166,13 @@ public class Backend {
         return this;
     }
 
+    public JsonObject zeroConnectionJson() {
+        JsonObject myConnections = new JsonObject();
+        myConnections.putString(uuidFieldName, myUUID);
+        myConnections.putNumber(numConnectionFieldName, 0);
+        return myConnections;
+    }
+
     // Lazy initialization
     public HttpClient connect() {
         final String backend = this.toString();
@@ -184,7 +191,7 @@ public class Backend {
                     @Override
                     public void handle(Throwable e) {
                         eb.publish(QUEUE_HEALTHCHECK_FAIL, backend);
-                        eb.publish(queueActiveConnections, 0);
+                        eb.publish(queueActiveConnections, zeroConnectionJson());
                     }
                 });
                 if (!registered) {
@@ -221,7 +228,7 @@ public class Backend {
                 // Already closed. Ignore exception.
             } finally {
                 client=null;
-                eb.publish(queueActiveConnections, 0);
+                eb.publish(queueActiveConnections, zeroConnectionJson());
                 if (registered) {
                     eb.unregisterHandler(queueActiveConnections, getHandlerListenGlobalConnections());
                     registered = false;
