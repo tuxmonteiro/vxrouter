@@ -1,25 +1,16 @@
 package lbaas.test.integration;
 
-
-import static org.vertx.testtools.VertxAssert.assertEquals;
-import static org.vertx.testtools.VertxAssert.testComplete;
+import lbaas.test.integration.util.TestMoreVerticle;
 
 import org.junit.Test;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.http.HttpClient;
-import org.vertx.java.core.http.HttpClientRequest;
-import org.vertx.java.core.http.HttpClientResponse;
-import org.vertx.java.core.json.DecodeException;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
-import org.vertx.testtools.TestVerticle;
 
 import static org.vertx.testtools.VertxAssert.*;
 
-public class RouteManagerTest extends TestVerticle {
+public class RouteManagerTest extends TestMoreVerticle {
 
     @Override
     public void start() {
@@ -51,188 +42,63 @@ public class RouteManagerTest extends TestVerticle {
         });
     }
 
-    private JsonObject safeExtractJson(String s) {
-        JsonObject json = null;
-        try {
-            json = new JsonObject(s);
-        } catch (DecodeException e) {
-            System.out.println("The string is not a Json. Test will fail");
-        }
-        return json;
-    }
 
     @Test
     public void testGetWhenEmpty() {
         // Test GET unknown URI
-        vertx.createHttpClient().setPort(9090).getNow("/unknownuri", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(400, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { "status_message" : "Bad Request" }
-                        JsonObject expectedJson = new JsonObject().putString("status_message", "Bad Request");
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-
-            }
-        });
-
+        // Expected: { "status_message" : "Bad Request" }
+        JsonObject expectedJson = new JsonObject().putString("status_message", "Bad Request");
+        getAndTest(9090, "/unknownuri", 400, expectedJson);
+        
         // Test GET /virtualhost
-        vertx.createHttpClient().setPort(9090).getNow("/virtualhost", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { "version" : 0, "routes" : [ ] }
-                        JsonObject expectedJson = new JsonObject()
-                        .putNumber("version", 0)
-                        .putArray("routes",
-                                new JsonArray());
-
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-
-            }
-        });
+        // Expected: { "version" : 0, "routes" : [ ] }
+        expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
+        getAndTest(9090, "/virtualhost", 200, expectedJson);
 
         // Test GET /virtualhost/id
-        vertx.createHttpClient().setPort(9090).getNow("/virtualhost/1234", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { }
-                        JsonObject expectedJson = new JsonObject();
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-
-            }
-        });
-
+        // Expected: { }
+        expectedJson = new JsonObject();
+        getAndTest(9090, "/virtualhost/1234", 200, expectedJson);
+        
         // Test GET /route
-        vertx.createHttpClient().setPort(9090).getNow("/route", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { "version" : 0, "routes" : [ ] }
-                        JsonObject expectedJson = new JsonObject()
-                        .putNumber("version", 0)
-                        .putArray("routes", new JsonArray());
-
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-
-            }
-        });
-
+        // Expected: { "version" : 0, "routes" : [ ] }
+        expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
+        getAndTest(9090, "/route", 200, expectedJson);
+        
         // Test GET /version
-        vertx.createHttpClient().setPort(9090).getNow("/version", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { "version" : 0 }
-                        JsonObject expectedJson = new JsonObject().putNumber("version", 0);
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-
-            }
-        });
-
+        // Expected: { "version" : 0 }
+        expectedJson = new JsonObject().putNumber("version", 0);
+        getAndTest(9090, "/route", 200, expectedJson);
     }
 
     // Test POST /virtualhost
-
-    private void checkVhost() {
-        vertx.createHttpClient().setPort(9090).getNow("/virtualhost/www.globo.com", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: {
-//                        "name" : "www.globo.com",
-//                        "properties" : {
-//                          "loadBalancePolicy" : "RandomPolicy"
-//                        },
-//                        "backends" : [ ],
-//                        "badBackends" : [ ]
-//                      }
-                        JsonObject expectedJson = new JsonObject()
-                            .putString("name", "www.globo.com")
-                            .putObject("properties", new JsonObject())
-                            .putArray("backends", new JsonArray())
-                            .putArray("badBackends", new JsonArray());
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                        testComplete();
-                    }
-                });
-            }
-        });
-    }
-
-    private void postVhost() {
-        HttpClient client = vertx.createHttpClient().setPort(9090).setHost("localhost");
-        HttpClientRequest request = client.post("/virtualhost", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(200, resp.statusCode());
-
-                resp.bodyHandler(new Handler<Buffer>() {
-                    public void handle(Buffer body) {
-                        // Expected: { "status_message" : "OK" }
-                        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
-                        JsonObject respJson = safeExtractJson(body.toString());
-                        assertEquals(expectedJson, respJson);
-                    }
-                });
-                resp.endHandler(new Handler<Void>() {
-                    public void handle(Void v) {
-                        checkVhost();
-                    }
-                });
-            }
-        });
-        request.setChunked(true); // To avoid calculating content length
-
-        // { "name": "www.globo.com" }
-        JsonObject vhostJson = new JsonObject().putString("name", "www.globo.com");
-        request.write(vhostJson.toString());
-        request.end();
-
-    }
-   
     @Test
     public void testPostVHostWhenEmpty() {
-        postVhost();
+        // { "name": "www.globo.com" }
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain");
+        
+        // Expected: { "status_message" : "OK" }
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+
+        // Expected: {
+        //      "name" : "test.localdomain",
+        //      "backends" : [ ],
+        //      "badBackends" : [ ]
+        //    }
+        JsonObject getExpectedJson = new JsonObject()
+            .putString("name", "test.localdomain")
+            .putObject("properties", new JsonObject())
+            .putArray("backends", new JsonArray())
+            .putArray("badBackends", new JsonArray());
+
+        JsonObject nextMethodParams = new JsonObject()
+            .putNumber("port", 9090)
+            .putString("uri", "/virtualhost/test.localdomain")
+            .putNumber("expectedCode", 200)
+            .putObject("expectedJson", getExpectedJson);
+        
+        postAndTestMore(9090, "/virtualhost", vhostJson, 200, expectedJson, "getAndTest", nextMethodParams);
+        
     }
 
 }
