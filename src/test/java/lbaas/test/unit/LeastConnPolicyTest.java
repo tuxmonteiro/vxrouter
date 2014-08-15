@@ -18,7 +18,6 @@ import org.junit.Test;
 public class LeastConnPolicyTest {
 
     private Virtualhost virtualhost;
-    private UniqueArrayList<Backend> backends;
     private int numBackends = 10;
 
     @Before
@@ -27,16 +26,11 @@ public class LeastConnPolicyTest {
         virtualhost = new Virtualhost("test.localdomain", null);
         virtualhost.putString(loadBalancePolicyFieldName, LeastConnPolicy.class.getSimpleName());
 
-        for (int x=0; x<=numBackends; x++) {
+        for (int x=0; x<numBackends; x++) {
             virtualhost.addBackend(String.format("0:%s", x), true);
-        }
-
-        backends = virtualhost.getBackends(true);
-        int backendId = -1;
-        for (final Backend backend : backends) {
-            backendId++;
-            for (int loop = numBackends - backendId; loop > 0; loop--) {
-                backend.connect("0", String.format("%s", loop));
+            Backend backend = virtualhost.getBackends(true).get(x);
+            for (int c = 1; c <= x+1; c++) {
+                backend.connect("0", String.format("%s", c));
             }
         }
     }
@@ -47,12 +41,12 @@ public class LeastConnPolicyTest {
         Backend backendWithLeastConn = virtualhost.getChoice(new RequestData());
         int numConnectionsInBackendWithLeastConn = backendWithLeastConn.getActiveConnections();
 
+        UniqueArrayList<Backend> backends = virtualhost.getBackends(true);
         for (Backend backendSample: backends) {
 
             int numConnectionsInBackendSample = backendSample.getActiveConnections();
-
+            System.out.println(String.format("%s", backendSample.getActiveConnections()));
             if (backendSample!=backendWithLeastConn) {
-                assertThat(backendWithLeastConn).isNotEqualTo(backendSample);
                 assertThat(numConnectionsInBackendWithLeastConn)
                             .isLessThan(numConnectionsInBackendSample);
 
