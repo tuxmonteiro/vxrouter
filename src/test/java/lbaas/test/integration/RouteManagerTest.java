@@ -1,6 +1,6 @@
 package lbaas.test.integration;
 
-import lbaas.test.integration.util.TestMoreVerticle;
+import lbaas.test.integration.util.UtilTestVerticle;
 
 import org.junit.Test;
 import org.vertx.java.core.AsyncResult;
@@ -10,7 +10,7 @@ import org.vertx.java.core.json.JsonObject;
 
 import static org.vertx.testtools.VertxAssert.*;
 
-public class RouteManagerTest extends TestMoreVerticle {
+public class RouteManagerTest extends UtilTestVerticle {
 
     @Override
     public void start() {
