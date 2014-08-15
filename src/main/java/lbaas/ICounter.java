@@ -19,9 +19,7 @@ public interface ICounter {
 
     public abstract void requestTime(String key, Long initialRequestTime);
 
-    public abstract void incrActiveSessions(String key);
-
-    public abstract void decrActiveSessions(String key);
+    public abstract void sendActiveSessions(String key, Long initialRequestTime);
 
     public String cleanupString(String aString, String strDefault);
 

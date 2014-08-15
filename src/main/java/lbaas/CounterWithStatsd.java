@@ -74,16 +74,9 @@ public class CounterWithStatsd implements ICounter {
     }
 
     @Override
-    public void incrActiveSessions(String key) {
+    public void sendActiveSessions(String key, Long initialRequestTime) {
         if (statsdClient!=null && key!=null && !("".equals(key))) {
             statsdClient.send(TypeStatsdMessage.COUNT, String.format("%s.active:%d", key, 1));
-        }
-    }
-
-    @Override
-    public void decrActiveSessions(String key) {
-        if (statsdClient!=null && key!=null && !("".equals(key))) {
-            statsdClient.send(TypeStatsdMessage.COUNT, String.format("%s.active:%d", key, -1));
         }
     }
 

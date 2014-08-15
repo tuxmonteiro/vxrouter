@@ -52,7 +52,6 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
                     if (initialRequestTime!=null) {
                         counter.requestTime(getKey(), initialRequestTime);
                     }
-                    counter.decrActiveSessions(getKey());
                 }
                 server.returnStatus(sRequest, 200, null, getKey());
 

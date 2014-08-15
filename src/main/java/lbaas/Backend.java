@@ -263,12 +263,16 @@ public class Backend {
         return connections.remove(connectionId) != null;
     }
 
-    public int getActiveConnections() {
+    public Integer getActiveConnections() {
         int globalSum = connections.size();
         for (int externalValue: globalConnections.values()) {
             globalSum =+ externalValue;
         }
         return globalSum;
+    }
+
+    public Integer getInstanceActiveConnections() {
+        return connections.size();
     }
 
     public Long getSchedulerDelay() {
