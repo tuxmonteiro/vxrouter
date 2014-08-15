@@ -27,6 +27,30 @@ public abstract class UtilTestVerticle extends TestVerticle {
         return json;
     }
 
+    public RequestForTest newRequest() {
+        return new RequestForTest();
+    }
+    public ExpectedResponse newResponse() {
+        return new ExpectedResponse();
+    }
+        
+    public void get(RequestForTest req, final ExpectedResponse exp, NextAction next) {
+        vertx.createHttpClient().setPort(req.port).getNow(req.uri, new Handler<HttpClientResponse>() {
+            @Override
+            public void handle(HttpClientResponse resp) {
+                assertEquals(exp.code, resp.statusCode());
+
+                resp.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        JsonObject respJson = safeExtractJson(body.toString());
+                        assertEquals(exp.body, respJson);
+                        testComplete();
+                    }
+                });
+            }
+        });        
+    }
+    
     public void getAndTest(int port, String uri, final int expectedCode, final JsonObject expectedJson) {
         vertx.createHttpClient().setPort(port).getNow(uri, new Handler<HttpClientResponse>() {
             @Override
@@ -44,6 +68,50 @@ public abstract class UtilTestVerticle extends TestVerticle {
         });
     }
 
+    public void getAndTest(JsonObject in, JsonObject out, JsonObject next) {
+
+        int port = in.getInteger("port");
+        String uri = in.getString("uri");
+        JsonObject headers = out.getObject("headers");
+        
+        final int expectedCode = out.getInteger("code");
+        final JsonObject expectedJson = out.getObject("bodyJson");
+        
+//        JsonObject expectedJson = out.getObject("next");
+
+        final JsonObject _expectedJson = (expectedJson == null) ? new JsonObject(): expectedJson;
+
+        vertx.createHttpClient().setPort(port).getNow(uri, new Handler<HttpClientResponse>() {
+            @Override
+            public void handle(HttpClientResponse resp) {
+                assertEquals(expectedCode, resp.statusCode());
+
+                final Buffer body = new Buffer(0);
+
+                resp.dataHandler(new Handler<Buffer>() {
+                    public void handle(Buffer data) {
+                        body.appendBuffer(data);
+                    }
+                });
+
+                resp.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        JsonObject respJson = safeExtractJson(body.toString());
+                        assertEquals(expectedJson, respJson);
+                    }
+                });
+
+                resp.endHandler(new Handler<Void>() {
+                    public void handle(Void v) {
+                        assertEquals(_expectedJson.size(), body.length());
+                        testComplete();
+                    }
+                });
+
+            }
+        });
+    }
+    
     public void getAndTest(JsonObject parameters) {
         int port = parameters.getInteger("port");
         String uri = parameters.getString("uri");
