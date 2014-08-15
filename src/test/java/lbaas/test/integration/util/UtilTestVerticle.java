@@ -6,8 +6,6 @@ import static org.vertx.testtools.VertxAssert.testComplete;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import lbaas.test.integration.RouteManagerTest;
-
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
@@ -17,7 +15,7 @@ import org.vertx.java.core.json.DecodeException;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 
-public class TestMoreVerticle extends TestVerticle {
+public abstract class UtilTestVerticle extends TestVerticle {
 
     public JsonObject safeExtractJson(String s) {
         JsonObject json = null;
@@ -54,7 +52,7 @@ public class TestMoreVerticle extends TestVerticle {
 
         getAndTest(port, uri, expectedCode, expectedJson);
     }
-    
+
     public void postAndTest(int port, String uri, JsonObject bodyJson, final int expectedCode, final JsonObject expectedJson) {
         HttpClient client = vertx.createHttpClient().setPort(port).setHost("localhost");
         HttpClientRequest request = client.post(uri, new Handler<HttpClientResponse>() {
@@ -90,13 +88,11 @@ public class TestMoreVerticle extends TestVerticle {
 
         postAndTest(port, uri, bodyJson, expectedCode, expectedJson);
     }
-    
+
     public void callMethod(final String nextMethodString, final JsonObject parameters) {
-        Class[] parameterTypes = new Class[1];
-        parameterTypes[0] = JsonObject.class;
         Method nextMethod = null;
         try {
-            nextMethod = TestMoreVerticle.class.getMethod(nextMethodString, parameterTypes);
+            nextMethod = UtilTestVerticle.class.getMethod(nextMethodString, new Class<?>[] { JsonObject.class });
         } catch (NoSuchMethodException | SecurityException e1) {
             System.out.println("Method not found");
             e1.printStackTrace();
@@ -111,7 +107,7 @@ public class TestMoreVerticle extends TestVerticle {
             e.printStackTrace();
         }
     }
-    
+
     public void getAndTestMore(int port, String uri, final int expectedCode, final JsonObject expectedJson,
             final String nextMethodString, final JsonObject parameters) {
         vertx.createHttpClient().setPort(port).getNow(uri, new Handler<HttpClientResponse>() {
@@ -133,7 +129,7 @@ public class TestMoreVerticle extends TestVerticle {
             }
         });
     }
-    
+
     public void getAndTestMore(JsonObject parameters) {
         int port = parameters.getInteger("port");
         String uri = parameters.getString("uri");
@@ -141,13 +137,13 @@ public class TestMoreVerticle extends TestVerticle {
         JsonObject expectedJson = parameters.getObject("expectedJson");
         String nextMethodString = parameters.getString("nextMethodString");
         JsonObject nextParameters = parameters.getObject("nextParameters");
-        
+
         getAndTestMore(port, uri, expectedCode, expectedJson, nextMethodString, nextParameters);
     }
 
     public void postAndTestMore(int port, String uri, JsonObject bodyJson, final int expectedCode, final JsonObject expectedJson,
             final String nextMethodString, final JsonObject parameters) {
-        
+
         HttpClient client = vertx.createHttpClient().setPort(port).setHost("localhost");
         HttpClientRequest request = client.post(uri, new Handler<HttpClientResponse>() {
             @Override
@@ -172,7 +168,7 @@ public class TestMoreVerticle extends TestVerticle {
         request.write(bodyJson.toString());
         request.end();
     }
-    
+
     public void postAndTestMore(JsonObject parameters) {
         int port = parameters.getInteger("port");
         String uri = parameters.getString("uri");
