@@ -17,6 +17,7 @@ import org.junit.Test;
 public class RandomPolicyTest {
 
     Virtualhost virtualhost;
+    int numBackends;
 
     @Before
     public void setUp() throws Exception {
@@ -24,7 +25,7 @@ public class RandomPolicyTest {
 
         virtualhost.putString(loadBalancePolicyFieldName, RandomPolicy.class.getSimpleName());
 
-        int numBackends = 10;
+        numBackends = 10;
         for (int x=0; x<numBackends; x++) {
             virtualhost.addBackend(String.format("0:%s", x), true);
         }
@@ -35,7 +36,6 @@ public class RandomPolicyTest {
         long sum = 0;
         double percentMarginOfError = 0.01;
         long samples = 100000L;
-        int numBackends = virtualhost.getBackends(true).size();
 
         long initialTime = System.currentTimeMillis();
         for (int x=0; x<samples; x++) {
