@@ -23,7 +23,7 @@ import org.junit.Test;
 public class HashPolicyTest {
 
     Virtualhost virtualhost;
-    int numBackends;
+    int numBackends = 10;
 
     @Before
     public void setUp() throws Exception {
@@ -31,7 +31,6 @@ public class HashPolicyTest {
         virtualhost.putString(loadBalancePolicyFieldName, HashPolicy.class.getSimpleName());
         virtualhost.putNumber(cacheTimeOutFieldName, 60*1000L);
 
-        numBackends = 10;
         for (int x=0; x<numBackends; x++) {
             virtualhost.addBackend(String.format("0:%s", x), true);
         }
