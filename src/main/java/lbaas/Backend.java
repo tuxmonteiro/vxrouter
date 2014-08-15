@@ -174,7 +174,7 @@ public class Backend {
     }
 
     // Lazy initialization
-    public HttpClient connect() {
+    public HttpClient connect(String remoteIP, String remotePort) {
         final String backend = this.toString();
         if (client==null) {
             if (vertx!=null) {
@@ -198,10 +198,9 @@ public class Backend {
                     eb.registerLocalHandler(queueActiveConnections, getHandlerListenGlobalConnections());
                     registered = true;
                 }
-            } else {
-                throw new RuntimeException(String.format("FAIL: Connect impossible (%s). vertx is null", this.toString()));
             }
         }
+        addConnection(remoteIP, remotePort);
         return client;
     }
 
@@ -251,11 +250,11 @@ public class Backend {
         return httpClientClosed;
     }
 
-    public boolean addConnection(String connectionId) {
+    private boolean addConnection(String connectionId) {
         return connections.put(connectionId, System.currentTimeMillis()) == null;
     }
 
-    public boolean addConnection(String host, String port) {
+    private boolean addConnection(String host, String port) {
         String connectionId = String.format("%s:%s", host, port);
         return addConnection(connectionId);
     }
