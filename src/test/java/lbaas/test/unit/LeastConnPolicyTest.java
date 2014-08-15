@@ -45,7 +45,6 @@ public class LeastConnPolicyTest {
         for (Backend backendSample: backends) {
 
             int numConnectionsInBackendSample = backendSample.getActiveConnections();
-            System.out.println(String.format("%s", backendSample.getActiveConnections()));
             if (backendSample!=backendWithLeastConn) {
                 assertThat(numConnectionsInBackendWithLeastConn)
                             .isLessThan(numConnectionsInBackendSample);
