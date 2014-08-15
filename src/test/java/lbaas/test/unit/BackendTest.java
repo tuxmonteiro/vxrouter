@@ -91,7 +91,7 @@ public class BackendTest extends TestVerticle {
     public void connectReturnNotNull() {
         Backend backendTested = new Backend(null, vertx);
 
-        HttpClient httpClient = backendTested.connect();
+        HttpClient httpClient = backendTested.connect("127.0.0.1", "0");
         assertThat(httpClient).isNotNull();
 
         testComplete();
@@ -101,7 +101,7 @@ public class BackendTest extends TestVerticle {
     public void connectSuccessful() {
         Backend backendTested = new Backend(null, vertx);
 
-        backendTested.connect();
+        backendTested.connect("127.0.0.1", "0");
 
         assertThat(backendTested.isClosed()).isFalse();
 
@@ -112,7 +112,7 @@ public class BackendTest extends TestVerticle {
     public void closeSuccessful() {
         Backend backendTested = new Backend(null, vertx);
 
-        backendTested.connect();
+        backendTested.connect("127.0.0.1", "0");
         backendTested.close();
 
         assertThat(backendTested.isClosed()).isTrue();
@@ -134,8 +134,7 @@ public class BackendTest extends TestVerticle {
         Backend backendTested = new Backend(null, vertx);
 
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            backendTested.addConnection(String.format("%s", counter), "0");
+            backendTested.connect(String.format("%s", counter), "0");
         }
 
         assertThat(backendTested.getActiveConnections()).isEqualTo(1000);
@@ -148,9 +147,7 @@ public class BackendTest extends TestVerticle {
         Backend backendTested = new Backend(null, vertx);
 
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            // same remote IP and port
-            backendTested.addConnection("127.0.0.1", "0");
+            backendTested.connect("127.0.0.1", "0");
         }
 
         assertThat(backendTested.getActiveConnections()).isEqualTo(1);
@@ -164,8 +161,7 @@ public class BackendTest extends TestVerticle {
 
         backendTested.setKeepAliveMaxRequest(1000L);
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            backendTested.addConnection(String.format("%s", counter), "0");
+            backendTested.connect(String.format("%s", counter), "0");
             boolean isKeepAliveLimitExceeded = backendTested.isKeepAliveLimit();
             if (isKeepAliveLimitExceeded) {
                 backendTested.close();
@@ -184,8 +180,7 @@ public class BackendTest extends TestVerticle {
 
         backendTested.setKeepAliveMaxRequest(1001L);
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            backendTested.addConnection(String.format("%s", counter), "0");
+            backendTested.connect(String.format("%s", counter), "0");
             boolean isKeepAliveLimitExceeded = backendTested.isKeepAliveLimit();
             if (isKeepAliveLimitExceeded) {
                 backendTested.close();
@@ -204,8 +199,7 @@ public class BackendTest extends TestVerticle {
         backendTested.setKeepAliveTimeOut(-1L);
 
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            backendTested.addConnection(String.format("%s", counter), "0");
+            backendTested.connect(String.format("%s", counter), "0");
             if (backendTested.isKeepAliveLimit()) {
                 backendTested.close();
                 break;
@@ -223,8 +217,7 @@ public class BackendTest extends TestVerticle {
         backendTested.setKeepAliveTimeOut(86400000L); // one day
 
         for (int counter=0;counter < 1000; counter++) {
-            backendTested.connect();
-            backendTested.addConnection(String.format("%s", counter), "0");
+            backendTested.connect(String.format("%s", counter), "0");
             if (backendTested.isKeepAliveLimit()) {
                 backendTested.close();
                 break;
