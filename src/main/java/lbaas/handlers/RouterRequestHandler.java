@@ -102,16 +102,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         String remoteIP = sRequest.remoteAddress().getAddress().getHostAddress();
         String remotePort = String.format("%d", sRequest.remoteAddress().getPort());
 
-        final HttpClient httpClient;
-        try {
-            httpClient = backend.connect();
-            backend.addConnection(remoteIP, remotePort);
-
-        } catch (RuntimeException e) {
-            log.error(e.getMessage());
-            server.showErrorAndClose(sRequest, e, getCounterKey(headerHost, backendId));
-            return;
-        }
+        final HttpClient httpClient = backend.connect(remoteIP, remotePort);
 
         if (httpClient!=null && headerHost!=null) {
             counter.incrActiveSessions(getCounterKey(headerHost, backendId));
