@@ -106,7 +106,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         if (httpClient!=null && headerHost!=null) {
             counter.sendActiveSessions(getCounterKey(headerHost, backendId),
-                                       backend.getInstanceActiveConnections().longValue());
+                    backend.isNewConenction(remoteIP, remotePort) ? 1L : 0L);
         }
 
         final HttpClientRequest cRequest =

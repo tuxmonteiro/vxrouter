@@ -275,6 +275,15 @@ public class Backend {
         return connections.size();
     }
 
+    public boolean isNewConenction(String remoteId) {
+        return connections.containsKey(remoteId);
+    }
+
+    public boolean isNewConenction(String remoteIP, String remotePort) {
+        String remoteId = String.format("%s:%s", remoteIP, remotePort);
+        return isNewConenction(remoteId);
+    }
+
     public Long getSchedulerDelay() {
         return schedulerDelay;
     }
