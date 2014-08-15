@@ -6,34 +6,19 @@ package lbaas.loadbalance.impl;
 
 import java.util.Collection;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentMap;
-
-import org.vertx.java.core.Vertx;
-
 import lbaas.Backend;
 import lbaas.RequestData;
 import lbaas.loadbalance.ILoadBalancePolicy;
-import lbaas.verticles.RouterVerticle;
 
 public class RoundRobinPolicy implements ILoadBalancePolicy {
 
-    private final Vertx vertx = RouterVerticle.sharedVertx;
-    ConcurrentMap<String, Integer> roundRobinMap = null;
-
-    private int size = 0;
+    private int pos = -1;
 
     @Override
     public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
 
-        if (roundRobinMap==null) {
-            roundRobinMap = vertx.sharedData()
-                    .getMap(String.format("%s_%s", this.toString(), requestData.getHeaderHost()));
-        }
-
-        size = backends.size();
-        int pos = roundRobinMap.containsKey("pos") ? roundRobinMap.get("pos") : -1;
-        pos = pos<size-1 ? pos+1 : 0;
-        roundRobinMap.put("pos", pos);
+        int size = backends.size();
+        pos = pos+1>=size ? 0 : pos+1;
 
        return ((ArrayList<Backend>)backends).get(pos);
     }
