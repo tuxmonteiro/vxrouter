@@ -20,7 +20,6 @@ public class HashPolicy implements ILoadBalancePolicy {
 
     private ConsistentHash<Backend> consistentHash = null;
     private String                 lastHashType   = null;
-    private long                   lastReset      = System.currentTimeMillis();
 
     @Override
     public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
@@ -28,16 +27,13 @@ public class HashPolicy implements ILoadBalancePolicy {
         String sourceIp = requestData.getRemoteAddress();
         JsonObject properties = requestData.getProperties();
         String hashType = properties.getString(hashAlgorithmFieldName, defaultHashAlgorithm);
-        long timeout = properties.getLong(cacheTimeOutFieldName, 0L);
         boolean transientState = properties.getBoolean(transientStateFieldName, false);
 
-        long now = System.currentTimeMillis();
         int numberOfReplicas = 1;
 
         if (lastHashType == null || consistentHash == null) {
             lastHashType = hashType;
             transientState = false;
-            lastReset = now;
             consistentHash = new ConsistentHash<Backend>(
                     new HashAlgorithm(hashType), numberOfReplicas, backends);
         }
@@ -45,13 +41,8 @@ public class HashPolicy implements ILoadBalancePolicy {
         if (!lastHashType.equals(hashType)) {
             consistentHash.rebuild(new HashAlgorithm(hashType), numberOfReplicas, backends);
             lastHashType = hashType;
-            lastReset = now;
         } else if (transientState) {
             consistentHash.rebuild(null, null, backends);
-            lastReset = now;
-        } else if ((lastReset + timeout) < now) {
-            consistentHash.resetCache();
-            lastReset = now;
         }
 
         return consistentHash.get(sourceIp);

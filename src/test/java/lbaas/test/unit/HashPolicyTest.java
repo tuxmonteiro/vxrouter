@@ -29,7 +29,7 @@ public class HashPolicyTest {
     public void setUp() throws Exception {
         virtualhost = new Virtualhost("test.localdomain", null);
         virtualhost.putString(loadBalancePolicyFieldName, HashPolicy.class.getSimpleName());
-        virtualhost.putNumber(cacheTimeOutFieldName, 60*1000L);
+        virtualhost.putNumber(cacheTimeOutFieldName, 0L);
 
         for (int x=0; x<numBackends; x++) {
             virtualhost.addBackend(String.format("0:%s", x), true);

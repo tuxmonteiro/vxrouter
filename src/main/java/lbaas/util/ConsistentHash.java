@@ -5,8 +5,6 @@
 package lbaas.util;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -15,7 +13,6 @@ public class ConsistentHash<T> {
     private HashAlgorithm               hashAlgorithm;
     private int                         numberOfReplicas;
     private final SortedMap<Integer, T> circle  = new TreeMap<Integer, T>();
-    private final Map<String, Integer>  mapKeys = new HashMap<>();
 
     public ConsistentHash(HashAlgorithm hashAlgorithm, int numberOfReplicas,
             Collection<T> nodes) {
@@ -44,22 +41,13 @@ public class ConsistentHash<T> {
             return null;
         }
 
-        int hash;
-        if (!mapKeys.containsKey(key)) {
-            hash = hashAlgorithm.hash(key);
-            mapKeys.put(key, hash);
-        }
-        hash = mapKeys.get(key);
+        int hash= hashAlgorithm.hash(key);
 
         if (!circle.containsKey(hash)) {
             SortedMap<Integer, T> tailMap = circle.tailMap(hash);
             hash = tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey();
         }
         return circle.get(hash);
-    }
-
-    public void resetCache() {
-        mapKeys.clear();
     }
 
     public void rebuild(HashAlgorithm hashAlgorithm, Integer numberOfReplicas,
@@ -71,7 +59,6 @@ public class ConsistentHash<T> {
             this.numberOfReplicas = numberOfReplicas;
         }
 
-        resetCache();
         circle.clear();
         for (T node : nodes) {
             add(node);
