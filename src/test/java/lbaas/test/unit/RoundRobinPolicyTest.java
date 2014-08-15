@@ -49,8 +49,6 @@ public class RoundRobinPolicyTest {
     public void backendsChosenInSequence() {
         int lastBackendChosenPort = numBackends-1;
         for (int counter=0; counter<1000; counter++) {
-
-            // TODO: For now, I get NullPointerException exception at:
              int backendChosenPort = virtualhost.getChoice(requestData).getPort();
              if (backendChosenPort==0) {
                  assertThat(lastBackendChosenPort).isEqualTo(numBackends-1);
