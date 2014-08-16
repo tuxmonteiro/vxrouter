@@ -279,7 +279,7 @@ public class Backend {
         return connections.containsKey(remoteId);
     }
 
-    public boolean isNewConenction(String remoteIP, String remotePort) {
+    public boolean isNewConnection(String remoteIP, String remotePort) {
         String remoteId = String.format("%s:%s", remoteIP, remotePort);
         return isNewConenction(remoteId);
     }
