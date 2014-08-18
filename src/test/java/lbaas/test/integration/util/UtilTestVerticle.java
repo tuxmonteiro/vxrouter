@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2014 Globo.com - ATeam
+ * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ */
 package lbaas.test.integration.util;
 
 import static org.vertx.testtools.VertxAssert.assertEquals;
@@ -34,6 +48,7 @@ public abstract class UtilTestVerticle extends TestVerticle {
                 assertEquals(expectedCode, resp.statusCode());
 
                 resp.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         JsonObject respJson = safeExtractJson(body.toString());
                         assertEquals(expectedJson, respJson);
@@ -61,12 +76,14 @@ public abstract class UtilTestVerticle extends TestVerticle {
                 assertEquals(expectedCode, resp.statusCode());
 
                 resp.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         JsonObject respJson = safeExtractJson(body.toString());
                         assertEquals(expectedJson, respJson);
                     }
                 });
                 resp.endHandler(new Handler<Void>() {
+                    @Override
                     public void handle(Void v) {
                         testComplete();
                     }
@@ -78,7 +95,7 @@ public abstract class UtilTestVerticle extends TestVerticle {
         request.write(bodyJson.toString());
         request.end();
     }
-    
+
     public void postAndTest(JsonObject parameters) {
         int port = parameters.getInteger("port");
         String uri = parameters.getString("uri");
@@ -116,12 +133,14 @@ public abstract class UtilTestVerticle extends TestVerticle {
                 assertEquals(expectedCode, resp.statusCode());
 
                 resp.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         JsonObject respJson = safeExtractJson(body.toString());
                         assertEquals(expectedJson, respJson);
                     }
                 });
                 resp.endHandler(new Handler<Void>() {
+                    @Override
                     public void handle(Void v) {
                         callMethod(nextMethodString, parameters);
                     }
@@ -151,12 +170,14 @@ public abstract class UtilTestVerticle extends TestVerticle {
                 assertEquals(expectedCode, resp.statusCode());
 
                 resp.bodyHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer body) {
                         JsonObject respJson = safeExtractJson(body.toString());
                         assertEquals(expectedJson, respJson);
                     }
                 });
                 resp.endHandler(new Handler<Void>() {
+                    @Override
                     public void handle(Void v) {
                         callMethod(nextMethodString, parameters);
                     }

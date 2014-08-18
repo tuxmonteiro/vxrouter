@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2014 Globo.com - ATeam
+ * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ */
 package lbaas.test.integration;
 
 import lbaas.test.integration.util.UtilTestVerticle;
@@ -49,7 +63,7 @@ public class RouteManagerTest extends UtilTestVerticle {
         // Expected: { "status_message" : "Bad Request" }
         JsonObject expectedJson = new JsonObject().putString("status_message", "Bad Request");
         getAndTest(9090, "/unknownuri", 400, expectedJson);
-        
+
         // Test GET /virtualhost
         // Expected: { "version" : 0, "routes" : [ ] }
         expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
@@ -59,12 +73,12 @@ public class RouteManagerTest extends UtilTestVerticle {
         // Expected: { }
         expectedJson = new JsonObject();
         getAndTest(9090, "/virtualhost/1234", 200, expectedJson);
-        
+
         // Test GET /route
         // Expected: { "version" : 0, "routes" : [ ] }
         expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
         getAndTest(9090, "/route", 200, expectedJson);
-        
+
         // Test GET /version
         // Expected: { "version" : 0 }
         expectedJson = new JsonObject().putNumber("version", 0);
@@ -76,7 +90,7 @@ public class RouteManagerTest extends UtilTestVerticle {
     public void testPostVHostWhenEmpty() {
         // { "name": "www.globo.com" }
         JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain");
-        
+
         // Expected: { "status_message" : "OK" }
         JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
 
@@ -96,9 +110,9 @@ public class RouteManagerTest extends UtilTestVerticle {
             .putString("uri", "/virtualhost/test.localdomain")
             .putNumber("expectedCode", 200)
             .putObject("expectedJson", getExpectedJson);
-        
+
         postAndTestMore(9090, "/virtualhost", vhostJson, 200, expectedJson, "getAndTest", nextMethodParams);
-        
+
     }
 
 }
