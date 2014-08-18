@@ -58,7 +58,7 @@ public class RoundRobinPolicyTest {
     @Test
     public void backendsChosenInSequence() {
         int lastBackendChosenPort = numBackends-1;
-        for (int counter=0; counter<1000; counter++) {
+        for (int counter=0; counter<100000; counter++) {
              int backendChosenPort = virtualhost.getChoice(requestData).getPort();
              if (backendChosenPort==0) {
                  assertThat(lastBackendChosenPort).isEqualTo(numBackends-1);
