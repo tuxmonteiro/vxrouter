@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2014 Globo.com - ATeam
+ * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ */
 package lbaas.test.integration;
 
 import static org.vertx.testtools.VertxAssert.assertEquals;
@@ -76,6 +90,7 @@ public class RouterTest extends TestVerticle {
                 final Buffer body = new Buffer(0);
 
                 resp.dataHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer data) {
                         // Expected: 0 bytes
                         body.appendBuffer(data);
@@ -83,6 +98,7 @@ public class RouterTest extends TestVerticle {
                 });
 
                 resp.endHandler(new Handler<Void>() {
+                    @Override
                     public void handle(Void v) {
                         assertEquals(0, body.length());
                         testComplete();
