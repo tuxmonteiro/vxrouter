@@ -41,13 +41,6 @@
     <lbaas.vxrouter.vertx.log4j2.version>1.0.0</lbaas.vxrouter.vertx.log4j2.version>
   </properties>
 
-  <repositories>
-    <repository>
-      <id>sonatype-nexus-snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-  </repositories>
-
   <dependencies>
     <dependency>
       <groupId>io.vertx</groupId>
