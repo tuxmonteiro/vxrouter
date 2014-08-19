@@ -1,15 +1,29 @@
 /*
- * Copyright (c) 2014 The original author or authors.
+ * Copyright (c) 2014 Globo.com - ATeam
  * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
  */
 package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
-import lbaas.exceptions.BadRequestException;
 
+import lbaas.exceptions.BadRequestException;
 import io.netty.handler.codec.http.HttpResponseStatus;
+
+import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
@@ -34,12 +48,21 @@ public class Server {
             final Handler<HttpServerRequest> handlerHttpServerRequest,
             final Integer defaultPort) {
 
-        Integer port = conf.getInteger(CONF_PORT,defaultPort);
+        final Integer port = conf.getInteger(CONF_PORT,defaultPort);
 
         vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
             .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
-            .listen(port);
-        log.info(String.format("[%s] Server listen: %d/tcp", caller.toString(), port));
+            .listen(port, new Handler<AsyncResult<HttpServer>>() {
+            	public void handle(AsyncResult<HttpServer> asyncResult) {
+            		if (asyncResult.succeeded()) {
+            			log.info(String.format("[%s] Server listen: %d/tcp", caller.toString(), port));
+            			EventBus eb = vertx.eventBus();
+            			eb.publish("init.server", String.format("{ \"id\": \"%s\", \"status\": \"started\" }", caller.toString()));
+            		} else {
+            			log.fatal(String.format("[%s] Could not start server port: %d/tcp", caller.toString(), port));
+            		}
+            	}
+            });
     }
 
     public void showErrorAndClose(final HttpServerRequest req, final Throwable event, String key) {

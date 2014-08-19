@@ -1,97 +1,101 @@
+/*
+ * Copyright (c) 2014 Globo.com - ATeam
+ * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ */
 package lbaas.test.integration;
 
-import static org.vertx.testtools.VertxAssert.assertEquals;
-import static org.vertx.testtools.VertxAssert.testComplete;
+import lbaas.test.integration.util.Action;
+import lbaas.test.integration.util.UtilTestVerticle;
 
+import org.junit.Ignore;
 import org.junit.Test;
-import org.vertx.java.core.AsyncResult;
-import org.vertx.java.core.AsyncResultHandler;
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.http.HttpClient;
-import org.vertx.java.core.http.HttpClientRequest;
-import org.vertx.java.core.http.HttpClientResponse;
-//import org.vertx.java.core.json.DecodeException;
-//import org.vertx.java.core.json.JsonArray;
-//import org.vertx.java.core.json.JsonObject;
-import org.vertx.testtools.TestVerticle;
+import org.vertx.java.core.json.JsonArray;
+import org.vertx.java.core.json.JsonObject;
 
-import static org.vertx.testtools.VertxAssert.*;
 
-public class RouterTest extends TestVerticle {
-
-    @Override
-    public void start() {
-        System.out.println("Starting module: " + System.getProperty("vertx.modulename"));
-        // Make sure we call initialize() - this sets up the assert stuff so
-        // assert functionality works correctly
-        initialize();
-        // Deploy the module - the System property `vertx.modulename` will
-        // contain the name of the module so you
-        // don't have to hardecode it in your tests
-        container.deployModule(System.getProperty("vertx.modulename"), new AsyncResultHandler<String>() {
-            @Override
-            public void handle(AsyncResult<String> asyncResult) {
-                // Deployment is asynchronous and this this handler will
-                // be called when it's complete (or failed)
-                assertTrue(asyncResult.succeeded());
-                assertNotNull("deploymentID should not be null", asyncResult.result());
-                // If deployed correctly then start the tests!
-                // TODO: better way to check that
-                System.out.println("Waiting 1s for everything to start");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    System.out.println("Interrupted");
-                }
-                System.out.println("Starting tests!!!");
-                startTests();
-            }
-        });
+public class RouterTest extends UtilTestVerticle {
+	
+    @Test
+    public void testRouterWhenEmpty() {
+    	newGet().onPort(9000).addHeader("Host", "www.unknownhost1.com").expectCode(400).expectBodySize(0).run();   	
     }
-
-    //	private JsonObject safeExtractJson(String s) {
-    //		JsonObject json = null;
-    //		try {
-    //			json = new JsonObject(s);
-    //		} catch (DecodeException e) {
-    //			System.out.println("The string is not a Json. Test will fail");
-    //		}
-    //		return json;
-    //	}
-
 
     @Test
-    public void testRouterGetWhenEmpty() {
-        // Test GET www.unknownhost.com and unknown URI
+    public void testRouterWith1VHostAndNoBackend() {
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain");
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
 
-        HttpClient client = vertx.createHttpClient().setPort(9000).setHost("localhost");
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectJson(expectedJson);
+ 
+    	newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
+    	action1.run();
 
-        HttpClientRequest request = client.get("/unknownuri", new Handler<HttpClientResponse>() {
+    }
+    
+    @Test
+    public void testRouterNoVHostAddBackend() {
+    	JsonObject backend = new JsonObject().putString("host", "1.2.3.4").putNumber("port", 80);
+    	
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+        		.putArray("backends", new JsonArray().addObject(backend));
+        
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
 
-            @Override
-            public void handle(HttpClientResponse resp) {
-                assertEquals(400, resp.statusCode());
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectJson(expectedJson);
+ 
+    	newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
+    	action1.run();
 
-                final Buffer body = new Buffer(0);
-
-                resp.dataHandler(new Handler<Buffer>() {
-                    public void handle(Buffer data) {
-                        // Expected: 0 bytes
-                        body.appendBuffer(data);
-                    }
-                });
-
-                resp.endHandler(new Handler<Void>() {
-                    public void handle(Void v) {
-                        assertEquals(0, body.length());
-                        testComplete();
-                    }
-                });
-            }
-        });
-        request.headers().set("Host", "www.unknownhost.com");
-        request.end();
     }
 
+	
+    @Test
+    public void testRouterWith1VHostAnd1ClosedBackend() {
+    	JsonObject backend = new JsonObject().putString("host", "127.0.0.1").putNumber("port", 8888);
+    	
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+        		.putArray("backends", new JsonArray().addObject(backend));
+        
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+        
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectJson(expectedJson);
+
+        Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectJson(expectedJson).after(action1);
+ 
+    	newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(502).expectBodySize(0).after(action2);
+    	
+    	action1.run();
+
+    }
+    
+    // TODO: Manage timeout
+    @Ignore
+    @Test
+    public void testRouterWith1VHostAnd1TimeoutBackend() {
+    	JsonObject backend = new JsonObject().putString("host", "1.2.3.4").putNumber("port", 8888);
+    	
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+        		.putArray("backends", new JsonArray().addObject(backend));
+        
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+        
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectJson(expectedJson);
+
+        Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectJson(expectedJson).after(action1);
+ 
+    	newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(502).expectBodySize(0).after(action2);
+    	
+    	action1.run();
+
+    }
 }

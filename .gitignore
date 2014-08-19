@@ -12,3 +12,5 @@ target/
 
 mods/
 /bin
+
+.DS_Store

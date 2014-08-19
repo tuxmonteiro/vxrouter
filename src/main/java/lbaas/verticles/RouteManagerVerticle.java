@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2014 The original author or authors.
+ * Copyright (c) 2014 Globo.com - ATeam
  * All rights reserved.
+ *
+ * This source is subject to the Apache License, Version 2.0.
+ * Please see the LICENSE file for more information.
+ *
+ * Authors: See AUTHORS file
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
  */
 package lbaas.verticles;
 
@@ -93,13 +103,18 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                     @Override
                     public void handle(Buffer body) {
                         try {
-                            JsonObject json = new JsonObject(body.toString());
-                            String jsonVirtualHost;
-                            if (!"".equals(virtualHost)) {
-                                jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
-                                if (!jsonVirtualHost.equalsIgnoreCase(virtualHost)) {
-                                    throw new RouterException("Virtualhost: inconsistent reference");
+                            JsonObject json;
+                            if (!"".equals(body.toString())) {
+                                json = new JsonObject(body.toString());
+                                String jsonVirtualHost;
+                                if (!"".equals(virtualHost)) {
+                                    jsonVirtualHost = json.containsField("name") ? json.getString("name") : "";
+                                    if (!jsonVirtualHost.equalsIgnoreCase(virtualHost)) {
+                                        throw new RouterException("Virtualhost: inconsistent reference");
+                                    }
                                 }
+                            } else {
+                                json = new JsonObject();
                             }
                             server.returnStatus(req,200, "", routeManagerId);
                             setRoute(json, action, req.uri());
@@ -133,6 +148,8 @@ public class RouteManagerVerticle extends Verticle implements IEventObserver {
                 log.info("GET /route");
             }
         });
+
+        routeMatcher.delete("/route", routeHandlerAction(Action.DEL));
 
         // Version
         routeMatcher.post("/version", new Handler<HttpServerRequest>() {
