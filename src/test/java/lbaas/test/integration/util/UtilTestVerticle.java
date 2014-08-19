@@ -34,34 +34,35 @@ import org.vertx.testtools.TestVerticle;
 
 public abstract class UtilTestVerticle extends TestVerticle {
 
-	private boolean routerStarted;
-	private boolean routeManagerStarted;
+    private boolean routerStarted;
+    private boolean routeManagerStarted;
 
-	public void testCompleteWrapper() {
-		routerStarted = routeManagerStarted = false;
-		testComplete();
-	}
-	
+    public void testCompleteWrapper() {
+        routerStarted = routeManagerStarted = false;
+        testComplete();
+    }
+
     @Override
     public void start() {
-    	
+
         EventBus eb = vertx.eventBus();
         eb.registerLocalHandler("init.server", new Handler<Message<String>>() {
-        	@Override
-        	public void handle(Message<String> event) {
-        		JsonObject messageJson = Util.safeExtractJson(event.body());
-        		if (messageJson.getString("id").startsWith("lbaas.verticles.RouterVerticle"))
-        			routerStarted = true;
-        		if (messageJson.getString("id").startsWith("lbaas.verticles.RouteManagerVerticle"))
-        			routeManagerStarted = true;
-        		if (routerStarted && routeManagerStarted) {
-        			startTests();
-        		}
-        	}}
-        );
+            @Override
+            public void handle(Message<String> event) {
+                JsonObject messageJson = Util.safeExtractJson(event.body());
+                if (messageJson.getString("id").startsWith("lbaas.verticles.RouterVerticle"))
+                    routerStarted = true;
+                if (messageJson.getString("id").startsWith("lbaas.verticles.RouteManagerVerticle"))
+                    routeManagerStarted = true;
+                if (routerStarted && routeManagerStarted) {
+                    startTests();
+                }
+            }}
+                );
 
         initialize();
-        JsonObject config = new JsonObject().putObject("router", new JsonObject().putNumber(CONF_INSTANCES, 1));
+        JsonObject config = new JsonObject().putObject("router",
+                new JsonObject().putNumber(CONF_INSTANCES, 1).putNumber("backendRequestTimeOut", 1000));
         container.deployModule(System.getProperty("vertx.modulename"), config, new AsyncResultHandler<String>() {
             @Override
             public void handle(AsyncResult<String> asyncResult) {
@@ -90,11 +91,11 @@ public abstract class UtilTestVerticle extends TestVerticle {
     
 
     public void run(final Action action) {
-    	final RequestForTest req = action.request();
-    	final ExpectedResponse exp = action.response();
-    	HttpClient client = vertx.createHttpClient().setPort(req.port()).setHost(req.host());
-    	
-    	HttpClientRequest clientRequest = client.request(req.method(), req.uri(), new Handler<HttpClientResponse>() {
+        final RequestForTest req = action.request();
+        final ExpectedResponse exp = action.response();
+        HttpClient client = vertx.createHttpClient().setPort(req.port()).setHost(req.host());
+
+        HttpClientRequest clientRequest = client.request(req.method(), req.uri(), new Handler<HttpClientResponse>() {
             @Override
             public void handle(HttpClientResponse resp) {
                 assertEquals(exp.code(), resp.statusCode());
@@ -109,33 +110,33 @@ public abstract class UtilTestVerticle extends TestVerticle {
 
                 resp.endHandler(new Handler<Void>() {
                     public void handle(Void v) {
-                    	// Assert body Json
-                    	if (exp.bodyJson() != null) {
-                    		JsonObject respJson = Util.safeExtractJson(body.toString());
-                    		assertEquals(exp.bodyJson(), respJson);
-                    	}
-                    	// Assert body size
-                    	if (exp.bodySize() != -1) {
-                    		assertEquals(exp.bodySize(), body.length());
-                    	}
-                    	// Complete test or go on with the next action
+                        // Assert body Json
+                        if (exp.bodyJson() != null) {
+                            JsonObject respJson = Util.safeExtractJson(body.toString());
+                            assertEquals(exp.bodyJson(), respJson);
+                        }
+                        // Assert body size
+                        if (exp.bodySize() != -1) {
+                            assertEquals(exp.bodySize(), body.length());
+                        }
+                        // Complete test or go on with the next action
                         if (action.dontStop()) {
-                        	EventBus eb = vertx.eventBus();
-                        	eb.publish("ended.action", action.id());
+                            EventBus eb = vertx.eventBus();
+                            eb.publish("ended.action", action.id());
                         } else {
-                        	testCompleteWrapper();
+                            testCompleteWrapper();
                         }
                     }
                 });
             }
         });
-    	clientRequest.headers().set(req.headers());
+        clientRequest.headers().set(req.headers());
         clientRequest.setChunked(true); // To avoid calculating content length
         if (req.bodyJson() != null) {
-        	clientRequest.write(req.bodyJson().toString());
+            clientRequest.write(req.bodyJson().toString());
         }
         clientRequest.end();
 
     }
-    
+
 }

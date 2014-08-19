@@ -53,16 +53,16 @@ public class Server {
         vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
             .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
             .listen(port, new Handler<AsyncResult<HttpServer>>() {
-            	public void handle(AsyncResult<HttpServer> asyncResult) {
-            		if (asyncResult.succeeded()) {
-            			log.info(String.format("[%s] Server listen: %d/tcp", caller.toString(), port));
-            			EventBus eb = vertx.eventBus();
-            			eb.publish("init.server", String.format("{ \"id\": \"%s\", \"status\": \"started\" }", caller.toString()));
-            		} else {
-            			log.fatal(String.format("[%s] Could not start server port: %d/tcp", caller.toString(), port));
-            		}
-            	}
-            });
+                public void handle(AsyncResult<HttpServer> asyncResult) {
+                    if (asyncResult.succeeded()) {
+                        log.info(String.format("[%s] Server listen: %d/tcp", caller.toString(), port));
+                        EventBus eb = vertx.eventBus();
+                        eb.publish("init.server", String.format("{ \"id\": \"%s\", \"status\": \"started\" }", caller.toString()));
+                    } else {
+                        log.fatal(String.format("[%s] Could not start server port: %d/tcp", caller.toString(), port));
+                    }
+                }
+         });
     }
 
     public void showErrorAndClose(final HttpServerRequest req, final Throwable event, String key) {
