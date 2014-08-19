@@ -14,25 +14,17 @@
  */
 package lbaas;
 
-import static lbaas.Constants.*;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
-import org.vertx.java.core.json.JsonObject;
-
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Backend {
 
     private final Vertx vertx;
     private final EventBus eb;
+    private final BackendSessionController backendSessionController;
 
     private HttpClient client;
 
@@ -46,18 +38,6 @@ public class Backend {
 
     private Long keepAliveTimeMark;
     private Long requestCount;
-
-    private Long schedulerId = 0L;
-    private Long schedulerDelay = 10000L;
-
-    // < remoteWithPort, timestamp >
-    private final Map<String, Long> connections = new HashMap<>();
-    // < backendInstanceUUID, numConnections >
-    private final Map<String, Integer> globalConnections = new HashMap<>();
-
-    private final String queueActiveConnections;
-    private final String myUUID;
-    private boolean registered = false;
 
     @Override
     public String toString() {
@@ -104,9 +84,7 @@ public class Backend {
         this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
-        this.queueActiveConnections = String.format("%s%s", QUEUE_BACKEND_CONNECTIONS_PREFIX, this);
-        this.myUUID = UUID.randomUUID().toString();
-
+        this.backendSessionController = new BackendSessionController(vertx);
     }
 
     public String getHost() {
@@ -176,13 +154,6 @@ public class Backend {
         return this;
     }
 
-    public JsonObject zeroConnectionJson() {
-        JsonObject myConnections = new JsonObject();
-        myConnections.putString(uuidFieldName, myUUID);
-        myConnections.putNumber(numConnectionFieldName, 0);
-        return myConnections;
-    }
-
     // Lazy initialization
     public HttpClient connect(String remoteIP, String remotePort) {
         final String backend = this.toString();
@@ -201,32 +172,19 @@ public class Backend {
                     @Override
                     public void handle(Throwable e) {
                         eb.publish(QUEUE_HEALTHCHECK_FAIL, backend);
-                        eb.publish(queueActiveConnections, zeroConnectionJson());
+                        backendSessionController.initEventBus();
                     }
                 });
-                if (!registered) {
-                    eb.registerLocalHandler(queueActiveConnections, getHandlerListenGlobalConnections());
-                    registered = true;
-                }
+                backendSessionController.registerEventBus();
+
             }
         }
-        addConnection(remoteIP, remotePort);
+        backendSessionController.addConnection(remoteIP, remotePort);
         return client;
     }
 
-    private Handler<Message<JsonObject>> getHandlerListenGlobalConnections() {
-        return new Handler<Message<JsonObject>>() {
-
-            @Override
-            public void handle(Message<JsonObject> message) {
-                JsonObject messageJson = message.body();
-                String uuid = messageJson.getString(uuidFieldName);
-                if (uuid != myUUID) {
-                    int numConnections = messageJson.getInteger(numConnectionFieldName);
-                    globalConnections.put(uuid, numConnections);
-                }
-            }
-        };
+    public BackendSessionController getSessionController() {
+        return backendSessionController;
     }
 
     public void close() {
@@ -237,14 +195,10 @@ public class Backend {
                 // Already closed. Ignore exception.
             } finally {
                 client=null;
-                eb.publish(queueActiveConnections, zeroConnectionJson());
-                if (registered) {
-                    eb.unregisterHandler(queueActiveConnections, getHandlerListenGlobalConnections());
-                    registered = false;
-                }
+                backendSessionController.unregisterEventBus();
             }
         }
-        connections.clear();
+        backendSessionController.clearConnectionsMap();
     }
 
     public boolean isClosed() {
@@ -258,80 +212,6 @@ public class Backend {
             httpClientClosed = true;
         }
         return httpClientClosed;
-    }
-
-    private boolean addConnection(String connectionId) {
-        return connections.put(connectionId, System.currentTimeMillis()) == null;
-    }
-
-    private boolean addConnection(String host, String port) {
-        String connectionId = String.format("%s:%s", host, port);
-        return addConnection(connectionId);
-    }
-
-    public boolean removeConnection(String connectionId) {
-        return connections.remove(connectionId) != null;
-    }
-
-    public Integer getActiveConnections() {
-        int globalSum = connections.size();
-        for (int externalValue: globalConnections.values()) {
-            globalSum =+ externalValue;
-        }
-        return globalSum;
-    }
-
-    public Integer getInstanceActiveConnections() {
-        return connections.size();
-    }
-
-    public boolean isNewConenction(String remoteId) {
-        return connections.containsKey(remoteId);
-    }
-
-    public boolean isNewConnection(String remoteIP, String remotePort) {
-        String remoteId = String.format("%s:%s", remoteIP, remotePort);
-        return isNewConenction(remoteId);
-    }
-
-    public Long getSchedulerDelay() {
-        return schedulerDelay;
-    }
-
-    public void setSchedulerDelay(Long schedulerDelay) {
-        this.schedulerDelay = schedulerDelay;
-        cancelScheduler();
-        activeScheduler();
-    }
-
-    public void activeScheduler() {
-        if (schedulerId==0L && vertx!=null) {
-            schedulerId = vertx.setPeriodic(schedulerDelay, new Handler<Long>() {
-
-                @Override
-                public void handle(Long event) {
-                    Long timeout = System.currentTimeMillis() - schedulerDelay;
-                    for (String remote : connections.keySet()) {
-                        if (connections.get(remote)<timeout) {
-                            removeConnection(remote);
-                        }
-                    }
-                    JsonObject myConnections = new JsonObject();
-                    myConnections.putString(uuidFieldName, myUUID);
-                    myConnections.putNumber(numConnectionFieldName, connections.size());
-                    eb.publish(queueActiveConnections, myConnections);
-                }
-            });
-        }
-    }
-
-    public void cancelScheduler() {
-        if (schedulerId!=0L && vertx!=null) {
-            boolean canceled = vertx.cancelTimer(schedulerId);
-            if (canceled) {
-                schedulerId=0L;
-            }
-        }
     }
 
 }

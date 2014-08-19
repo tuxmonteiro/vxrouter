@@ -49,12 +49,12 @@ public class LeastConnPolicyTest {
     public void leastConnection() {
 
         Backend backendWithLeastConn = virtualhost.getChoice(new RequestData());
-        int numConnectionsInBackendWithLeastConn = backendWithLeastConn.getActiveConnections();
+        int numConnectionsInBackendWithLeastConn = backendWithLeastConn.getSessionController().getActiveConnections();
 
         UniqueArrayList<Backend> backends = virtualhost.getBackends(true);
         for (Backend backendSample: backends) {
 
-            int numConnectionsInBackendSample = backendSample.getActiveConnections();
+            int numConnectionsInBackendSample = backendSample.getSessionController().getActiveConnections();
             if (backendSample!=backendWithLeastConn) {
                 assertThat(numConnectionsInBackendWithLeastConn)
                             .isLessThan(numConnectionsInBackendSample);

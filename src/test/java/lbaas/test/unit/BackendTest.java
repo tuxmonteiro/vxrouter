@@ -134,7 +134,7 @@ public class BackendTest extends TestVerticle {
     public void zeroActiveConnections() {
         Backend backendTested = new Backend(null, vertx);
 
-        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isEqualTo(0);
 
         testComplete();
     }
@@ -147,7 +147,7 @@ public class BackendTest extends TestVerticle {
             backendTested.connect(String.format("%s", counter), "0");
         }
 
-        assertThat(backendTested.getActiveConnections()).isEqualTo(1000);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isEqualTo(1000);
 
         testComplete();
     }
@@ -160,7 +160,7 @@ public class BackendTest extends TestVerticle {
             backendTested.connect("127.0.0.1", "0");
         }
 
-        assertThat(backendTested.getActiveConnections()).isEqualTo(1);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isEqualTo(1);
 
         testComplete();
     }
@@ -179,7 +179,7 @@ public class BackendTest extends TestVerticle {
             }
         }
 
-        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isEqualTo(0);
 
         testComplete();
     }
@@ -198,7 +198,7 @@ public class BackendTest extends TestVerticle {
             }
         }
 
-        assertThat(backendTested.getActiveConnections()).isNotEqualTo(0);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isNotEqualTo(0);
 
         testComplete();
     }
@@ -216,7 +216,7 @@ public class BackendTest extends TestVerticle {
             }
         }
 
-        assertThat(backendTested.getActiveConnections()).isEqualTo(0);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isEqualTo(0);
 
         testComplete();
     }
@@ -234,7 +234,7 @@ public class BackendTest extends TestVerticle {
             }
         }
 
-        assertThat(backendTested.getActiveConnections()).isNotEqualTo(0);
+        assertThat(backendTested.getSessionController().getActiveConnections()).isNotEqualTo(0);
 
         testComplete();
     }

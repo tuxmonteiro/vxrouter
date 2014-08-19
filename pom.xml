@@ -7,8 +7,21 @@
   <artifactId>vxrouter</artifactId>
   <packaging>jar</packaging>
   <version>1.6-SNAPSHOT</version>
-  <name>Project - vxrouter</name>
-  <url>http://maven.apache.org</url>
+
+  <name>vxrouter - virtual router as a service</name>
+  <url>https://github.com/tuxmonteiro/vxrouter</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <url>https://github.com/tuxmonteiro/vxrouter.git</url>
+  </scm>
 
   <parent>
      <groupId>org.sonatype.oss</groupId>
