@@ -1,7 +1,5 @@
 package lbaas.test.integration.util;
 
-import java.util.UUID;
-
 import org.vertx.java.core.json.JsonObject;
 
 public class ExpectedResponse {
