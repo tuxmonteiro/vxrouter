@@ -51,7 +51,6 @@
     <mockito.version>1.9.5</mockito.version>
     <assertj.version>1.6.1</assertj.version>
     <guava.version>17.0</guava.version>
-    <lbaas.vxrouter.vertx.log4j2.version>1.0.0</lbaas.vxrouter.vertx.log4j2.version>
   </properties>
 
   <dependencies>
@@ -84,12 +83,6 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>lbaas.vxrouter.vertx.log4j2</groupId>
-      <artifactId>vxrouter_log4j2</artifactId>
-      <version>${lbaas.vxrouter.vertx.log4j2.version}</version>
     </dependency>
 
     <!--Test dependencies-->
