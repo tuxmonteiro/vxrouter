@@ -14,7 +14,7 @@ public class RouteManagerTest extends UtilTestVerticle {
     public void testWhenEmptyGetUnknownURI() {
         // Test GET unknown URI
         // Expected: { "status_message" : "Bad Request" }
-        newGet().onPort(9090).atUri("/unknownuri").expectCode(400).expectJson("{\"status_message\": \"Bad Request\"}").run();
+        newGet().onPort(9090).atUri("/unknownuri").expectCode(400).expectBodyJson("{\"status_message\": \"Bad Request\"}").run();
     }
 
     @Test
@@ -22,14 +22,14 @@ public class RouteManagerTest extends UtilTestVerticle {
         // Test GET /virtualhost
         // Expected: { "version" : 0, "routes" : [ ] }
         JsonObject expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
-        newGet().onPort(9090).atUri("/virtualhost").expectJson(expectedJson).run();
+        newGet().onPort(9090).atUri("/virtualhost").expectBodyJson(expectedJson).run();
     }
 
     @Test
     public void testWhenEmptyGetVHostId() {
         // Test GET /virtualhost/id
         // Expected: { }
-        newGet().onPort(9090).atUri("/virtualhost/1234").expectJson(new JsonObject()).run();;
+        newGet().onPort(9090).atUri("/virtualhost/1234").expectBodyJson(new JsonObject()).run();;
     }
 
     @Test
@@ -37,14 +37,14 @@ public class RouteManagerTest extends UtilTestVerticle {
         // Test GET /route
         // Expected: { "version" : 0, "routes" : [ ] }
         JsonObject expectedJson = new JsonObject().putNumber("version", 0).putArray("routes", new JsonArray());
-        newGet().onPort(9090).atUri("/route").expectJson(expectedJson).run();;
+        newGet().onPort(9090).atUri("/route").expectBodyJson(expectedJson).run();;
     }
 
     @Test
     public void testWhenEmptyGetVersion() {
         // Test GET /version
         // Expected: { "version" : 0 }
-        newGet().onPort(9090).atUri("/version").expectJson("{ \"version\" : 0 }").run();
+        newGet().onPort(9090).atUri("/version").expectBodyJson("{ \"version\" : 0 }").run();
     }
 
     // Test POST /virtualhost
@@ -53,7 +53,7 @@ public class RouteManagerTest extends UtilTestVerticle {
         JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain");
         JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
 
-        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectJson(expectedJson);
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
 
         JsonObject getExpectedJson = new JsonObject()
         .putString("name", "test.localdomain")
@@ -61,7 +61,7 @@ public class RouteManagerTest extends UtilTestVerticle {
         .putArray("backends", new JsonArray())
         .putArray("badBackends", new JsonArray());
 
-        newGet().onPort(9090).atUri("/virtualhost/test.localdomain").expectJson(getExpectedJson).after(action1);
+        newGet().onPort(9090).atUri("/virtualhost/test.localdomain").expectBodyJson(getExpectedJson).after(action1);
 
 //        action2.setDontStop(true);
 //    	getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {

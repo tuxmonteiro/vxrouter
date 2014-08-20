@@ -110,7 +110,11 @@ public abstract class UtilTestVerticle extends TestVerticle {
 
                 resp.endHandler(new Handler<Void>() {
                     public void handle(Void v) {
-                        // Assert body Json
+                        // Assert body as String
+                        if (exp.body() != null) {
+                            assertEquals(exp.body(), body.toString());
+                        }
+                        // Assert body as Json
                         if (exp.bodyJson() != null) {
                             JsonObject respJson = Util.safeExtractJson(body.toString());
                             assertEquals(exp.bodyJson(), respJson);
