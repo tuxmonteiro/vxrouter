@@ -44,7 +44,7 @@ public class LeastConnectionsFinder {
     }
 
     public void update() {
-        rebuild(mapBackends.keySet());
+        addAll(mapBackends.keySet());
     }
 
     public void rebuild(final Collection<Backend> backends) {
@@ -53,12 +53,18 @@ public class LeastConnectionsFinder {
     }
 
     public Backend get() {
-        Backend chosen = Collections.min(mapBackends.entrySet(), new Comparator<Entry<Backend, Integer>>() {
+        Backend chosen;
+        if (!mapBackends.isEmpty()) {
+            chosen = Collections.min(mapBackends.entrySet(), new Comparator<Entry<Backend, Integer>>() {
                 @Override
                 public int compare(Entry<Backend, Integer> o1, Entry<Backend, Integer> o2) {
                     return o1.getValue().compareTo(o2.getValue());
                 }
             }).getKey();
+         } else {
+             chosen = null;
+         }
+
         return chosen;
     }
 }
