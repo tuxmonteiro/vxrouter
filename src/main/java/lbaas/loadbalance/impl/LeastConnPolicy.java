@@ -34,7 +34,7 @@ public class LeastConnPolicy implements ILoadBalancePolicy {
     public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
 
         JsonObject properties = requestData.getProperties();
-        long timeout = properties.getLong(cacheTimeOutFieldName, 1000L);
+        long timeout = properties.getLong(cacheTimeOutFieldName, 2000L);
         boolean transientState = properties.getBoolean(transientStateFieldName, false);
 
         long now = System.currentTimeMillis();
