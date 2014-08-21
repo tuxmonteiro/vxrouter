@@ -13,28 +13,28 @@ public class RequestForTest {
     private JsonObject bodyJson;
 
     public int port() {
-		return port;
-	}
-	public String host() {
-		return host;
-	}
-	public String uri() {
-		return uri;
-	}
-	public String method() {
-		return method;
-	}
-	public JsonObject bodyJson() {
-		return bodyJson;
-	}
-	public MultiMap headers() {
-    	if (headers == null)
-    		headers = new CaseInsensitiveMultiMap();
-    	return headers;
+        return port;
+    }
+    public String host() {
+        return host;
+    }
+    public String uri() {
+        return uri;
+    }
+    public String method() {
+        return method;
+    }
+    public JsonObject bodyJson() {
+        return bodyJson;
+    }
+    public MultiMap headers() {
+        if (headers == null)
+            headers = new CaseInsensitiveMultiMap();
+        return headers;
     }
     public RequestForTest addHeader(String name, String value) {
-    	headers().add(name, value);
-    	return this;
+        headers().add(name, value);
+        return this;
     }
     public RequestForTest setBodyJson(JsonObject bodyJson) {
         this.bodyJson = bodyJson;
@@ -44,13 +44,13 @@ public class RequestForTest {
         this.bodyJson = Util.safeExtractJson(bodyJson);;
         return this;
     }
-    
-    public RequestForTest setMethod(String method) {
-		this.method = method;
-		return this;
-	}
 
-	public RequestForTest setPort(int port) {
+    public RequestForTest setMethod(String method) {
+        this.method = method;
+        return this;
+    }
+
+    public RequestForTest setPort(int port) {
         this.port = port;
         return this;
     }
@@ -69,5 +69,5 @@ public class RequestForTest {
         this.headers = headers;
         return this;
     }
-    
+
 }

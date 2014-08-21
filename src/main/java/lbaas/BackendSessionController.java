@@ -5,7 +5,9 @@ import static lbaas.Constants.numConnectionFieldName;
 import static lbaas.Constants.uuidFieldName;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.vertx.java.core.Handler;
@@ -21,6 +23,7 @@ public class BackendSessionController {
 
     private Long schedulerId = 0L;
     private Long schedulerDelay = 10000L;
+    private Long connectionMapTimeout = 60000L;
 
     // < remoteWithPort, timestamp >
     private final Map<String, Long> connections = new HashMap<>();
@@ -34,10 +37,10 @@ public class BackendSessionController {
     private boolean newConnection = true;
     private int activeConnections = 0;
 
-    public BackendSessionController(final Vertx vertx) {
+    public BackendSessionController(final String backendWithPort, final Vertx vertx) {
         this.vertx = vertx;
         this.eb = (vertx!=null) ? vertx.eventBus() : null;
-        this.queueActiveConnections = String.format("%s%s", QUEUE_BACKEND_CONNECTIONS_PREFIX, this);
+        this.queueActiveConnections = String.format("%s%s", QUEUE_BACKEND_CONNECTIONS_PREFIX, backendWithPort);
         this.myUUID = UUID.randomUUID().toString();
     }
 
@@ -76,6 +79,7 @@ public class BackendSessionController {
 
     public boolean addConnection(String connectionId) {
         newConnection = connections.put(connectionId, System.currentTimeMillis()) == null;
+        activeScheduler();
         return newConnection;
     }
 
@@ -100,10 +104,13 @@ public class BackendSessionController {
 
     public void clearConnectionsMap() {
         connections.clear();
+        globalConnections.clear();
+        cancelScheduler();
     }
 
     public Integer getActiveConnections() {
-        return (activeConnections > 0) ? activeConnections : recalcNumConnections();
+        int counterActiveConnection = (activeConnections > 0) ? activeConnections : recalcNumConnections();
+        return counterActiveConnection;
     }
 
     public Integer getInstanceActiveConnections() {
@@ -123,26 +130,46 @@ public class BackendSessionController {
         return schedulerDelay;
     }
 
-    public void setSchedulerDelay(Long schedulerDelay) {
-        this.schedulerDelay = schedulerDelay;
-        cancelScheduler();
-        activeScheduler();
+    public BackendSessionController setSchedulerDelay(Long schedulerDelay) {
+        if (this.schedulerDelay!=schedulerDelay) {
+            this.schedulerDelay = schedulerDelay;
+            cancelScheduler();
+            activeScheduler();
+        }
+        return this;
+    }
+
+    public Long getConnectionMapTimeout() {
+        return connectionMapTimeout;
+    }
+
+    public BackendSessionController setConnectionMapTimeout(Long connectionMapTimeout) {
+        this.connectionMapTimeout = connectionMapTimeout;
+        return this;
     }
 
     private void expireLocalConnections() {
-        Long timeout = System.currentTimeMillis() - schedulerDelay;
-        for (String remote : connections.keySet()) {
+        Long timeout = System.currentTimeMillis() - connectionMapTimeout;
+        Set<String> connectionIds = new HashSet<>(connections.keySet());
+        for (String remote : connectionIds) {
             if (connections.get(remote)<timeout) {
                 removeConnection(remote);
             }
         }
     }
 
+    private void clearGlobalConnections() {
+        globalConnections.clear();
+    }
+
     private void notifyNumConnections() {
-        JsonObject myConnections = new JsonObject();
-        myConnections.putString(uuidFieldName, myUUID);
-        myConnections.putNumber(numConnectionFieldName, getInstanceActiveConnections());
-        eb.publish(queueActiveConnections, myConnections);
+        Integer localConnections = getInstanceActiveConnections();
+        if (localConnections>0) {
+            JsonObject myConnections = new JsonObject();
+            myConnections.putString(uuidFieldName, myUUID);
+            myConnections.putNumber(numConnectionFieldName, localConnections);
+            eb.publish(queueActiveConnections, myConnections);
+        }
     }
 
     private int recalcNumConnections() {
@@ -161,8 +188,10 @@ public class BackendSessionController {
                 @Override
                 public void handle(Long event) {
                     expireLocalConnections();
-                    notifyNumConnections();
                     recalcNumConnections();
+                    clearGlobalConnections();
+                    notifyNumConnections();
+                    System.out.println(activeConnections);
                 }
             });
         }

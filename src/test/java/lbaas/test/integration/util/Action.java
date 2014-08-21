@@ -8,36 +8,40 @@ import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
 
 public class Action {
-	private UtilTestVerticle verticle;
-	private RequestForTest request = new RequestForTest();;
-	private ExpectedResponse response = new ExpectedResponse();;
-	private String id = UUID.randomUUID().toString();
+    private UtilTestVerticle verticle;
+    private RequestForTest request = new RequestForTest();;
+    private ExpectedResponse response = new ExpectedResponse();;
+    private String id = UUID.randomUUID().toString();
     private boolean dontStop;
 
     public Action(UtilTestVerticle originVerticle) {
-    	verticle = originVerticle;
+        verticle = originVerticle;
     }
-	
-	public String id() {
-		return id;
-	}
 
-	public boolean dontStop() {
-		return dontStop;
-	}
+    public String id() {
+        return id;
+    }
 
-	public Action setDontStop(boolean dontStop) {
-		this.dontStop = dontStop;
-		return this;
-	}
+    public boolean dontStop() {
+        return dontStop;
+    }
 
-	public RequestForTest request() {
-		return request;
-	}
+    public Action setDontStop() {
+        return setDontStop(true);
+    }
 
-	public ExpectedResponse response() {
-		return response;
-	}
+    public Action setDontStop(boolean dontStop) {
+        this.dontStop = dontStop;
+        return this;
+    }
+
+    public RequestForTest request() {
+        return request;
+    }
+
+    public ExpectedResponse response() {
+        return response;
+    }
 
     public Action setRequest(RequestForTest request) {
         this.request = request;
@@ -49,30 +53,30 @@ public class Action {
     }
 
     public Action after(final Action previous) {
-    	previous.dontStop = true;
-    	EventBus eb = verticle.getVertx().eventBus();
-    	eb.registerHandler("ended.action", new Handler<Message<String>>() {
-    		@Override
-    		public void handle(Message<String> message) {
-    			if (message.body().equals(previous.id)) {
-    				run();
-    			}
-    		};
-		});
-    	return this;
-    }
-    
-    public void run() {
-    	verticle.run(this);
+        previous.dontStop = true;
+        EventBus eb = verticle.getVertx().eventBus();
+        eb.registerHandler("ended.action", new Handler<Message<String>>() {
+            @Override
+            public void handle(Message<String> message) {
+                if (message.body().equals(previous.id)) {
+                    run();
+                }
+            };
+        });
+        return this;
     }
 
-    
+    public void run() {
+        verticle.run(this);
+    }
+
+
     // Request helpers
     public Action usingMethod(String method) {
-    	this.request.setMethod(method);
-    	return this;
+        this.request.setMethod(method);
+        return this;
     }
-        
+
     public Action onPort(int port) {
         this.request.setPort(port);
         return this;
@@ -80,14 +84,14 @@ public class Action {
 
     public Action setRequestHost(String host) {
         this.request.setHost(host);
-        return this;        
+        return this;
     }
 
     public Action atUri(String uri) {
         this.request.setUri(uri);
         return this;
     }
-    
+
     public Action setBodyJson(JsonObject body) {
         this.request.setBodyJson(body);
         return this;
@@ -97,27 +101,31 @@ public class Action {
         return this;
     }
     public Action addHeader(String name, String value) {
-    	this.request.addHeader(name, value);
-    	return this;
+        this.request.addHeader(name, value);
+        return this;
     }
-    
+
     // Response helpers
     public Action expectCode(int code) {
         response.setCode(code);
         return this;
     }
-    public Action expectJson(JsonObject body) {
+    public Action expectBodyJson(JsonObject body) {
         response.setBodyJson(body);
         return this;
     }
-    public Action expectJson(String body) {
+    public Action expectBodyJson(String body) {
         response.setBodyJson(body);
         return this;
     }
-    
+    public Action expectBody(String body) {
+        response.setBody(body);
+        return this;
+    }
+
     public Action expectBodySize(int bytes) {
-    	response.setBodySize(bytes);
-    	return this;
+        response.setBodySize(bytes);
+        return this;
     }
-   
+
 }

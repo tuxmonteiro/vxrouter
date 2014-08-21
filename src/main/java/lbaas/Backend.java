@@ -84,7 +84,7 @@ public class Backend {
         this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
-        this.backendSessionController = new BackendSessionController(vertx);
+        this.backendSessionController = new BackendSessionController(this.toString(), vertx);
     }
 
     public String getHost() {
@@ -128,6 +128,7 @@ public class Backend {
 
     public Backend setKeepAliveTimeOut(Long keepAliveTimeOut) {
         this.keepAliveTimeOut = keepAliveTimeOut;
+        this.backendSessionController.setConnectionMapTimeout(getKeepAliveTimeOut());
         return this;
     }
 

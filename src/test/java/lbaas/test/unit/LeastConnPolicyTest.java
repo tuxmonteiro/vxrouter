@@ -15,6 +15,7 @@
 package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.vertx.testtools.VertxAssert.testComplete;
 import static lbaas.Constants.*;
 import lbaas.Backend;
 import lbaas.RequestData;
@@ -22,18 +23,18 @@ import lbaas.Virtualhost;
 import lbaas.list.UniqueArrayList;
 import lbaas.loadbalance.impl.LeastConnPolicy;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.vertx.testtools.TestVerticle;
 
-public class LeastConnPolicyTest {
+public class LeastConnPolicyTest extends TestVerticle {
 
     private Virtualhost virtualhost;
     private int numBackends = 10;
 
-    @Before
-    public void setUp() throws Exception {
+    @Test
+    public void leastConnection() {
 
-        virtualhost = new Virtualhost("test.localdomain", null);
+        virtualhost = new Virtualhost("test.localdomain", vertx);
         virtualhost.putString(loadBalancePolicyFieldName, LeastConnPolicy.class.getSimpleName());
 
         for (int x=0; x<numBackends; x++) {
@@ -43,25 +44,28 @@ public class LeastConnPolicyTest {
                 backend.connect("0", String.format("%s", c));
             }
         }
-    }
 
-    @Test
-    public void leastConnection() {
+        for (int c=1 ; c<=1000; c++) {
 
-        Backend backendWithLeastConn = virtualhost.getChoice(new RequestData());
-        int numConnectionsInBackendWithLeastConn = backendWithLeastConn.getSessionController().getActiveConnections();
+            Backend backendWithLeastConn = virtualhost.getChoice(new RequestData());
+            int numConnectionsInBackendWithLeastConn = backendWithLeastConn.getSessionController().getActiveConnections();
 
-        UniqueArrayList<Backend> backends = virtualhost.getBackends(true);
-        for (Backend backendSample: backends) {
+            UniqueArrayList<Backend> backends = virtualhost.getBackends(true);
+            for (Backend backendSample: backends) {
 
-            int numConnectionsInBackendSample = backendSample.getSessionController().getActiveConnections();
-            if (backendSample!=backendWithLeastConn) {
-                assertThat(numConnectionsInBackendWithLeastConn)
-                            .isLessThan(numConnectionsInBackendSample);
+                int numConnectionsInBackendSample = backendSample.getSessionController().getActiveConnections();
+                if (backendSample!=backendWithLeastConn) {
+                    assertThat(numConnectionsInBackendWithLeastConn).isEqualTo(1);
+                    assertThat(numConnectionsInBackendWithLeastConn)
+                                .isLessThan(numConnectionsInBackendSample);
+
+                }
 
             }
-
         }
+
+        testComplete();
+
 
     }
 

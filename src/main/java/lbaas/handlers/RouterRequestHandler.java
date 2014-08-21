@@ -55,12 +55,12 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     @Override
     public void handle(final HttpServerRequest sRequest) {
 
-        final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 2000L);
-        final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 100L);
+        final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 60000L);
+        final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 10000L);
         final Integer backendRequestTimeOut = conf.getInteger("backendRequestTimeOut", 60000);
         final Integer backendConnectionTimeOut = conf.getInteger("backendConnectionTimeOut", 60000);
         final Boolean backendForceKeepAlive = conf.getBoolean("backendForceKeepAlive", true);
-        final Integer backendMaxPoolSize = conf.getInteger("backendMaxPoolSize",1);
+        final Integer backendMaxPoolSize = conf.getInteger("backendMaxPoolSize",10);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
 
         sRequest.response().setChunked(true);
@@ -101,6 +101,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
                 .setKeepAliveMaxRequest(keepAliveMaxRequest)
                 .setConnectionTimeout(backendConnectionTimeOut)
                 .setMaxPoolSize(backendMaxPoolSize);
+
         this.backendId = backend.toString();
 
         Long initialRequestTime = System.currentTimeMillis();
