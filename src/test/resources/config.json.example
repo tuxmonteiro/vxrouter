@@ -2,8 +2,8 @@
   "router":{
     "instances"            : 4,
     "port"                 : 8080,
-    "clientRequestTimeOut" : 20000,
-    "clientMaxPoolSize"    : 10
+    "backendRequestTimeOut" : 20000,
+    "backendMaxPoolSize"    : 10
   },
   "routermanager":{
     "instances"            : 1,
