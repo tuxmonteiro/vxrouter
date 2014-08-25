@@ -6,7 +6,7 @@
   <groupId>lbaas</groupId>
   <artifactId>vxrouter</artifactId>
   <packaging>jar</packaging>
-  <version>1.6-SNAPSHOT</version>
+  <version>1.6.0</version>
 
   <name>vxrouter - virtual router as a service</name>
   <url>https://github.com/tuxmonteiro/vxrouter</url>
