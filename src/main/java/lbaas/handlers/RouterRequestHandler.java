@@ -54,6 +54,9 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
+        
+        log.debug(String.format("Received request for host %s '%s %s'",
+                sRequest.headers().get("Host"), sRequest.method(), sRequest.absoluteURI().toString()));
 
         final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 60000L);
         final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 10000L);

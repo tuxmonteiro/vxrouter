@@ -19,6 +19,7 @@ import lbaas.test.integration.util.UtilTestVerticle;
 
 import org.junit.Test;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -136,4 +137,120 @@ public class RouterTest extends UtilTestVerticle {
         action1.run();
     }
 
+    @Test
+    public void testPost2RouterWith1VHostAnd1RunningBackend200() {
+        // Create backend
+        final HttpServer server = vertx.createHttpServer();
+        server.requestHandler(new Handler<HttpServerRequest>() {
+            public void handle(final HttpServerRequest request) {
+                request.bodyHandler(new Handler<Buffer>() {
+                    @Override
+                    public void handle(Buffer buffer) {
+                        request.response().setChunked(true).write(buffer.toString()).end();
+                    }
+                });
+            }
+        });
+        server.listen(8888, "localhost");
+
+        // Create Jsons
+        JsonObject backend = new JsonObject().putString("host", "127.0.0.1").putNumber("port", 8888);
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+                .putArray("backends", new JsonArray().addObject(backend));
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+
+        // Create Actions
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
+        Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
+        final Action action3 = newPost().onPort(9000).addHeader("Host", "test.localdomain").setBodyJson("{ \"some key\": \"some value\" }")
+                .expectCode(200).expectBody("{\"some key\":\"some value\"}").after(action2).setDontStop();
+
+        // Create handler to close server after the test
+        getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {
+            @Override
+            public void handle(Message<String> message) {
+                if (message.body().equals(action3.id())) {
+                    server.close();
+                    testCompleteWrapper();
+                }
+            };
+        });
+        
+        action1.run();
+    }
+    
+    @Test
+    public void testRouterWith1VHostAnd1Backend304() {
+        // Create backend
+        final HttpServer server = vertx.createHttpServer();
+        server.requestHandler(new Handler<HttpServerRequest>() {
+            public void handle(HttpServerRequest request) {
+                request.response().setStatusCode(304).end();
+            }
+        });
+        server.listen(8888, "localhost");
+
+        // Create Jsons
+        JsonObject backend = new JsonObject().putString("host", "127.0.0.1").putNumber("port", 8888);
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+                .putArray("backends", new JsonArray().addObject(backend));
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+
+        // Create Actions
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
+        Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
+        final Action action3 = newGet().onPort(9000).addHeader("Host", "test.localdomain")
+                .expectCode(304).expectBodySize(0).after(action2).setDontStop();
+
+        // Create handler to close server after the test
+        getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {
+            @Override
+            public void handle(Message<String> message) {
+                if (message.body().equals(action3.id())) {
+                    server.close();
+                    testCompleteWrapper();
+                }
+            };
+        });
+        
+        action1.run();
+    }
+
+    @Test
+    public void testRouterWith1VHostAnd1Backend302() {
+        // Create backend
+        final HttpServer server = vertx.createHttpServer();
+        server.requestHandler(new Handler<HttpServerRequest>() {
+            public void handle(HttpServerRequest request) {
+                request.response().setStatusCode(302).end();
+            }
+        });
+        server.listen(8888, "localhost");
+
+        // Create Jsons
+        JsonObject backend = new JsonObject().putString("host", "127.0.0.1").putNumber("port", 8888);
+        JsonObject vhostJson = new JsonObject().putString("name", "test.localdomain")
+                .putArray("backends", new JsonArray().addObject(backend));
+        JsonObject expectedJson = new JsonObject().putString("status_message", "OK");
+
+        // Create Actions
+        Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
+        Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
+        final Action action3 = newGet().onPort(9000).addHeader("Host", "test.localdomain")
+                .expectCode(302).expectBodySize(0).after(action2).setDontStop();
+
+        // Create handler to close server after the test
+        getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {
+            @Override
+            public void handle(Message<String> message) {
+                if (message.body().equals(action3.id())) {
+                    server.close();
+                    testCompleteWrapper();
+                }
+            };
+        });
+        
+        action1.run();
+    }
+    
 }

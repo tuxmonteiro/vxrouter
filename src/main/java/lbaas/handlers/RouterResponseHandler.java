@@ -43,8 +43,9 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     private Long initialRequestTime;
 
     @Override
-    public void handle(HttpClientResponse cResponse) {
-
+    public void handle(final HttpClientResponse cResponse) {
+        log.debug(String.format("Received response from backend %d %s", cResponse.statusCode(), cResponse.statusMessage()));
+        
         vertx.cancelTimer(requestTimeoutTimer);
 
         // Pump cResponse => sResponse
@@ -58,12 +59,14 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
         cResponse.endHandler(new VoidHandler() {
             @Override
             public void handle() {
+
                 if (headerHost!=null) {
                     if (initialRequestTime!=null) {
                         counter.requestTime(getKey(), initialRequestTime);
                     }
                 }
-                server.returnStatus(sRequest, 200, null, getKey());
+
+                server.returnStatus(sRequest, cResponse.statusCode(), null, getKey());
 
                 if (connectionKeepalive) {
                     if (backend.isKeepAliveLimit()) {
