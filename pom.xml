@@ -52,6 +52,9 @@
     <assertj.version>1.6.1</assertj.version>
     <guava.version>17.0</guava.version>
     <lbaas.vxrouter.vertx.log4j2.version>1.0.0</lbaas.vxrouter.vertx.log4j2.version>
+    <skipTests>false</skipTests>
+    <skipITs>${skipTests}</skipITs>
+    <skipUTs>${skipTests}</skipUTs>
   </properties>
 
   <dependencies>
@@ -236,6 +239,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven.surefire.plugin.version}</version>
         <configuration>
+          <skipTests>${skipUTs}</skipTests>
           <includes>
             <include>**/test/unit/*Test*.java</include>
           </includes>
@@ -246,6 +250,8 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>${maven.failsafe.plugin.version}</version>
         <configuration>
+          <skipTests>${skipTests}</skipTests>
+          <skipITs>${skipITs}</skipITs>
           <systemProperties>
             <property>
               <name>vertx.mods</name>
