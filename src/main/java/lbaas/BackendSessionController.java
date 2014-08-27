@@ -191,7 +191,6 @@ public class BackendSessionController {
                     recalcNumConnections();
                     clearGlobalConnections();
                     notifyNumConnections();
-                    System.out.println(activeConnections);
                 }
             });
         }
