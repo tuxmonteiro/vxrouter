@@ -45,7 +45,7 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
     @Override
     public void handle(final HttpClientResponse cResponse) {
         log.debug(String.format("Received response from backend %d %s", cResponse.statusCode(), cResponse.statusMessage()));
-        
+
         vertx.cancelTimer(requestTimeoutTimer);
 
         // Pump cResponse => sResponse
@@ -54,6 +54,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             sRequest.response().headers().set("Connection", "close");
         }
 
+        sRequest.response().setStatusCode(cResponse.statusCode());
+        sRequest.response().setStatusMessage(cResponse.statusMessage());
         Pump.createPump(cResponse, sRequest.response()).start();
 
         cResponse.endHandler(new VoidHandler() {
