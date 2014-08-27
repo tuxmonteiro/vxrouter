@@ -15,8 +15,9 @@
 package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
-
+import static lbaas.Constants.CONF_ENABLE_ACCESSLOG;
 import lbaas.exceptions.BadRequestException;
+import lbaas.logger.impl.NcsaLogExtendedFormatter;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.vertx.java.core.AsyncResult;
@@ -35,12 +36,14 @@ public class Server {
     private final JsonObject conf;
     private final Logger log;
     private final ICounter counter;
+    private final boolean enableAccessLog;
 
     public Server(final Vertx vertx, final Container container, final ICounter counter) {
         this.vertx = vertx;
         this.conf = container.config();
         this.log = container.logger();
         this.counter = counter;
+        this.enableAccessLog = this.conf.getBoolean(CONF_ENABLE_ACCESSLOG, false);
     }
 
     public void start(
@@ -99,8 +102,30 @@ public class Server {
     }
 
     public void returnStatus(final HttpServerRequest req, Integer code, String message, String id) {
+
         req.response().setStatusCode(code);
         req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
+
+        int codeFamily = code.intValue()/100;
+        if (enableAccessLog) {
+            String httpLogMessage = new NcsaLogExtendedFormatter()
+                                        .setRequestData(req, message)
+                                        .getFormatedLog();
+            switch (codeFamily) {
+                case 5: // SERVER_ERROR
+                    log.error(httpLogMessage);
+                    break;
+                case 0: // OTHER,
+                case 1: // INFORMATIONAL
+                case 2: // SUCCESSFUL
+                case 3: // REDIRECTION
+                case 4: // CLIENT_ERROR
+                default:
+                    log.info(httpLogMessage);
+                    break;
+            }
+        }
+
         String messageReturn = message;
         if (counter!=null) {
             counter.httpCode(id, code);
