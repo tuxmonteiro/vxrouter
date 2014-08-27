@@ -76,8 +76,8 @@ public class NcsaLogExtendedFormatter implements HttpLogFormatter {
                     authuser,
                     date,
                     method,
-                    version,
                     request_uri,
+                    version,
                     status,
                     bytes);
         } else {
