@@ -14,6 +14,9 @@
  */
 package lbaas.test.integration;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import lbaas.test.integration.util.Action;
 import lbaas.test.integration.util.UtilTestVerticle;
 
@@ -180,12 +183,23 @@ public class RouterTest extends UtilTestVerticle {
     }
     
     @Test
-    public void testRouterWith1VHostAnd1Backend304() {
+    public void testRouterWith1VHostAnd1BackendAllHTTPCodes() {
         // Create backend
+    	final Pattern p = Pattern.compile("^/([0-9]+)$");
         final HttpServer server = vertx.createHttpServer();
         server.requestHandler(new Handler<HttpServerRequest>() {
-            public void handle(HttpServerRequest request) {
-                request.response().setStatusCode(304).end();
+            public void handle(final HttpServerRequest request) {
+            	request.endHandler(new Handler<Void>() {
+					@Override
+					public void handle(Void event) {		
+						Matcher m = p.matcher(request.uri());
+						int http_code = -1;
+						if (m.find()) {
+						    http_code = Integer.parseInt(m.group(1));
+						}
+						request.response().setStatusCode(http_code).end();
+					}
+				});
             }
         });
         server.listen(8888, "localhost");
@@ -199,14 +213,19 @@ public class RouterTest extends UtilTestVerticle {
         // Create Actions
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
-        final Action action3 = newGet().onPort(9000).addHeader("Host", "test.localdomain")
-                .expectCode(304).expectBodySize(0).after(action2).setDontStop();
-
+        Action actionn1 = action2; Action actionn2 = null;
+        for (int http_code=200 ; http_code < 600 ; http_code++) {
+        	actionn2 = newGet().onPort(9000).addHeader("Host", "test.localdomain").atUri(String.format("/%d", http_code))
+                	.expectCode(http_code).expectBodySize(0).setDontStop().after(actionn1);
+        	actionn1 = actionn2;
+        }
+        final Action finalAction = actionn2;
+        
         // Create handler to close server after the test
         getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {
             @Override
             public void handle(Message<String> message) {
-                if (message.body().equals(action3.id())) {
+                if (message.body().equals(finalAction.id())) {
                     server.close();
                     testCompleteWrapper();
                 }
