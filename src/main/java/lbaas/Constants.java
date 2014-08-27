@@ -30,6 +30,7 @@ public class Constants {
 
     public static final String CONF_INSTANCES                    = "instances";
     public static final String CONF_PORT                         = "port";
+    public static final String CONF_ENABLE_ACCESSLOG             = "enableAccessLog";
 
     public static final String loadBalancePolicyFieldName        = "loadBalancePolicy";
     public static final String persistencePolicyFieldName        = "persistencePolicy";
