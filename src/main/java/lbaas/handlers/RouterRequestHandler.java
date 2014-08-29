@@ -83,13 +83,13 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             if (!virtualhosts.containsKey(headerHost)) {
                 vertx.cancelTimer(requestTimeoutTimer);
                 log.warn(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
+                server.showErrorAndClose(sRequest, new BadRequestException(), null);
                 return;
             }
         } else {
             vertx.cancelTimer(requestTimeoutTimer);
             log.warn("Host UNDEF");
-            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
+            server.showErrorAndClose(sRequest, new BadRequestException(), null);
             return;
         }
 
@@ -98,7 +98,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         if (!virtualhost.hasBackends()) {
             vertx.cancelTimer(requestTimeoutTimer);
             log.warn(String.format("Host %s without backends", headerHost));
-            server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
+            server.showErrorAndClose(sRequest, new BadRequestException(), null);
             return;
         }
 
