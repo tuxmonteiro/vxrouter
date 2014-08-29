@@ -48,14 +48,15 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
         vertx.cancelTimer(requestTimeoutTimer);
 
-        // Pump cResponse => sResponse
-        sRequest.response().headers().set(cResponse.headers());
+        // Define statusCode and Headers
+        final int statusCode = cResponse.statusCode();
+        server.setStatusCode(sRequest.response(), statusCode, cResponse.statusMessage());
+        server.setHeaders(sRequest.response(), cResponse.headers());
         if (!connectionKeepalive) {
             sRequest.response().headers().set("Connection", "close");
         }
 
-        sRequest.response().setStatusCode(cResponse.statusCode());
-        sRequest.response().setStatusMessage(cResponse.statusMessage());
+        // Pump cResponse => sResponse
         Pump.createPump(cResponse, sRequest.response()).start();
 
         cResponse.endHandler(new VoidHandler() {
@@ -68,7 +69,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
                     }
                 }
 
-                server.returnStatus(sRequest, cResponse.statusCode(), null, getKey());
+                server.setStatusCode(sRequest.response(), statusCode, "");
+                server.returnStatus(sRequest, getKey());
 
                 if (connectionKeepalive) {
                     if (backend.isKeepAliveLimit()) {
