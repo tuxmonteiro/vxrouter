@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m %ex%n</Pattern>
+      </PatternLayout>
+    </Console>
+    <Async name="Async">
+      <AppenderRef ref="Console"/>
+    </Async>
+  </Appenders>
+  <Loggers>
+    <Root level="trace">
+      <AppenderRef ref="Async" level="INFO"/>
+    </Root>
+  </Loggers>
+</Configuration>
