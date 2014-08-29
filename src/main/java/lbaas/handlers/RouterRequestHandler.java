@@ -24,6 +24,7 @@ import lbaas.RequestData;
 import lbaas.Server;
 import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
+
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
@@ -32,6 +33,7 @@ import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpVersion;
 import org.vertx.java.core.json.JsonObject;
@@ -51,10 +53,11 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private String headerHost = "";
     private String backendId = "";
     private String counterKey = null;
+    private final String HttpHeadersHost = HttpHeaders.HOST.toString();
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
-        
+
         log.debug(String.format("Received request for host %s '%s %s'",
                 sRequest.headers().get("Host"), sRequest.method(), sRequest.absoluteURI().toString()));
 
@@ -75,15 +78,17 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             }
         });
 
-        if (sRequest.headers().contains("Host")) {
-            this.headerHost = sRequest.headers().get("Host").split(":")[0];
+        if (sRequest.headers().contains(HttpHeadersHost)) {
+            this.headerHost = sRequest.headers().get(HttpHeadersHost).split(":")[0];
             if (!virtualhosts.containsKey(headerHost)) {
-                log.error(String.format("Host: %s UNDEF", headerHost));
+                vertx.cancelTimer(requestTimeoutTimer);
+                log.warn(String.format("Host: %s UNDEF", headerHost));
                 server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
                 return;
             }
         } else {
-            log.error("Host UNDEF");
+            vertx.cancelTimer(requestTimeoutTimer);
+            log.warn("Host UNDEF");
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
             return;
         }
@@ -91,7 +96,8 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Virtualhost virtualhost = virtualhosts.get(headerHost);
 
         if (!virtualhost.hasBackends()) {
-            log.error(String.format("Host %s without backends", headerHost));
+            vertx.cancelTimer(requestTimeoutTimer);
+            log.warn(String.format("Host %s without backends", headerHost));
             server.showErrorAndClose(sRequest, new BadRequestException(), getCounterKey(headerHost, backendId));
             return;
         }
@@ -149,6 +155,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         cRequest.exceptionHandler(new Handler<Throwable>() {
             @Override
             public void handle(Throwable event) {
+                vertx.cancelTimer(requestTimeoutTimer);
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend.toString() );
                 server.showErrorAndClose(sRequest, event, getCounterKey(headerHost, backendId));
                 try {
