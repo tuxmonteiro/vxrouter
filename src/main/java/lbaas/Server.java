@@ -16,16 +16,19 @@ package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
 import static lbaas.Constants.CONF_ENABLE_ACCESSLOG;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import lbaas.exceptions.BadRequestException;
 import lbaas.logger.impl.NcsaLogExtendedFormatter;
-import io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.HttpServerResponse;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
@@ -37,6 +40,8 @@ public class Server {
     private final Logger log;
     private final ICounter counter;
     private final boolean enableAccessLog;
+    private final String HttpHeadersHost = HttpHeaders.HOST.toString();
+
 
     public Server(final Vertx vertx, final Container container, final ICounter counter) {
         this.vertx = vertx;
@@ -69,16 +74,38 @@ public class Server {
             });
     }
 
+    public void setStatusCode(final HttpServerResponse resp, Integer code, String messageCode) {
+        resp.setStatusCode(code);
+        String message = messageCode != null ? messageCode : HttpResponseStatus.valueOf(code).reasonPhrase();
+        resp.setStatusMessage(message);
+    }
+
+    public void setHeaders(final HttpServerResponse resp, final MultiMap headers) {
+        resp.headers().set(headers);
+    }
+
     public void showErrorAndClose(final HttpServerRequest req, final Throwable event, String key) {
 
+        int statusCode;
         if (event instanceof java.util.concurrent.TimeoutException) {
-            returnStatus(req, 504, null, key);
+            statusCode = 504;
         } else if (event instanceof BadRequestException) {
-            returnStatus(req, 400, null, key);
+            statusCode = 400;
         } else {
-            returnStatus(req, 502, null, key);
-            log.error(String.format("ERROR 502: Virtualhost %s",
-                    req.headers().contains("Host")? req.headers().get("Host"): "UNDEF"), event);
+            statusCode = 502;
+        }
+
+        setStatusCode(req.response(), statusCode, null);
+        returnStatus(req, key);
+        String message = String.format("FAIL with HttpStatus %d (virtualhost %s): %s",
+                statusCode,
+                req.headers().contains("Host")? req.headers().get(HttpHeadersHost): "UNDEF",
+                HttpResponseStatus.valueOf(statusCode).reasonPhrase());
+
+        if (statusCode>499) {
+            log.error(message);
+        } else {
+            log.warn(message);
         }
 
         close(req);
@@ -93,24 +120,51 @@ public class Server {
         }
     }
 
-    public void returnStatus(final HttpServerRequest req, Integer code) {
-        returnStatus(req, code, "");
+    public void returnStatus(final HttpServerRequest req, String id) {
+        returnStatus(req, "", id);
     }
 
-    public void returnStatus(final HttpServerRequest req, Integer code, String message) {
-        returnStatus(req, code, message, null);
+    public void returnStatus(final HttpServerRequest req, String message, String id) {
+
+        Integer code = req.response().getStatusCode();
+
+        logRequest(enableAccessLog, req);
+        sendRequestCount(id, code);
+
+        if (!"".equals(message)) {
+            JsonObject json = new JsonObject(message);
+            message = json.encodePrettily();
+        }
+
+        responseEnd(req.response(), message);
     }
 
-    public void returnStatus(final HttpServerRequest req, Integer code, String message, String id) {
+    public void responseEnd(final HttpServerResponse resp, String message) {
+        Integer code = resp.getStatusCode();
 
-        req.response().setStatusCode(code);
-        req.response().setStatusMessage(HttpResponseStatus.valueOf(code).reasonPhrase());
+        try {
+            if (!"".equals(message)) {
 
-        int codeFamily = code.intValue()/100;
+                resp.end(message);
+            } else {
+                resp.end();
+            }
+        } catch (RuntimeException e) {
+            // java.lang.IllegalStateException: Response has already been written ?
+            log.error(String.format("FAIL: statusCode %d, Error > %s", code, e.getMessage()));
+            return;
+        }
+    }
+
+    public void logRequest(boolean enable, final HttpServerRequest req) {
+
         if (enableAccessLog) {
-            String httpLogMessage = new NcsaLogExtendedFormatter()
-                                        .setRequestData(req, message)
-                                        .getFormatedLog();
+            Integer code = req.response().getStatusCode();
+            String message = "";
+            int codeFamily = code.intValue()/100;
+                String httpLogMessage = new NcsaLogExtendedFormatter()
+                                            .setRequestData(req, message)
+                                            .getFormatedLog();
             switch (codeFamily) {
                 case 5: // SERVER_ERROR
                     log.error(httpLogMessage);
@@ -125,40 +179,11 @@ public class Server {
                     break;
             }
         }
+    }
 
-        String messageReturn = message;
-        if (counter!=null) {
+    public void sendRequestCount(String id, int code) {
+        if (counter!=null && id!=null) {
             counter.httpCode(id, code);
-        }
-
-        if (message != null) {
-            if ("".equals(message)) {
-                req.response().headers().set("Content-Type", "application/json");
-                JsonObject json = new JsonObject(
-                        String.format("{ \"status_message\":\"%s\"}", req.response().getStatusMessage()));
-                messageReturn = json.encodePrettily();
-            }
-            try {
-                req.response().end(messageReturn);
-            } catch (java.lang.IllegalStateException e) {
-                // Response has already been written ?
-                log.error(e.getMessage());
-                return;
-            } catch (RuntimeException e) {
-                log.error(e.getMessage());
-                return;
-            }
-        } else {
-            try {
-                req.response().end();
-            } catch (java.lang.IllegalStateException e) {
-                // Response has already been written ?
-                log.error(e.getMessage());
-                return;
-            } catch (RuntimeException e) {
-                log.error(e.getMessage());
-                return;
-            }
         }
     }
 
