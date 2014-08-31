@@ -17,34 +17,35 @@ package lbaas.verticles;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
-import static lbaas.core.Constants.CONF_INSTANCES;
+import static lbaas.core.Constants.*;
+
 
 public class Starter extends Verticle{
 
     @Override
     public void start() {
         final JsonObject conf = container.config();
-        final JsonObject confRouter = conf.getObject("router", new JsonObject("{}"));
-        final JsonObject confRouterManager = conf.getObject("routermanager", new JsonObject("{}"));
-        final JsonObject confHealthManager = conf.getObject("healthmanager", new JsonObject("{}"));
+        final JsonObject confRouter = conf.getObject(CONF_ROOT_ROUTER, new JsonObject("{}"));
+        final JsonObject confRouterManager = conf.getObject(CONF_ROOT_ROUTEMANAGER, new JsonObject("{}"));
+        final JsonObject confHealthManager = conf.getObject(CONF_ROOT_HEALTHMANAGER, new JsonObject("{}"));
         final JsonObject confStatsd;
-        if (conf.containsField("statsd")) {
-            confStatsd = conf.getObject("statsd", new JsonObject("{}"));
-            container.deployVerticle("lbaas.verticles.StatsdVerticle", confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
-            confRouter.putBoolean("enableStatsd", true);
-            confRouter.putString("statsdHost", confStatsd.getString("host", "localhost"));
-            confRouter.putString("statsdPrefix", confStatsd.getString("prefix", "stats"));
-            confRouter.putNumber("statsdPort", confStatsd.getInteger("port", 8125));
+        if (conf.containsField(CONF_ROOT_STATSD)) {
+            confStatsd = conf.getObject(CONF_ROOT_STATSD, new JsonObject("{}"));
+            container.deployVerticle(StatsdVerticle.class.getName(), confStatsd, confStatsd.getInteger(CONF_INSTANCES, 1));
+            confRouter.putBoolean(CONF_STATSD_ENABLE, true);
+            confRouter.putString(CONF_STATSD_HOST, confStatsd.getString(CONF_HOST, "localhost"));
+            confRouter.putString(CONF_STATSD_PREFIX, confStatsd.getString(CONF_PREFIX, "stats"));
+            confRouter.putNumber(CONF_STATSD_PORT, confStatsd.getInteger(CONF_PORT, 8125));
 
-            confRouterManager.putBoolean("enableStatsd", true);
-            confRouterManager.putString("statsdHost", confStatsd.getString("host", "localhost"));
-            confRouterManager.putString("statsdPrefix", confStatsd.getString("prefix", "stats"));
-            confRouterManager.putNumber("statsdPort", confStatsd.getInteger("port", 8125));
+            confRouterManager.putBoolean(CONF_STATSD_ENABLE, true);
+            confRouterManager.putString(CONF_STATSD_HOST, confStatsd.getString(CONF_HOST, "localhost"));
+            confRouterManager.putString(CONF_STATSD_PREFIX, confStatsd.getString(CONF_PREFIX, "stats"));
+            confRouterManager.putNumber(CONF_STATSD_PORT, confStatsd.getInteger(CONF_PORT, 8125));
         }
 
         int numCpuCores = Runtime.getRuntime().availableProcessors();
-        container.deployVerticle("lbaas.verticles.RouterVerticle", confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
-        container.deployVerticle("lbaas.verticles.RouteManagerVerticle", confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
-        container.deployVerticle("lbaas.verticles.HealthManagerVerticle", confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle(RouterVerticle.class.getName(), confRouter, confRouter.getInteger(CONF_INSTANCES, numCpuCores));
+        container.deployVerticle(RouteManagerVerticle.class.getName(), confRouterManager, confRouterManager.getInteger(CONF_INSTANCES, 1));
+        container.deployVerticle(HealthManagerVerticle.class.getName(), confHealthManager, confHealthManager.getInteger(CONF_INSTANCES, 1));
     }
 }

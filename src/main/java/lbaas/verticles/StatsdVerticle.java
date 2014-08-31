@@ -16,6 +16,10 @@ package lbaas.verticles;
 
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
 import static lbaas.metrics.StatsdClient.TypeStatsdMessage;
+import static lbaas.core.Constants.CONF_HOST;
+import static lbaas.core.Constants.CONF_PORT;
+import static lbaas.core.Constants.CONF_PREFIX;
+
 import lbaas.metrics.StatsdClient;
 
 import org.vertx.java.core.Handler;
@@ -38,9 +42,9 @@ public class StatsdVerticle extends Verticle {
 
         final Logger log = container.logger();
         final JsonObject conf = container.config();
-        this.prefix = conf.getString("defaultPrefix", "stats.");
-        this.statsDhost = conf.getString("host", "localhost");
-        this.statsDPort = conf.getInteger("port", 8125);
+        this.prefix = conf.getString(CONF_PREFIX, "stats.");
+        this.statsDhost = conf.getString(CONF_HOST, "localhost");
+        this.statsDPort = conf.getInteger(CONF_PORT, 8125);
         final DatagramSocket dgram = vertx.createDatagramSocket(IPv4).setReuseAddress(true);
         statsdClient = new StatsdClient(statsDhost, statsDPort, prefix, dgram, container.logger());
 

@@ -28,9 +28,20 @@ public class Constants {
     public static final String QUEUE_HEALTHCHECK_FAIL            = "healthcheck.fail";
     public static final String QUEUE_BACKEND_CONNECTIONS_PREFIX  = "conn_";
 
+    public static final String CONF_ROOT_ROUTER                  = "router";
+    public static final String CONF_ROOT_ROUTEMANAGER            = "routemanager";
+    public static final String CONF_ROOT_HEALTHMANAGER           = "healthmanager";
+    public static final String CONF_ROOT_STATSD                  = "statsd";
+
     public static final String CONF_INSTANCES                    = "instances";
+    public static final String CONF_HOST                         = "host";
     public static final String CONF_PORT                         = "port";
+    public static final String CONF_PREFIX                       = "prefix";
     public static final String CONF_ENABLE_ACCESSLOG             = "enableAccessLog";
+    public static final String CONF_STATSD_ENABLE                = "enableStatsd";
+    public static final String CONF_STATSD_HOST                  = "statsdHost";
+    public static final String CONF_STATSD_PORT                  = "statsdPort";
+    public static final String CONF_STATSD_PREFIX                = "statsdPrefix";
 
     public static final String loadBalancePolicyFieldName        = "loadBalancePolicy";
     public static final String persistencePolicyFieldName        = "persistencePolicy";

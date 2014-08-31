@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonArray;
@@ -31,9 +32,12 @@ import org.vertx.java.core.json.JsonObject;
 
 
 public class RouterTest extends UtilTestVerticle {
+
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
+
     @Test
     public void testRouterWhenEmpty() {
-        newGet().onPort(9000).addHeader("Host", "www.unknownhost1.com").expectCode(400).expectBodySize(0).run();   	
+        newGet().onPort(9000).addHeader(httpHeaderHost, "www.unknownhost1.com").expectCode(400).expectBodySize(0).run();
     }
 
     @Test
@@ -43,7 +47,7 @@ public class RouterTest extends UtilTestVerticle {
 
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
 
-        newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
+        newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
         action1.run();
 
     }
@@ -59,7 +63,7 @@ public class RouterTest extends UtilTestVerticle {
 
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson);
 
-        newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
+        newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").expectCode(400).expectBodySize(0).after(action1);
         action1.run();
 
     }
@@ -77,12 +81,12 @@ public class RouterTest extends UtilTestVerticle {
 
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
 
-        newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(502).expectBodySize(0).after(action2);
+        newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").expectCode(502).expectBodySize(0).after(action2);
 
         action1.run();
 
     }
-    
+
     @Test
     public void testRouterWith1VHostAnd1TimeoutBackend() {
         // The timeout is set to 1s at test initialization
@@ -97,17 +101,18 @@ public class RouterTest extends UtilTestVerticle {
 
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
 
-        newGet().onPort(9000).addHeader("Host", "test.localdomain").expectCode(504).expectBodySize(0).after(action2);
+        newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").expectCode(504).expectBodySize(0).after(action2);
 
         action1.run();
 
     }
-    
+
     @Test
     public void testRouterWith1VHostAnd1RunningBackend() {
         // Create backend
         final HttpServer server = vertx.createHttpServer();
         server.requestHandler(new Handler<HttpServerRequest>() {
+            @Override
             public void handle(HttpServerRequest request) {
                 request.response().setChunked(true).write("response from backend").end();
             }
@@ -123,7 +128,7 @@ public class RouterTest extends UtilTestVerticle {
         // Create Actions
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
-        final Action action3 = newGet().onPort(9000).addHeader("Host", "test.localdomain")
+        final Action action3 = newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain")
                 .expectCode(200).expectBody("response from backend").after(action2).setDontStop();
 
         // Create handler to close server after the test
@@ -136,7 +141,7 @@ public class RouterTest extends UtilTestVerticle {
                 }
             };
         });
-        
+
         action1.run();
     }
 
@@ -145,6 +150,7 @@ public class RouterTest extends UtilTestVerticle {
         // Create backend
         final HttpServer server = vertx.createHttpServer();
         server.requestHandler(new Handler<HttpServerRequest>() {
+            @Override
             public void handle(final HttpServerRequest request) {
                 request.bodyHandler(new Handler<Buffer>() {
                     @Override
@@ -165,7 +171,7 @@ public class RouterTest extends UtilTestVerticle {
         // Create Actions
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
-        final Action action3 = newPost().onPort(9000).addHeader("Host", "test.localdomain").setBodyJson("{ \"some key\": \"some value\" }")
+        final Action action3 = newPost().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").setBodyJson("{ \"some key\": \"some value\" }")
                 .expectCode(200).expectBody("{\"some key\":\"some value\"}").after(action2).setDontStop();
 
         // Create handler to close server after the test
@@ -178,20 +184,21 @@ public class RouterTest extends UtilTestVerticle {
                 }
             };
         });
-        
+
         action1.run();
     }
-    
+
     @Test
     public void testRouterWith1VHostAnd1BackendAllHTTPCodes() {
         // Create backend
     	final Pattern p = Pattern.compile("^/([0-9]+)$");
         final HttpServer server = vertx.createHttpServer();
         server.requestHandler(new Handler<HttpServerRequest>() {
+            @Override
             public void handle(final HttpServerRequest request) {
             	request.endHandler(new Handler<Void>() {
 					@Override
-					public void handle(Void event) {		
+					public void handle(Void event) {
 						Matcher m = p.matcher(request.uri());
 						int http_code = -1;
 						if (m.find()) {
@@ -215,12 +222,12 @@ public class RouterTest extends UtilTestVerticle {
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
         Action actionn1 = action2; Action actionn2 = null;
         for (int http_code=200 ; http_code < 600 ; http_code++) {
-        	actionn2 = newGet().onPort(9000).addHeader("Host", "test.localdomain").atUri(String.format("/%d", http_code))
+        	actionn2 = newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").atUri(String.format("/%d", http_code))
                 	.expectCode(http_code).expectBodySize(0).setDontStop().after(actionn1);
         	actionn1 = actionn2;
         }
         final Action finalAction = actionn2;
-        
+
         // Create handler to close server after the test
         getVertx().eventBus().registerHandler("ended.action", new Handler<Message<String>>() {
             @Override
@@ -231,7 +238,7 @@ public class RouterTest extends UtilTestVerticle {
                 }
             };
         });
-        
+
         action1.run();
     }
 
@@ -240,6 +247,7 @@ public class RouterTest extends UtilTestVerticle {
         // Create backend
         final HttpServer server = vertx.createHttpServer();
         server.requestHandler(new Handler<HttpServerRequest>() {
+            @Override
             public void handle(HttpServerRequest request) {
                 request.response().setStatusCode(302).end();
             }
@@ -255,7 +263,7 @@ public class RouterTest extends UtilTestVerticle {
         // Create Actions
         Action action1 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/virtualhost").expectBodyJson(expectedJson);
         Action action2 = newPost().onPort(9090).setBodyJson(vhostJson).atUri("/backend").expectBodyJson(expectedJson).after(action1);
-        final Action action3 = newGet().onPort(9000).addHeader("Host", "test.localdomain")
+        final Action action3 = newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain")
                 .expectCode(302).expectBodySize(0).after(action2).setDontStop();
 
         // Create handler to close server after the test
@@ -268,8 +276,8 @@ public class RouterTest extends UtilTestVerticle {
                 }
             };
         });
-        
+
         action1.run();
     }
-    
+
 }

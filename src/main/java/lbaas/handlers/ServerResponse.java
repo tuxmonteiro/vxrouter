@@ -31,7 +31,7 @@ public class ServerResponse {
     private final Logger log;
     private final ICounter counter;
     private final boolean enableAccessLog;
-    private final String HttpHeadersHost = HttpHeaders.HOST.toString();
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
 
 
     public ServerResponse(final HttpServerRequest req,
@@ -69,7 +69,7 @@ public class ServerResponse {
         end(key);
         String message = String.format("FAIL with HttpStatus %d (virtualhost %s): %s",
                 statusCode,
-                req.headers().contains("Host")? req.headers().get(HttpHeadersHost): "UNDEF",
+                req.headers().contains(httpHeaderHost)? req.headers().get(httpHeaderHost): "UNDEF",
                 HttpResponseStatus.valueOf(statusCode).reasonPhrase());
 
         if (statusCode>499) {

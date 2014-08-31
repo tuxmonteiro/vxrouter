@@ -15,6 +15,11 @@
 package lbaas.metrics;
 
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
+import static lbaas.core.Constants.CONF_STATSD_ENABLE;
+import static lbaas.core.Constants.CONF_STATSD_HOST;
+import static lbaas.core.Constants.CONF_STATSD_PORT;
+import static lbaas.core.Constants.CONF_STATSD_PREFIX;
+
 import lbaas.metrics.StatsdClient.TypeStatsdMessage;
 
 import org.vertx.java.core.Vertx;
@@ -26,10 +31,10 @@ public class CounterWithStatsd implements ICounter {
     private final StatsdClient statsdClient;
 
     public CounterWithStatsd(final JsonObject conf, final Vertx vertx, final Logger log) {
-        if (conf.getBoolean("enableStatsd", false)) {
-            String statsdHost = conf.getString("statsdHost","127.0.0.1");
-            Integer statsdPort = conf.getInteger("statsdPort", 8125);
-            String statsdPrefix = conf.getString("statsdPrefix","");
+        if (conf.getBoolean(CONF_STATSD_ENABLE, false)) {
+            String statsdHost = conf.getString(CONF_STATSD_HOST,"127.0.0.1");
+            Integer statsdPort = conf.getInteger(CONF_STATSD_PORT, 8125);
+            String statsdPrefix = conf.getString(CONF_STATSD_PREFIX,"");
             final DatagramSocket dgram = vertx.createDatagramSocket(IPv4).setReuseAddress(true);
             statsdClient = new StatsdClient(statsdHost, statsdPort, statsdPrefix, dgram, log);
         } else {

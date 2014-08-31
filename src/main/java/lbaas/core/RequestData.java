@@ -19,6 +19,7 @@ import java.net.URI;
 
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonObject;
 
@@ -30,6 +31,8 @@ public class RequestData {
     private String remoteAddress;
     private String remotePort;
     private JsonObject properties;
+
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
 
     public RequestData() {
         this(null, null, null, null, null);
@@ -90,7 +93,7 @@ public class RequestData {
     }
 
     public String getHeaderHost() {
-        return headers.contains("Host") ? headers.get("Host") : "";
+        return headers.contains(httpHeaderHost) ? headers.get(httpHeaderHost) : "";
     }
 
     public JsonObject getProperties() {

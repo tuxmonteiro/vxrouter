@@ -31,6 +31,7 @@ import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
@@ -44,6 +45,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
 
     private final Map<String, Set<String>> backendsMap = new HashMap<>();
     private final Map<String, Set<String>> badBackendsMap = new HashMap<>();
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
 
     @Override
     public void start() {
@@ -111,7 +113,7 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                         }
                                     }
                                 });
-                            cReq.headers().set("Host", (String) badBackendsMap.get(backend).toArray()[0]);
+                            cReq.headers().set(httpHeaderHost, (String) badBackendsMap.get(backend).toArray()[0]);
                             cReq.exceptionHandler(new Handler<Throwable>() {
                                 @Override
                                 public void handle(Throwable event) {}

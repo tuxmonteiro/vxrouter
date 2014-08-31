@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.impl.DefaultVertx;
 import org.vertx.java.core.shareddata.SharedData;
 
@@ -35,6 +36,7 @@ public class RoundRobinPolicyTest {
     private int numBackends = 10;
     private Vertx vertx;
     private RequestData requestData;
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
 
     @Before
     public void setUp() throws Exception {
@@ -50,7 +52,7 @@ public class RoundRobinPolicyTest {
         }
 
         MultiMap headers = new CaseInsensitiveMultiMap();
-        headers.add("Host", "test.localdomain");
+        headers.add(httpHeaderHost, "test.localdomain");
 
         requestData = new RequestData(headers, null, null, "0.0.0.0", "0");
     }

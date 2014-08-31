@@ -51,13 +51,15 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private String headerHost = "";
     private String backendId = "";
     private String counterKey = null;
-    private final String HttpHeadersHost = HttpHeaders.HOST.toString();
+    private final String httpHeaderHost = HttpHeaders.HOST.toString();
+    private final String httpHeaderConnection = HttpHeaders.CONNECTION.toString();
+
 
     @Override
     public void handle(final HttpServerRequest sRequest) {
 
         log.debug(String.format("Received request for host %s '%s %s'",
-                sRequest.headers().get("Host"), sRequest.method(), sRequest.absoluteURI().toString()));
+                sRequest.headers().get(httpHeaderHost), sRequest.method(), sRequest.absoluteURI().toString()));
 
         final Long keepAliveTimeOut = conf.getLong("keepAliveTimeOut", 60000L);
         final Long keepAliveMaxRequest = conf.getLong("maxKeepAliveRequests", 10000L);
@@ -78,8 +80,8 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             }
         });
 
-        if (sRequest.headers().contains(HttpHeadersHost)) {
-            this.headerHost = sRequest.headers().get(HttpHeadersHost).split(":")[0];
+        if (sRequest.headers().contains(httpHeaderHost)) {
+            this.headerHost = sRequest.headers().get(httpHeaderHost).split(":")[0];
             if (!virtualhosts.containsKey(headerHost)) {
                 vertx.cancelTimer(requestTimeoutTimer);
                 log.warn(String.format("Host: %s UNDEF", headerHost));
@@ -144,7 +146,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         cRequest.headers().set(sRequest.headers());
         if (backendForceKeepAlive) {
-            cRequest.headers().set("Connection", "keep-alive");
+            cRequest.headers().set(httpHeaderConnection, "keep-alive");
         }
 
         if (enableChunked) {
@@ -228,37 +230,46 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     }
 
     private void updateHeadersXFF(final MultiMap headers, String remote) {
+
+        final String httpHeaderXRealIp         = "X-Real-IP";
+        final String httpHeaderXForwardedFor   = "X-Forwarded-For";
+        final String httpHeaderforwardedFor    = "Forwarded-For";
+        final String httpHeaderXForwardedHost  = "X-Forwarded-Host";
+        final String httpHeaderXForwardedProto = "X-Forwarded-Proto";
+
+        if (!headers.contains(httpHeaderXRealIp)) {
+            headers.set(httpHeaderXRealIp, remote);
+        }
+
         String xff;
-        headers.set("X-Real-IP", remote);
-
-        if (headers.contains("X-Forwarded-For")) {
-            xff = String.format("%s, %s", headers.get("X-Forwarded-For"),remote);
-            headers.remove("X-Forwarded-For");
+        if (headers.contains(httpHeaderXForwardedFor)) {
+            xff = String.format("%s, %s", headers.get(httpHeaderXForwardedFor),remote);
+            headers.remove(httpHeaderXForwardedFor);
         } else {
             xff = remote;
         }
-        headers.set("X-Forwarded-For", xff);
+        headers.set(httpHeaderXForwardedFor, xff);
 
-        if (headers.contains("Forwarded-For")) {
-            xff = String.format("%s, %s" , headers.get("Forwarded-For"), remote);
-            headers.remove("Forwarded-For");
+        if (headers.contains(httpHeaderforwardedFor)) {
+            xff = String.format("%s, %s" , headers.get(httpHeaderforwardedFor), remote);
+            headers.remove(httpHeaderforwardedFor);
         } else {
             xff = remote;
         }
-        headers.set("Forwarded-For", xff);
+        headers.set(httpHeaderforwardedFor, xff);
 
-        if (!headers.contains("X-Forwarded-Host")) {
-            headers.set("X-Forwarded-Host", this.headerHost);
+        if (!headers.contains(httpHeaderXForwardedHost)) {
+            headers.set(httpHeaderXForwardedHost, this.headerHost);
         }
 
-        if (!headers.contains("X-Forwarded-Proto")) {
-            headers.set("X-Forwarded-Proto", "http");
+        if (!headers.contains(httpHeaderXForwardedProto)) {
+            headers.set(httpHeaderXForwardedProto, "http");
         }
     }
 
     public boolean isHttpKeepAlive(MultiMap headers, HttpVersion httpVersion) {
-        return headers.contains("Connection") ?
-                !"close".equalsIgnoreCase(headers.get("Connection")) :
+        return headers.contains(httpHeaderConnection) ?
+                !"close".equalsIgnoreCase(headers.get(httpHeaderConnection)) :
                 httpVersion.equals(HttpVersion.HTTP_1_1);
     }
 
