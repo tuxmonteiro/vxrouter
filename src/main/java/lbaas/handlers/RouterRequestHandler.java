@@ -34,6 +34,7 @@ import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.HttpServerResponse;
 import org.vertx.java.core.http.HttpVersion;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
@@ -69,7 +70,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Integer backendMaxPoolSize = conf.getInteger("backendMaxPoolSize",10);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
         final boolean enableAccessLog = conf.getBoolean("enableAccessLog", false);
-        final ServerResponse sResponse = new ServerResponse(sRequest, log, counter, enableAccessLog);
+        final ServerResponse sResponse = new ServerResponse(sRequest.response(), log, counter, enableAccessLog);
 
         sRequest.response().setChunked(true);
 
