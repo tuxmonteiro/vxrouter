@@ -52,9 +52,9 @@ public class RouterVerticle extends Verticle {
       final Server server = new Server(vertx, container, counter);
 
       final Handler<HttpServerRequest> handlerHttpServerRequest =
-              new RouterRequestHandler(vertx, container, virtualhosts, server, counter);
+              new RouterRequestHandler(vertx, container, virtualhosts, counter);
 
-      server.start(this, handlerHttpServerRequest, 9000);
+      server.setDefaultPort(9000).setHttpServerRequestHandler(handlerHttpServerRequest).start(this);
       log.info(String.format("Instance %s started", this.toString()));
 
    }

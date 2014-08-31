@@ -15,20 +15,13 @@
 package lbaas;
 
 import static lbaas.Constants.CONF_PORT;
-import static lbaas.Constants.CONF_ENABLE_ACCESSLOG;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import lbaas.exceptions.BadRequestException;
-import lbaas.logger.impl.NcsaLogExtendedFormatter;
 
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.http.HttpServerResponse;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
@@ -38,29 +31,23 @@ public class Server {
     private final Vertx vertx;
     private final JsonObject conf;
     private final Logger log;
-    private final ICounter counter;
-    private final boolean enableAccessLog;
-    private final String HttpHeadersHost = HttpHeaders.HOST.toString();
+    private final HttpServer httpServer;
 
+    private Integer port = 9000;
 
     public Server(final Vertx vertx, final Container container, final ICounter counter) {
         this.vertx = vertx;
         this.conf = container.config();
         this.log = container.logger();
-        this.counter = counter;
-        this.enableAccessLog = this.conf.getBoolean(CONF_ENABLE_ACCESSLOG, false);
+        this.httpServer = vertx.createHttpServer().setTCPKeepAlive(this.conf.getBoolean("serverTCPKeepAlive",true));
     }
 
-    public void start(
-            final Object caller,
-            final Handler<HttpServerRequest> handlerHttpServerRequest,
-            final Integer defaultPort) {
+    public Server start(final Object caller) {
 
-        final Integer port = conf.getInteger(CONF_PORT,defaultPort);
+        this.port = conf.getInteger(CONF_PORT, port);
 
-        vertx.createHttpServer().requestHandler(handlerHttpServerRequest)
-            .setTCPKeepAlive(conf.getBoolean("serverTCPKeepAlive",true))
-            .listen(port, new Handler<AsyncResult<HttpServer>>() {
+        try {
+        httpServer.listen(port, new Handler<AsyncResult<HttpServer>>() {
                 @Override
                 public void handle(AsyncResult<HttpServer> asyncResult) {
                     if (asyncResult.succeeded()) {
@@ -72,119 +59,21 @@ public class Server {
                     }
                 }
             });
-    }
-
-    public void setStatusCode(final HttpServerResponse resp, Integer code, String messageCode) {
-        resp.setStatusCode(code);
-        String message = messageCode != null ? messageCode : HttpResponseStatus.valueOf(code).reasonPhrase();
-        resp.setStatusMessage(message);
-    }
-
-    public void setHeaders(final HttpServerResponse resp, final MultiMap headers) {
-        resp.headers().set(headers);
-    }
-
-    public void showErrorAndClose(final HttpServerRequest req, final Throwable event, String key) {
-
-        int statusCode;
-        if (event instanceof java.util.concurrent.TimeoutException) {
-            statusCode = 504;
-        } else if (event instanceof BadRequestException) {
-            statusCode = 400;
-        } else {
-            statusCode = 502;
-        }
-
-        setStatusCode(req.response(), statusCode, null);
-        returnStatus(req, key);
-        String message = String.format("FAIL with HttpStatus %d (virtualhost %s): %s",
-                statusCode,
-                req.headers().contains("Host")? req.headers().get(HttpHeadersHost): "UNDEF",
-                HttpResponseStatus.valueOf(statusCode).reasonPhrase());
-
-        if (statusCode>499) {
-            log.error(message);
-        } else {
-            log.warn(message);
-        }
-
-        close(req);
-    }
-
-    public void close(final HttpServerRequest req) {
-        try {
-            req.response().close();
         } catch (RuntimeException e) {
-            // Ignore already closed
-            return;
+            log.error(e.getMessage());
+            log.debug(e.getStackTrace());
         }
+        return this;
     }
 
-    public void returnStatus(final HttpServerRequest req, String id) {
-        returnStatus(req, "", id);
+    public Server setHttpServerRequestHandler(final Handler<HttpServerRequest> httpServerRequestHandler) {
+        httpServer.requestHandler(httpServerRequestHandler);
+        return this;
     }
 
-    public void returnStatus(final HttpServerRequest req, String message, String id) {
-
-        Integer code = req.response().getStatusCode();
-
-        logRequest(enableAccessLog, req);
-        sendRequestCount(id, code);
-
-        if (!"".equals(message)) {
-            JsonObject json = new JsonObject(message);
-            message = json.encodePrettily();
-        }
-
-        responseEnd(req.response(), message);
-    }
-
-    public void responseEnd(final HttpServerResponse resp, String message) {
-        Integer code = resp.getStatusCode();
-
-        try {
-            if (!"".equals(message)) {
-
-                resp.end(message);
-            } else {
-                resp.end();
-            }
-        } catch (RuntimeException e) {
-            // java.lang.IllegalStateException: Response has already been written ?
-            log.error(String.format("FAIL: statusCode %d, Error > %s", code, e.getMessage()));
-            return;
-        }
-    }
-
-    public void logRequest(boolean enable, final HttpServerRequest req) {
-
-        if (enableAccessLog) {
-            Integer code = req.response().getStatusCode();
-            String message = "";
-            int codeFamily = code.intValue()/100;
-                String httpLogMessage = new NcsaLogExtendedFormatter()
-                                            .setRequestData(req, message)
-                                            .getFormatedLog();
-            switch (codeFamily) {
-                case 5: // SERVER_ERROR
-                    log.error(httpLogMessage);
-                    break;
-                case 0: // OTHER,
-                case 1: // INFORMATIONAL
-                case 2: // SUCCESSFUL
-                case 3: // REDIRECTION
-                case 4: // CLIENT_ERROR
-                default:
-                    log.info(httpLogMessage);
-                    break;
-            }
-        }
-    }
-
-    public void sendRequestCount(String id, int code) {
-        if (counter!=null && id!=null) {
-            counter.httpCode(id, code);
-        }
+    public Server setDefaultPort(Integer defaultPort) {
+        this.port = defaultPort;
+        return this;
     }
 
 }

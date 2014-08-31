@@ -17,7 +17,7 @@ package lbaas.handlers;
 import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
 import lbaas.Backend;
 import lbaas.ICounter;
-import lbaas.Server;
+import lbaas.ServerResponse;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -26,21 +26,21 @@ import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.streams.Pump;
-import org.vertx.java.platform.Container;
 
 public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
     private final Vertx vertx;
     private final Long requestTimeoutTimer;
     private final HttpServerRequest sRequest;
-    private final boolean connectionKeepalive;
-    private final boolean backendForceKeepAlive;
+    private final ServerResponse sResponse;
     private final Backend backend;
-    private final Server server;
     private final ICounter counter;
     private final Logger log;
-    private final String headerHost;
-    private Long initialRequestTime;
+
+    private String headerHost = "UNDEF";
+    private Long initialRequestTime = null;
+    private boolean connectionKeepalive = true;
+    private boolean backendForceKeepAlive = true;
 
     @Override
     public void handle(final HttpClientResponse cResponse) {
@@ -50,8 +50,8 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
         // Define statusCode and Headers
         final int statusCode = cResponse.statusCode();
-        server.setStatusCode(sRequest.response(), statusCode, cResponse.statusMessage());
-        server.setHeaders(sRequest.response(), cResponse.headers());
+        sResponse.setStatusCode(statusCode, cResponse.statusMessage());
+        sResponse.setHeaders(cResponse.headers());
         if (!connectionKeepalive) {
             sRequest.response().headers().set("Connection", "close");
         }
@@ -69,19 +69,19 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
                     }
                 }
 
-                server.setStatusCode(sRequest.response(), statusCode, "");
-                server.returnStatus(sRequest, getKey());
+                sResponse.setStatusCode(statusCode, "");
+                sResponse.end(getKey());
 
                 if (connectionKeepalive) {
                     if (backend.isKeepAliveLimit()) {
                         backend.close();
-                        server.close(sRequest);
+                        sResponse.closeResponse();
                     }
                 } else {
                     if (!backendForceKeepAlive) {
                         backend.close();
                     }
-                    server.close(sRequest);
+                    sResponse.closeResponse();
                 }
             }
         });
@@ -91,11 +91,47 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             public void handle(Throwable event) {
                 log.error(String.format("host+backend: %s, message: %s", getKey(), event.getMessage()));
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend.toString() );
-                server.showErrorAndClose(sRequest, event, getKey());
+                sResponse.showErrorAndClose(event, getKey());
                 backend.close();
             }
         });
 
+    }
+
+    public String getHeaderHost() {
+        return headerHost;
+    }
+
+    public RouterResponseHandler setHeaderHost(String headerHost) {
+        this.headerHost = headerHost;
+        return this;
+    }
+
+    public Long getInitialRequestTime() {
+        return initialRequestTime;
+    }
+
+    public RouterResponseHandler setInitialRequestTime(Long initialRequestTime) {
+        this.initialRequestTime = initialRequestTime;
+        return this;
+    }
+
+    public boolean isConnectionKeepalive() {
+        return connectionKeepalive;
+    }
+
+    public RouterResponseHandler setConnectionKeepalive(boolean connectionKeepalive) {
+        this.connectionKeepalive = connectionKeepalive;
+        return this;
+    }
+
+    public boolean isBackendForceKeepAlive() {
+        return backendForceKeepAlive;
+    }
+
+    public RouterResponseHandler setBackendForceKeepAlive(boolean backendForceKeepAlive) {
+        this.backendForceKeepAlive = backendForceKeepAlive;
+        return this;
     }
 
     private String getKey() {
@@ -106,26 +142,18 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
 
     public RouterResponseHandler(
             final Vertx vertx,
-            final Container container,
+            final Logger log,
             final Long requestTimeoutTimer,
             final HttpServerRequest sRequest,
-            final boolean connectionKeepalive,
-            final boolean backendForceKeepAlive,
+            final ServerResponse sResponse,
             final Backend backend,
-            final Server server,
-            final ICounter counter,
-            final String headerHost,
-            final Long initialRequestTime) {
+            final ICounter counter) {
         this.vertx = vertx;
         this.requestTimeoutTimer = requestTimeoutTimer;
         this.sRequest = sRequest;
-        this.connectionKeepalive = connectionKeepalive;
-        this.backendForceKeepAlive = backendForceKeepAlive;
+        this.sResponse = sResponse;
         this.backend = backend;
-        this.server = server;
-        this.log = container.logger();
-        this.headerHost = headerHost;
-        this.initialRequestTime = initialRequestTime;
+        this.log = log;
         this.counter = counter;
     }
 

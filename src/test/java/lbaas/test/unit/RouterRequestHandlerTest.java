@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.util.Map;
 
-import lbaas.Server;
 import lbaas.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
 import lbaas.test.unit.util.FakeLogger;
@@ -44,7 +43,6 @@ public class RouterRequestHandlerTest {
     private Container container;
     private LogDelegate logDelegate;
     private FakeLogger logger;
-    private Server server;
     private Map<String, Virtualhost> virtualhosts;
 
     @Before
@@ -61,7 +59,7 @@ public class RouterRequestHandlerTest {
         when(verticle.getContainer()).thenReturn(container);
         when(verticle.getContainer().logger()).thenReturn(logger);
 
-        routerRequestHandler = new RouterRequestHandler(vertx, container, virtualhosts, server, null);
+        routerRequestHandler = new RouterRequestHandler(vertx, container, virtualhosts, null);
     }
 
     @Test

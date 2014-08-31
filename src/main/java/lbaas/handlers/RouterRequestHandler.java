@@ -21,7 +21,7 @@ import java.util.Map;
 import lbaas.Backend;
 import lbaas.ICounter;
 import lbaas.RequestData;
-import lbaas.Server;
+import lbaas.ServerResponse;
 import lbaas.Virtualhost;
 import lbaas.exceptions.BadRequestException;
 
@@ -47,7 +47,6 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
     private final JsonObject conf;
     private final Logger log;
     private final Map<String, Virtualhost> virtualhosts;
-    private final Server server;
     private final Container container;
     private final ICounter counter;
     private String headerHost = "";
@@ -68,13 +67,15 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         final Boolean backendForceKeepAlive = conf.getBoolean("backendForceKeepAlive", true);
         final Integer backendMaxPoolSize = conf.getInteger("backendMaxPoolSize",10);
         final boolean enableChunked = conf.getBoolean("enableChunked", true);
+        final boolean enableAccessLog = conf.getBoolean("enableAccessLog", false);
+        final ServerResponse sResponse = new ServerResponse(sRequest, log, counter, enableAccessLog);
 
         sRequest.response().setChunked(true);
 
         final Long requestTimeoutTimer = vertx.setTimer(backendRequestTimeOut, new Handler<Long>() {
             @Override
             public void handle(Long event) {
-                server.showErrorAndClose(sRequest, new java.util.concurrent.TimeoutException(), getCounterKey(headerHost, backendId));
+                sResponse.showErrorAndClose(new java.util.concurrent.TimeoutException(), getCounterKey(headerHost, backendId));
             }
         });
 
@@ -83,13 +84,13 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             if (!virtualhosts.containsKey(headerHost)) {
                 vertx.cancelTimer(requestTimeoutTimer);
                 log.warn(String.format("Host: %s UNDEF", headerHost));
-                server.showErrorAndClose(sRequest, new BadRequestException(), null);
+                sResponse.showErrorAndClose(new BadRequestException(), null);
                 return;
             }
         } else {
             vertx.cancelTimer(requestTimeoutTimer);
             log.warn("Host UNDEF");
-            server.showErrorAndClose(sRequest, new BadRequestException(), null);
+            sResponse.showErrorAndClose(new BadRequestException(), null);
             return;
         }
 
@@ -98,7 +99,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
         if (!virtualhost.hasBackends()) {
             vertx.cancelTimer(requestTimeoutTimer);
             log.warn(String.format("Host %s without backends", headerHost));
-            server.showErrorAndClose(sRequest, new BadRequestException(), null);
+            sResponse.showErrorAndClose(new BadRequestException(), null);
             return;
         }
 
@@ -115,9 +116,17 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
 
         Long initialRequestTime = System.currentTimeMillis();
         final Handler<HttpClientResponse> handlerHttpClientResponse =
-                new RouterResponseHandler(vertx, container , requestTimeoutTimer, sRequest,
-                        connectionKeepalive, backendForceKeepAlive, backend, server, counter,
-                        headerHost, initialRequestTime);
+                new RouterResponseHandler(vertx,
+                                          container.logger(),
+                                          requestTimeoutTimer,
+                                          sRequest,
+                                          sResponse,
+                                          backend,
+                                          counter)
+                        .setConnectionKeepalive(connectionKeepalive)
+                        .setBackendForceKeepAlive(backendForceKeepAlive)
+                        .setHeaderHost(headerHost)
+                        .setInitialRequestTime(initialRequestTime);
 
         String remoteIP = sRequest.remoteAddress().getAddress().getHostAddress();
         String remotePort = String.format("%d", sRequest.remoteAddress().getPort());
@@ -157,7 +166,7 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             public void handle(Throwable event) {
                 vertx.cancelTimer(requestTimeoutTimer);
                 vertx.eventBus().publish(QUEUE_HEALTHCHECK_FAIL, backend.toString() );
-                server.showErrorAndClose(sRequest, event, getCounterKey(headerHost, backendId));
+                sResponse.showErrorAndClose(event, getCounterKey(headerHost, backendId));
                 try {
                     backend.close();
                 } catch (RuntimeException e) {
@@ -179,14 +188,12 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             final Vertx vertx,
             final Container container,
             final Map<String, Virtualhost> virtualhosts,
-            final Server server,
             final ICounter counter) {
         this.vertx = vertx;
         this.container = container;
         this.conf = container.config();
         this.log = container.logger();
         this.virtualhosts = virtualhosts;
-        this.server = server;
         this.counter = counter;
     }
 
