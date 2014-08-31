@@ -39,7 +39,7 @@ public class VirtualhostTest {
     public void setUp(){
         virtualhostName = "virtualhost1";
         vertx = null;
-        requestData = new RequestData(null);
+        requestData = new RequestData();
         virtualhost = new Virtualhost(virtualhostName, vertx);
         backend = "0.0.0.0:0";
     }

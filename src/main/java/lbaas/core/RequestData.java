@@ -16,7 +16,6 @@ package lbaas.core;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
-
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
 import org.vertx.java.core.http.HttpHeaders;
@@ -27,7 +26,7 @@ public class RequestData {
 
     private final MultiMap headers;
     private final MultiMap params;
-    private final URI uri;
+    private URI uri;
     private String remoteAddress;
     private String remotePort;
     private JsonObject properties;
@@ -35,12 +34,16 @@ public class RequestData {
     private final String httpHeaderHost = HttpHeaders.HOST.toString();
 
     public RequestData() {
-        this(null, null, null, null, null);
+        this("", "");
     }
 
     public RequestData(final String remoteAddress,
                        final String remotePort) {
-        this(null, null, null, remoteAddress, remotePort);
+        this(new CaseInsensitiveMultiMap(),
+             new CaseInsensitiveMultiMap(),
+             null,
+             remoteAddress,
+             remotePort);
     }
 
     public RequestData(final MultiMap headers,
