@@ -25,7 +25,7 @@ public class Backend {
 
     private final Vertx vertx;
     private final EventBus eb;
-    private final BackendSessionController backendSessionController;
+    private final ConnectionsCounter connectionsCounter;
 
     private HttpClient client;
 
@@ -85,7 +85,7 @@ public class Backend {
         this.keepAliveTimeMark = System.currentTimeMillis();
         this.keepAliveTimeOut = 86400000L; // One day
         this.requestCount = 0L;
-        this.backendSessionController = new BackendSessionController(this.toString(), vertx);
+        this.connectionsCounter = new ConnectionsCounter(this.toString(), vertx);
     }
 
     public String getHost() {
@@ -129,7 +129,7 @@ public class Backend {
 
     public Backend setKeepAliveTimeOut(Long keepAliveTimeOut) {
         this.keepAliveTimeOut = keepAliveTimeOut;
-        this.backendSessionController.setConnectionMapTimeout(getKeepAliveTimeOut());
+        this.connectionsCounter.setConnectionMapTimeout(getKeepAliveTimeOut());
         return this;
     }
 
@@ -174,19 +174,19 @@ public class Backend {
                     @Override
                     public void handle(Throwable e) {
                         eb.publish(QUEUE_HEALTHCHECK_FAIL, backend);
-                        backendSessionController.initEventBus();
+                        connectionsCounter.initEventBus();
                     }
                 });
-                backendSessionController.registerEventBus();
+                connectionsCounter.registerEventBus();
 
             }
         }
-        backendSessionController.addConnection(remoteIP, remotePort);
+        connectionsCounter.addConnection(remoteIP, remotePort);
         return client;
     }
 
-    public BackendSessionController getSessionController() {
-        return backendSessionController;
+    public ConnectionsCounter getSessionController() {
+        return connectionsCounter;
     }
 
     public void close() {
@@ -197,10 +197,10 @@ public class Backend {
                 // Already closed. Ignore exception.
             } finally {
                 client=null;
-                backendSessionController.unregisterEventBus();
+                connectionsCounter.unregisterEventBus();
             }
         }
-        backendSessionController.clearConnectionsMap();
+        connectionsCounter.clearConnectionsMap();
     }
 
     public boolean isClosed() {

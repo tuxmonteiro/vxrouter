@@ -16,7 +16,7 @@ import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
 
-public class BackendSessionController {
+public class ConnectionsCounter {
 
     private final Vertx vertx;
     private final EventBus eb;
@@ -37,7 +37,7 @@ public class BackendSessionController {
     private boolean newConnection = true;
     private int activeConnections = 0;
 
-    public BackendSessionController(final String backendWithPort, final Vertx vertx) {
+    public ConnectionsCounter(final String backendWithPort, final Vertx vertx) {
         this.vertx = vertx;
         this.eb = (vertx!=null) ? vertx.eventBus() : null;
         this.queueActiveConnections = String.format("%s%s", QUEUE_BACKEND_CONNECTIONS_PREFIX, backendWithPort);
@@ -130,7 +130,7 @@ public class BackendSessionController {
         return schedulerDelay;
     }
 
-    public BackendSessionController setSchedulerDelay(Long schedulerDelay) {
+    public ConnectionsCounter setSchedulerDelay(Long schedulerDelay) {
         if (this.schedulerDelay!=schedulerDelay) {
             this.schedulerDelay = schedulerDelay;
             cancelScheduler();
@@ -143,7 +143,7 @@ public class BackendSessionController {
         return connectionMapTimeout;
     }
 
-    public BackendSessionController setConnectionMapTimeout(Long connectionMapTimeout) {
+    public ConnectionsCounter setConnectionMapTimeout(Long connectionMapTimeout) {
         this.connectionMapTimeout = connectionMapTimeout;
         return this;
     }
