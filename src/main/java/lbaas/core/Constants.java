@@ -14,7 +14,7 @@
  */
 package lbaas.core;
 
-import lbaas.consistenthash.HashAlgorithm;
+import static lbaas.consistenthash.HashAlgorithm.HashType.*;
 
 public class Constants {
 
@@ -40,7 +40,7 @@ public class Constants {
     public static final String uuidFieldName                     = "uuid";
     public static final String numConnectionFieldName            = "numConnections";
 
-    public static final String defaultHashAlgorithm              = HashAlgorithm.HashType.SIP24.toString();
+    public static final String defaultHashAlgorithm              = SIP24.toString();
 
 
     public static final String defaultLoadBalancePolicy          = "DefaultLoadBalancePolicy";
