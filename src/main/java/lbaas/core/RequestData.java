@@ -16,10 +16,13 @@ package lbaas.core;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.http.CaseInsensitiveMultiMap;
 import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.json.JsonObject;
 
 public class RequestData {
@@ -63,6 +66,27 @@ public class RequestData {
             this.headers = request.headers();
             this.params = request.params();
             this.uri = request.absoluteURI();
+            InetSocketAddress localRemoteAddress = request.remoteAddress();
+            this.remoteAddress = localRemoteAddress.getHostString();
+            this.remotePort = Integer.toString(localRemoteAddress.getPort());
+        } else {
+            this.headers = new CaseInsensitiveMultiMap();
+            this.params = new CaseInsensitiveMultiMap();
+            this.uri = null;
+            this.remoteAddress = "";
+            this.remotePort = "";
+        }
+    }
+
+    public RequestData(final ServerWebSocket request) {
+        if (request!=null) {
+            this.headers = request.headers();
+            this.params = new CaseInsensitiveMultiMap();
+            try {
+                this.uri = new URI(request.uri());
+            } catch (URISyntaxException e) {
+                this.uri = null;
+            };
             InetSocketAddress localRemoteAddress = request.remoteAddress();
             this.remoteAddress = localRemoteAddress.getHostString();
             this.remotePort = Integer.toString(localRemoteAddress.getPort());

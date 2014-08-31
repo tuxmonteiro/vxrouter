@@ -23,6 +23,7 @@ import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
@@ -69,6 +70,11 @@ public class Server {
 
     public Server setHttpServerRequestHandler(final Handler<HttpServerRequest> httpServerRequestHandler) {
         httpServer.requestHandler(httpServerRequestHandler);
+        return this;
+    }
+
+    public Server setWebsocketServerRequestHandler(final Handler<ServerWebSocket> websocketServerRequestHandler) {
+        httpServer.websocketHandler(websocketServerRequestHandler);
         return this;
     }
 
