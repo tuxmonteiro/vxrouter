@@ -22,8 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import lbaas.IEventObserver;
-import lbaas.QueueMap;
+import lbaas.core.IEventObserver;
+import lbaas.core.QueueMap;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.EventBus;
@@ -35,10 +35,10 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
 
-import static lbaas.Constants.QUEUE_HEALTHCHECK_OK;
-import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
-import static lbaas.Constants.QUEUE_ROUTE_DEL;
-import static lbaas.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.core.Constants.QUEUE_HEALTHCHECK_FAIL;
+import static lbaas.core.Constants.QUEUE_HEALTHCHECK_OK;
+import static lbaas.core.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.core.Constants.QUEUE_ROUTE_DEL;
 
 public class HealthManagerVerticle extends Verticle implements IEventObserver {
 

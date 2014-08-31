@@ -16,16 +16,16 @@ package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static lbaas.core.Constants.*;
 import static lbaas.test.unit.assertj.custom.VirtualHostAssert.*;
-import static lbaas.Constants.*;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import lbaas.QueueMap;
-import lbaas.Virtualhost;
+import lbaas.core.QueueMap;
+import lbaas.core.Virtualhost;
 import lbaas.test.unit.util.FakeLogger;
 
 import org.junit.Before;

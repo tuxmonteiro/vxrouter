@@ -15,9 +15,8 @@
 package lbaas.verticles;
 
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
-import static lbaas.StatsdClient.TypeStatsdMessage;
-
-import lbaas.StatsdClient;
+import static lbaas.metrics.StatsdClient.TypeStatsdMessage;
+import lbaas.metrics.StatsdClient;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.datagram.DatagramSocket;

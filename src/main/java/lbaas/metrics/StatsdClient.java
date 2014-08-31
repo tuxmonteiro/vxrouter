@@ -12,7 +12,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.metrics;
 
 import org.vertx.java.core.datagram.DatagramSocket;
 import org.vertx.java.core.logging.Logger;

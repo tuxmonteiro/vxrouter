@@ -12,9 +12,9 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
-import lbaas.util.HashAlgorithm;
+import lbaas.consistenthash.HashAlgorithm;
 
 public class Constants {
 

@@ -12,7 +12,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
 public interface IEventObserver {
     public void setVersion(Long version);

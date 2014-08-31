@@ -12,10 +12,10 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.metrics;
 
 import static org.vertx.java.core.datagram.InternetProtocolFamily.IPv4;
-import lbaas.StatsdClient.TypeStatsdMessage;
+import lbaas.metrics.StatsdClient.TypeStatsdMessage;
 
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.datagram.DatagramSocket;

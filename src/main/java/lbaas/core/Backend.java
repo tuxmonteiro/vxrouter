@@ -12,13 +12,14 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpClient;
-import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
+
+import static lbaas.core.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 public class Backend {
 

@@ -16,7 +16,7 @@ package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.vertx.testtools.VertxAssert.testComplete;
-import lbaas.Backend;
+import lbaas.core.Backend;
 
 import org.junit.Before;
 import org.junit.Test;

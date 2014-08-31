@@ -15,10 +15,10 @@
 package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.*;
-import static lbaas.Constants.*;
+import static lbaas.core.Constants.*;
 import static lbaas.test.unit.assertj.custom.VirtualHostAssert.*;
-import lbaas.RequestData;
-import lbaas.Virtualhost;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.loadbalance.ILoadBalancePolicy;
 import lbaas.loadbalance.impl.DefaultLoadBalancePolicy;
 import lbaas.loadbalance.impl.RandomPolicy;

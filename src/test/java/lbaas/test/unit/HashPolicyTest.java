@@ -15,17 +15,17 @@
 package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static lbaas.Constants.*;
-import static lbaas.util.HashAlgorithm.HashType;
+import static lbaas.consistenthash.HashAlgorithm.HashType;
+import static lbaas.core.Constants.*;
 
 import java.util.EnumSet;
 import java.util.Set;
 
-import lbaas.Backend;
-import lbaas.RequestData;
-import lbaas.Virtualhost;
+import lbaas.consistenthash.HashAlgorithm;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.loadbalance.impl.HashPolicy;
-import lbaas.util.HashAlgorithm;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -16,9 +16,9 @@ package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static lbaas.Constants.*;
-import lbaas.RequestData;
-import lbaas.Virtualhost;
+import static lbaas.core.Constants.*;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.loadbalance.impl.RoundRobinPolicy;
 
 import org.junit.Before;

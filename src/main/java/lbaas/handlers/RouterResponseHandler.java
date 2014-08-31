@@ -14,10 +14,9 @@
  */
 package lbaas.handlers;
 
-import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
-import lbaas.Backend;
-import lbaas.ICounter;
-import lbaas.ServerResponse;
+import static lbaas.core.Constants.QUEUE_HEALTHCHECK_FAIL;
+import lbaas.core.Backend;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;

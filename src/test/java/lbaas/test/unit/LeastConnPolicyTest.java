@@ -16,10 +16,10 @@ package lbaas.test.unit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.vertx.testtools.VertxAssert.testComplete;
-import static lbaas.Constants.*;
-import lbaas.Backend;
-import lbaas.RequestData;
-import lbaas.Virtualhost;
+import static lbaas.core.Constants.*;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.list.UniqueArrayList;
 import lbaas.loadbalance.impl.LeastConnPolicy;
 

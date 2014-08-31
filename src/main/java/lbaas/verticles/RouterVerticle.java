@@ -17,12 +17,12 @@ package lbaas.verticles;
 import java.util.HashMap;
 import java.util.Map;
 
-import lbaas.CounterWithStatsd;
-import lbaas.ICounter;
-import lbaas.QueueMap;
-import lbaas.Server;
-import lbaas.Virtualhost;
+import lbaas.core.QueueMap;
+import lbaas.core.Server;
+import lbaas.core.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
+import lbaas.metrics.CounterWithStatsd;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;

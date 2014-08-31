@@ -14,7 +14,7 @@
  */
 package lbaas.test.integration.util;
 
-import static lbaas.Constants.CONF_INSTANCES;
+import static lbaas.core.Constants.CONF_INSTANCES;
 import static org.vertx.testtools.VertxAssert.assertEquals;
 import static org.vertx.testtools.VertxAssert.assertNotNull;
 import static org.vertx.testtools.VertxAssert.assertTrue;

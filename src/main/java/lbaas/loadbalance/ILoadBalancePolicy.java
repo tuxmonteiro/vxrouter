@@ -16,8 +16,8 @@ package lbaas.loadbalance;
 
 import java.util.Collection;
 
-import lbaas.Backend;
-import lbaas.RequestData;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
 
 public interface ILoadBalancePolicy {
 

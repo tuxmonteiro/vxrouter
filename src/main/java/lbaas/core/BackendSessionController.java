@@ -1,8 +1,8 @@
-package lbaas;
+package lbaas.core;
 
-import static lbaas.Constants.QUEUE_BACKEND_CONNECTIONS_PREFIX;
-import static lbaas.Constants.numConnectionFieldName;
-import static lbaas.Constants.uuidFieldName;
+import static lbaas.core.Constants.QUEUE_BACKEND_CONNECTIONS_PREFIX;
+import static lbaas.core.Constants.numConnectionFieldName;
+import static lbaas.core.Constants.uuidFieldName;
 
 import java.util.HashMap;
 import java.util.HashSet;

@@ -16,11 +16,12 @@ package lbaas.loadbalance.impl;
 
 import java.util.Collection;
 import java.util.ArrayList;
+
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.shareddata.SharedData;
 
-import lbaas.Backend;
-import lbaas.RequestData;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
 import lbaas.loadbalance.ILoadBalancePolicy;
 import lbaas.verticles.RouterVerticle;
 

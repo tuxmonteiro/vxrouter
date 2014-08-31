@@ -12,11 +12,12 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
-import static lbaas.Constants.QUEUE_ROUTE_ADD;
-import static lbaas.Constants.QUEUE_ROUTE_DEL;
-import static lbaas.Constants.QUEUE_ROUTE_VERSION;
+import static lbaas.core.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.core.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.core.Constants.QUEUE_ROUTE_VERSION;
+
 import java.util.Iterator;
 import java.util.Map;
 

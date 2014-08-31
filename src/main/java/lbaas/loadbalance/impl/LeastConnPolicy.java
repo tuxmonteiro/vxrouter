@@ -14,16 +14,15 @@
  */
 package lbaas.loadbalance.impl;
 
-import static lbaas.Constants.*;
+import static lbaas.core.Constants.*;
 
 import java.util.Collection;
 
 import org.vertx.java.core.json.JsonObject;
 
-import lbaas.Backend;
-import lbaas.RequestData;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
 import lbaas.loadbalance.ILoadBalancePolicy;
-import lbaas.util.LeastConnectionsFinder;
 
 public class LeastConnPolicy implements ILoadBalancePolicy {
 

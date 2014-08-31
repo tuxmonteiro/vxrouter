@@ -14,8 +14,8 @@
  */
 package lbaas.test.unit.assertj.custom;
 
-import lbaas.Backend;
-import lbaas.Virtualhost;
+import lbaas.core.Backend;
+import lbaas.core.Virtualhost;
 
 import org.assertj.core.api.AbstractAssert;
 

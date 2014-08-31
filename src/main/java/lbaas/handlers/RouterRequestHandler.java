@@ -14,16 +14,15 @@
  */
 package lbaas.handlers;
 
-import static lbaas.Constants.QUEUE_HEALTHCHECK_FAIL;
+import static lbaas.core.Constants.QUEUE_HEALTHCHECK_FAIL;
 
 import java.util.Map;
 
-import lbaas.Backend;
-import lbaas.ICounter;
-import lbaas.RequestData;
-import lbaas.ServerResponse;
-import lbaas.Virtualhost;
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.exceptions.BadRequestException;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;

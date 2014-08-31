@@ -16,8 +16,9 @@ package lbaas.loadbalance.impl;
 
 import java.util.Collection;
 import java.util.ArrayList;
-import lbaas.Backend;
-import lbaas.RequestData;
+
+import lbaas.core.Backend;
+import lbaas.core.RequestData;
 import lbaas.loadbalance.ILoadBalancePolicy;
 
 public class RoundRobinPolicy implements ILoadBalancePolicy {

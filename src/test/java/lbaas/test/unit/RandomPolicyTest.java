@@ -14,11 +14,10 @@
  */
 package lbaas.test.unit;
 
-import static lbaas.Constants.*;
+import static lbaas.core.Constants.*;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import lbaas.RequestData;
-import lbaas.Virtualhost;
+import lbaas.core.RequestData;
+import lbaas.core.Virtualhost;
 import lbaas.loadbalance.impl.RandomPolicy;
 
 import org.junit.Before;

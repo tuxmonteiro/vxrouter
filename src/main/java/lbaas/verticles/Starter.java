@@ -12,12 +12,12 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.verticles;
 
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
-import static lbaas.Constants.CONF_INSTANCES;
+import static lbaas.core.Constants.CONF_INSTANCES;
 
 public class Starter extends Verticle{
 

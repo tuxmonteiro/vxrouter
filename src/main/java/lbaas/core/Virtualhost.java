@@ -12,9 +12,9 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
-import static lbaas.Constants.*;
+import static lbaas.core.Constants.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

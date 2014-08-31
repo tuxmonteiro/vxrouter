@@ -12,9 +12,10 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.core;
 
-import static lbaas.Constants.CONF_PORT;
+import static lbaas.core.Constants.CONF_PORT;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;

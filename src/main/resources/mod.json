@@ -1,5 +1,4 @@
 {
-
-  "main":"lbaas.Starter",
+  "main":"lbaas.verticles.Starter",
   "auto-redeploy": true
 }

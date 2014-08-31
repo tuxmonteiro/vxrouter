@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.util.Map;
 
-import lbaas.Virtualhost;
+import lbaas.core.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
 import lbaas.test.unit.util.FakeLogger;
 

@@ -14,24 +14,24 @@
  */
 package lbaas.verticles;
 
-import static lbaas.Constants.QUEUE_ROUTE_ADD;
-import static lbaas.Constants.QUEUE_ROUTE_DEL;
-import static lbaas.Constants.QUEUE_ROUTE_VERSION;
+import static lbaas.core.Constants.QUEUE_ROUTE_ADD;
+import static lbaas.core.Constants.QUEUE_ROUTE_DEL;
+import static lbaas.core.Constants.QUEUE_ROUTE_VERSION;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import lbaas.Backend;
-import lbaas.CounterWithStatsd;
-import lbaas.ICounter;
-import lbaas.IEventObserver;
-import lbaas.QueueMap;
-import lbaas.Server;
-import lbaas.ServerResponse;
-import lbaas.Virtualhost;
+import lbaas.core.Backend;
+import lbaas.core.IEventObserver;
+import lbaas.core.QueueMap;
+import lbaas.core.Server;
+import lbaas.core.Virtualhost;
 import lbaas.exceptions.RouterException;
+import lbaas.handlers.ServerResponse;
+import lbaas.metrics.CounterWithStatsd;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;

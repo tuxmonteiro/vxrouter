@@ -12,11 +12,12 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas;
+package lbaas.handlers;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lbaas.exceptions.BadRequestException;
 import lbaas.logger.impl.NcsaLogExtendedFormatter;
+import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.http.HttpHeaders;
@@ -130,9 +131,10 @@ public class ServerResponse {
             Integer code = req.response().getStatusCode();
             String message = "";
             int codeFamily = code.intValue()/100;
-                String httpLogMessage = new NcsaLogExtendedFormatter()
-                                            .setRequestData(req, message)
-                                            .getFormatedLog();
+            // TODO: Dependency Injection
+            String httpLogMessage = new NcsaLogExtendedFormatter()
+                                        .setRequestData(req, message)
+                                        .getFormatedLog();
             switch (codeFamily) {
                 case 5: // SERVER_ERROR
                     log.error(httpLogMessage);

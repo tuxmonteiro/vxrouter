@@ -12,7 +12,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  */
-package lbaas.util;
+package lbaas.consistenthash;
 
 import java.util.Collection;
 import java.util.SortedMap;
