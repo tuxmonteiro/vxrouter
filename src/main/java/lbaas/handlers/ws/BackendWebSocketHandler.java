@@ -16,6 +16,7 @@ package lbaas.handlers.ws;
 
 import static lbaas.core.Constants.QUEUE_HEALTHCHECK_FAIL;
 
+import java.util.LinkedList;
 import java.util.Queue;
 
 import org.vertx.java.core.Handler;
@@ -34,7 +35,7 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
     private final ServerWebSocket serverWebSocket;
     private boolean frontendWSisClosed;
     private boolean backendWSisClosed;
-    private final Queue<Buffer> messages;
+    private final Queue<Buffer> messages = new LinkedList<Buffer>();
 
     private WebSocket websocket;
     private Long initialRequestTime = null;
@@ -43,13 +44,11 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
             final Vertx vertx,
             final Logger log,
             final String backendId,
-            final ServerWebSocket serverWebSocket,
-            final Queue<Buffer> messages) {
+            final ServerWebSocket serverWebSocket) {
         this.vertx = vertx;
         this.backendId = backendId;
         this.serverWebSocket = serverWebSocket;
         this.log = log;
-        this.messages = messages;
     }
 
     @Override
@@ -136,7 +135,8 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
         return this;
     }
 
-    public void checkMessages() {
+    public void forwardToBackend(Buffer buffer) {
+        messages.add(buffer);
         if (websocket!=null) {
             writeWebSocket(websocket, messages);
         }

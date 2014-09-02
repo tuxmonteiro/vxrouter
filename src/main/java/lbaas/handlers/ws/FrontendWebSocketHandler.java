@@ -100,11 +100,8 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
         String remotePort = String.format("%d", serverWebSocket.remoteAddress().getPort());
 
         final HttpClient httpClient = backend.connect(remoteIP, remotePort);
-
-        final Queue<Buffer> messages = new LinkedList<Buffer>();
-
         final BackendWebSocketHandler backendWebSocketHandler =
-                new BackendWebSocketHandler(vertx, log, backendId, serverWebSocket, messages);
+                new BackendWebSocketHandler(vertx, log, backendId, serverWebSocket);
 
         httpClient.connectWebsocket(serverWebSocket.uri(),
                 WebSocketVersion.RFC6455, serverWebSocket.headers(), backendWebSocketHandler);
@@ -113,8 +110,7 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
 
             @Override
             public void handle(Buffer buffer) {
-                messages.add(buffer);
-                backendWebSocketHandler.checkMessages();
+                backendWebSocketHandler.forwardToBackend(buffer);
             }
 
         });
