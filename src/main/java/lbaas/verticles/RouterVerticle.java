@@ -21,12 +21,14 @@ import lbaas.core.QueueMap;
 import lbaas.core.Server;
 import lbaas.core.Virtualhost;
 import lbaas.handlers.RouterRequestHandler;
+import lbaas.handlers.ws.FrontendWebSocketHandler;
 import lbaas.metrics.CounterWithStatsd;
 import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Verticle;
@@ -54,7 +56,12 @@ public class RouterVerticle extends Verticle {
       final Handler<HttpServerRequest> handlerHttpServerRequest =
               new RouterRequestHandler(vertx, container, virtualhosts, counter);
 
-      server.setDefaultPort(9000).setHttpServerRequestHandler(handlerHttpServerRequest).start(this);
+      final Handler<ServerWebSocket> serverWebSocketHandler =
+              new FrontendWebSocketHandler(vertx, container, virtualhosts);
+
+      server.setDefaultPort(9000)
+          .setHttpServerRequestHandler(handlerHttpServerRequest)
+          .setWebsocketServerRequestHandler(serverWebSocketHandler).start(this);
       log.info(String.format("Instance %s started", this.toString()));
 
    }
