@@ -32,6 +32,8 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
     private final Logger log;
     private final String backendId;
     private final ServerWebSocket serverWebSocket;
+    private boolean frontendWSisClosed;
+    private boolean backendWSisClosed;
     private final Queue<String> messages;
 
     private WebSocket websocket;
@@ -72,6 +74,19 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
                 writeServerWebSocket(buffer);
             }
 
+        });
+        
+        websocket.closeHandler(new Handler<Void>() {
+            
+            @Override
+            public void handle(Void event) {
+                backendWSisClosed = true;
+                System.out.println("Someone closed back WS");
+                if (! frontendWSisClosed) {
+                    frontendWSisClosed = true;
+                    serverWebSocket.close();
+                }
+            }
         });
     }
 
@@ -124,6 +139,14 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
     public void checkMessages() {
         if (websocket!=null) {
             writeWebSocket(websocket, messages);
+        }
+    }
+
+    public void closeWS() {
+        frontendWSisClosed = true;
+        if (! backendWSisClosed) {
+            backendWSisClosed = true;
+            websocket.close();
         }
     }
 

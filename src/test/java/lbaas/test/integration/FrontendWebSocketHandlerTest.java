@@ -1,5 +1,8 @@
 package lbaas.test.integration;
 
+import lbaas.test.integration.util.Action;
+import lbaas.test.integration.util.UtilTestVerticle;
+
 import org.junit.Test;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;
@@ -16,9 +19,6 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.streams.Pump;
 
-import lbaas.test.integration.util.Action;
-import lbaas.test.integration.util.UtilTestVerticle;
-
 public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
 
     private final String httpHeaderHost = HttpHeaders.HOST.toString();
@@ -34,20 +34,40 @@ public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
           @Override
           public void handle(final WebSocket ws) {
 
+//              vertx.setTimer(1000, new Handler<Long>() {
+//
+//                @Override
+//                public void handle(Long event) {
+//                    ws.close();
+//                }
+//            });
+
               ws.dataHandler(new Handler<Buffer>() {
 
                   @Override
                   public void handle(Buffer buffer) {
                       System.out.println(buffer.toString());
-                      testCompleteWrapper();
                   }
               });
+
+              ws.closeHandler(new Handler<Void>() {
+
+                @Override
+                public void handle(Void event) {
+                    vertx.setTimer(2000, new Handler<Long>() {
+
+                        @Override
+                        public void handle(Long event) {
+                            System.out.println("Ending the test");
+                            testCompleteWrapper();
+                        }
+                    });
+                }
+            });
 
               ws.writeTextFrame("1_ohlalalala");
               ws.writeTextFrame("2_ohlalalala");
               ws.writeTextFrame("3_ohlalalala");
-
-
           }
       });
     }
@@ -58,8 +78,17 @@ public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
         final HttpServer server = vertx.createHttpServer();
         server.websocketHandler(new Handler<ServerWebSocket>() {
             @Override
-            public void handle(ServerWebSocket serverWebSocket) {
+            public void handle(final ServerWebSocket serverWebSocket) {
                 Pump.createPump(serverWebSocket, serverWebSocket).start();
+
+                vertx.setTimer(1000, new Handler<Long>() {
+
+                    @Override
+                    public void handle(Long event) {
+                        serverWebSocket.close();
+                    }
+                });
+
             }
         });
         server.requestHandler(new Handler<HttpServerRequest>() {

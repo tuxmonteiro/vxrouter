@@ -119,5 +119,13 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
 
         });
 
+        serverWebSocket.closeHandler(new Handler<Void>() {
+            @Override
+            public void handle(Void event) {
+                System.out.println("Someone closed front WS");
+                backendWebSocketHandler.closeWS();
+            }
+        });
+
     }
 }
