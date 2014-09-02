@@ -20,6 +20,7 @@ import java.util.Queue;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.VoidHandler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.http.WebSocket;
@@ -76,19 +77,41 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
 
     public void writeWebSocket(final WebSocket ws, final Queue<String> messages) {
         while (!messages.isEmpty()) {
-            ws.writeTextFrame(messages.poll());
+            writeWebSocket(ws, messages.poll());
         }
     }
 
     public void writeWebSocket(final WebSocket ws, String message) {
-        ws.writeTextFrame(message);
+        if (!ws.writeQueueFull()) {
+            ws.writeTextFrame(message);
+        } else {
+            ws.pause();
+            ws.drainHandler(new VoidHandler() {
+                @Override
+                protected void handle() {
+                    ws.resume();
+                }
+            });
+        }
+
     }
 
     public void writeServerWebSocket(Buffer buffer) {
         if (serverWebSocket!=null) {
-            serverWebSocket.write(buffer);
+            if (!serverWebSocket.writeQueueFull()) {
+                serverWebSocket.write(buffer);
+            } else {
+                serverWebSocket.pause();
+                serverWebSocket.drainHandler(new VoidHandler() {
+                    @Override
+                    protected void handle() {
+                        serverWebSocket.resume();
+                    }
+                });
+            }
         }
     }
+
     public Long getInitialRequestTime() {
         return initialRequestTime;
     }
