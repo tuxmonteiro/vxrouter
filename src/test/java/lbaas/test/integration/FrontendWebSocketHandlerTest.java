@@ -27,20 +27,19 @@ public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
         MultiMap headers = new CaseInsensitiveMultiMap();
         headers.set(httpHeaderHost, "test.localdomain");
 
-//      newGet().onPort(9000).addHeader(httpHeaderHost, "test.localdomain").expectCode(101).expectBodySize(0).run();
       vertx.createHttpClient().setHost("127.0.0.1").setPort(9000)
               .connectWebsocket("/", WebSocketVersion.RFC6455, headers, new Handler<WebSocket>() {
 
           @Override
           public void handle(final WebSocket ws) {
 
-//              vertx.setTimer(1000, new Handler<Long>() {
-//
-//                @Override
-//                public void handle(Long event) {
-//                    ws.close();
-//                }
-//            });
+              vertx.setTimer(100, new Handler<Long>() {
+
+                @Override
+                public void handle(Long event) {
+                    ws.close();
+                }
+            });
 
               ws.dataHandler(new Handler<Buffer>() {
 
@@ -54,11 +53,10 @@ public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
 
                 @Override
                 public void handle(Void event) {
-                    vertx.setTimer(2000, new Handler<Long>() {
+                    vertx.setTimer(200, new Handler<Long>() {
 
                         @Override
                         public void handle(Long event) {
-                            System.out.println("Ending the test");
                             testCompleteWrapper();
                         }
                     });
@@ -81,13 +79,13 @@ public class FrontendWebSocketHandlerTest extends UtilTestVerticle {
             public void handle(final ServerWebSocket serverWebSocket) {
                 Pump.createPump(serverWebSocket, serverWebSocket).start();
 
-                vertx.setTimer(1000, new Handler<Long>() {
-
-                    @Override
-                    public void handle(Long event) {
-                        serverWebSocket.close();
-                    }
-                });
+//                vertx.setTimer(100, new Handler<Long>() {
+//
+//                    @Override
+//                    public void handle(Long event) {
+//                        serverWebSocket.close();
+//                    }
+//                });
 
             }
         });

@@ -34,7 +34,7 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
     private final ServerWebSocket serverWebSocket;
     private boolean frontendWSisClosed;
     private boolean backendWSisClosed;
-    private final Queue<String> messages;
+    private final Queue<Buffer> messages;
 
     private WebSocket websocket;
     private Long initialRequestTime = null;
@@ -44,7 +44,7 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
             final Logger log,
             final String backendId,
             final ServerWebSocket serverWebSocket,
-            final Queue<String> messages) {
+            final Queue<Buffer> messages) {
         this.vertx = vertx;
         this.backendId = backendId;
         this.serverWebSocket = serverWebSocket;
@@ -75,13 +75,13 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
             }
 
         });
-        
+
         websocket.closeHandler(new Handler<Void>() {
-            
+
             @Override
             public void handle(Void event) {
                 backendWSisClosed = true;
-                System.out.println("Someone closed back WS");
+                log.debug("Backend WebSocket was closed");
                 if (! frontendWSisClosed) {
                     frontendWSisClosed = true;
                     serverWebSocket.close();
@@ -90,15 +90,15 @@ public class BackendWebSocketHandler implements Handler<WebSocket> {
         });
     }
 
-    public void writeWebSocket(final WebSocket ws, final Queue<String> messages) {
+    public void writeWebSocket(final WebSocket ws, final Queue<Buffer> messages) {
         while (!messages.isEmpty()) {
             writeWebSocket(ws, messages.poll());
         }
     }
 
-    public void writeWebSocket(final WebSocket ws, String message) {
+    public void writeWebSocket(final WebSocket ws, Buffer message) {
         if (!ws.writeQueueFull()) {
-            ws.writeTextFrame(message);
+            ws.write(message);
         } else {
             ws.pause();
             ws.drainHandler(new VoidHandler() {

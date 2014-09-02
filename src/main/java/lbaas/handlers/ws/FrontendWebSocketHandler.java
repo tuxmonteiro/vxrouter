@@ -101,7 +101,7 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
 
         final HttpClient httpClient = backend.connect(remoteIP, remotePort);
 
-        final Queue<String> messages = new LinkedList<String>();
+        final Queue<Buffer> messages = new LinkedList<Buffer>();
 
         final BackendWebSocketHandler backendWebSocketHandler =
                 new BackendWebSocketHandler(vertx, log, backendId, serverWebSocket, messages);
@@ -113,7 +113,7 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
 
             @Override
             public void handle(Buffer buffer) {
-                messages.add(buffer.toString());
+                messages.add(buffer);
                 backendWebSocketHandler.checkMessages();
             }
 
@@ -122,7 +122,7 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
         serverWebSocket.closeHandler(new Handler<Void>() {
             @Override
             public void handle(Void event) {
-                System.out.println("Someone closed front WS");
+                log.debug("Frontend WebSocket was closed");
                 backendWebSocketHandler.closeWS();
             }
         });
