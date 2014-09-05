@@ -138,9 +138,15 @@ public class RouterRequestHandler implements Handler<HttpServerRequest> {
             counter.sendActiveSessions(getCounterKey(headerHost, backendId),1L);
         }
 
-        final HttpClientRequest cRequest =
-                httpClient.request(sRequest.method(), sRequest.uri(), handlerHttpClientResponse)
-                    .setChunked(enableChunked);
+        final HttpClientRequest cRequest = httpClient!=null ?
+                httpClient.request(sRequest.method(), sRequest.uri(), handlerHttpClientResponse) : null;
+
+        if (cRequest==null) {
+            sResponse.showErrorAndClose(new BadRequestException(), null);
+            return;
+        }
+
+        cRequest.setChunked(enableChunked);
 
         updateHeadersXFF(sRequest.headers(), remoteIP);
 
