@@ -57,7 +57,7 @@ public class CounterWithStatsd implements ICounter {
 
     @Override
     public void incrHttpCode(String key, Integer code, double sample) {
-        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%d", sample) : "";
+        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%f", sample) : "";
         if (statsdClient!=null && key!=null && !("".equals(key))) {
             statsdClient.send(TypeStatsdMessage.COUNT,
                     String.format("%s.httpCode%d:%d%s", key, code, 1, srtSample));
@@ -71,7 +71,7 @@ public class CounterWithStatsd implements ICounter {
 
     @Override
     public void decrHttpCode(String key, Integer code, double sample) {
-        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%d", sample) : "";
+        String srtSample = sample > 0.0 && sample < 1.0 ? String.format("|@%f", sample) : "";
         if (statsdClient!=null && key!=null && !("".equals(key))) {
             statsdClient.send(TypeStatsdMessage.COUNT,
                     String.format("%s.httpCode%d:%d%s", key, code, -1, srtSample));
