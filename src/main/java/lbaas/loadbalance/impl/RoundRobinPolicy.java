@@ -14,8 +14,7 @@
  */
 package lbaas.loadbalance.impl;
 
-import java.util.Collection;
-import java.util.ArrayList;
+import java.util.List;
 
 import lbaas.core.Backend;
 import lbaas.core.RequestData;
@@ -26,12 +25,12 @@ public class RoundRobinPolicy implements ILoadBalancePolicy {
     private int pos = -1;
 
     @Override
-    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
+    public Backend getChoice(final List<Backend> backends, final RequestData requestData) {
 
         int size = backends.size();
         pos = pos+1>=size ? 0 : pos+1;
 
-       return ((ArrayList<Backend>)backends).get(pos);
+       return backends.get(pos);
     }
 
     @Override
