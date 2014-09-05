@@ -90,7 +90,7 @@ public class QueueMap {
                     } catch (DecodeException e1) {
                         log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
                     } catch (Exception e2) {
-                        log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace().toString()));
+                        log.error(String.format("[%s] %s", verticle.toString(), e2.getMessage()));
                     }
                     virtualhosts.put(virtualhost, virtualhostObj);
                     log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
