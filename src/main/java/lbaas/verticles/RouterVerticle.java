@@ -26,7 +26,6 @@ import lbaas.metrics.CounterWithStatsd;
 import lbaas.metrics.ICounter;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.json.JsonObject;
@@ -35,12 +34,9 @@ import org.vertx.java.platform.Verticle;
 
 public class RouterVerticle extends Verticle {
 
-    public static Vertx sharedVertx;
-
   @Override
   public void start() {
 
-      sharedVertx = vertx;
       final Logger log = container.logger();
       final JsonObject conf = container.config();
       final ICounter counter = new CounterWithStatsd(conf, vertx, log);

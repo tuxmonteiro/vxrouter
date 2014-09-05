@@ -14,8 +14,8 @@
  */
 package lbaas.loadbalance.impl;
 
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.List;
 
 import lbaas.core.Backend;
 import lbaas.core.RequestData;
@@ -24,7 +24,7 @@ import lbaas.loadbalance.ILoadBalancePolicy;
 public class RandomPolicy implements ILoadBalancePolicy {
 
     @Override
-    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
+    public Backend getChoice(final List<Backend> backends, final RequestData requestData) {
 
         if (backends!=null && !backends.isEmpty() && backends instanceof ArrayList<?>) {
             return ((ArrayList<Backend>)backends).get(getIntRandom(backends.size()));

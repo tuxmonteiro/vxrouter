@@ -16,7 +16,7 @@ package lbaas.loadbalance.impl;
 
 import static lbaas.core.Constants.*;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.vertx.java.core.json.JsonObject;
 
@@ -30,7 +30,7 @@ public class LeastConnPolicy implements ILoadBalancePolicy {
     private long lastReset = System.currentTimeMillis();
 
     @Override
-    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
+    public Backend getChoice(final List<Backend> backends, final RequestData requestData) {
 
         JsonObject properties = requestData.getProperties();
         long timeout = properties.getLong(cacheTimeOutFieldName, 2000L);

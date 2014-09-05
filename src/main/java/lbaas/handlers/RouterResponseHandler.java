@@ -145,6 +145,16 @@ public class RouterResponseHandler implements Handler<HttpClientResponse> {
             final Long requestTimeoutTimer,
             final HttpServerRequest sRequest,
             final ServerResponse sResponse,
+            final Backend backend) {
+        this(vertx, log, requestTimeoutTimer, sRequest, sResponse, backend, null);
+    }
+
+    public RouterResponseHandler(
+            final Vertx vertx,
+            final Logger log,
+            final Long requestTimeoutTimer,
+            final HttpServerRequest sRequest,
+            final ServerResponse sResponse,
             final Backend backend,
             final ICounter counter) {
         this.vertx = vertx;

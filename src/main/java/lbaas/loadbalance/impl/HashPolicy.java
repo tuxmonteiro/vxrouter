@@ -16,7 +16,7 @@ package lbaas.loadbalance.impl;
 
 import static lbaas.core.Constants.*;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.vertx.java.core.json.JsonObject;
 
@@ -32,7 +32,7 @@ public class HashPolicy implements ILoadBalancePolicy {
     private String                 lastHashType   = null;
 
     @Override
-    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData) {
+    public Backend getChoice(final List<Backend> backends, final RequestData requestData) {
 
         String sourceIp = requestData.getRemoteAddress();
         JsonObject properties = requestData.getProperties();

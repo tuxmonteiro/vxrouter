@@ -119,7 +119,9 @@ public class HealthManagerVerticle extends Verticle implements IEventObserver {
                                 public void handle(Throwable event) {}
                             });
                             cReq.end();
-                        } catch (Exception e) {}
+                        } catch (RuntimeException e) {
+                            log.error(e.getMessage());
+                        }
                     }
                 }
             }

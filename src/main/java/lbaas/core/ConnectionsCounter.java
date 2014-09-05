@@ -131,7 +131,7 @@ public class ConnectionsCounter {
     }
 
     public ConnectionsCounter setSchedulerDelay(Long schedulerDelay) {
-        if (this.schedulerDelay!=schedulerDelay) {
+        if (!this.schedulerDelay.equals(schedulerDelay)) {
             this.schedulerDelay = schedulerDelay;
             cancelScheduler();
             activeScheduler();

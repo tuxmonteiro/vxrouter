@@ -14,14 +14,14 @@
  */
 package lbaas.loadbalance;
 
-import java.util.Collection;
+import java.util.List;
 
 import lbaas.core.Backend;
 import lbaas.core.RequestData;
 
 public interface ILoadBalancePolicy {
 
-    public Backend getChoice(final Collection<Backend> backends, final RequestData requestData);
+    public Backend getChoice(final List<Backend> backends, final RequestData requestData);
 
     public boolean isDefault();
 
