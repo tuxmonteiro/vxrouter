@@ -25,12 +25,10 @@ import lbaas.loadbalance.impl.RandomPolicy;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.vertx.java.core.Vertx;
 
 public class VirtualhostTest {
 
     String virtualhostName;
-    Vertx vertx;
     Virtualhost virtualhost;
     String backend;
     RequestData requestData;
@@ -38,9 +36,8 @@ public class VirtualhostTest {
     @Before
     public void setUp(){
         virtualhostName = "virtualhost1";
-        vertx = null;
         requestData = new RequestData();
-        virtualhost = new Virtualhost(virtualhostName, vertx);
+        virtualhost = new Virtualhost(virtualhostName, null);
         backend = "0.0.0.0:0";
     }
 
