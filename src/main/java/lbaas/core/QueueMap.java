@@ -58,7 +58,7 @@ public class QueueMap {
 
     public QueueMap(final Verticle verticle, final Map<String, Virtualhost> virtualhosts) {
         this.verticle = verticle;
-        this.vertx = verticle.getVertx();
+        this.vertx = (verticle != null) ? verticle.getVertx() : null;
         this.eb=(verticle != null) ? verticle.getVertx().eventBus() : null;
         this.log=(verticle != null) ? verticle.getContainer().logger() : null;
         this.virtualhosts=virtualhosts;
@@ -90,7 +90,7 @@ public class QueueMap {
                     } catch (DecodeException e1) {
                         log.error(String.format("[%s] Properties decode failed (%s): %s", verticle.toString(), virtualhost, properties));
                     } catch (Exception e2) {
-                        log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace()));
+                        log.error(String.format("[%s] %s:\n%s", verticle.toString(), e2.getMessage(), e2.getStackTrace().toString()));
                     }
                     virtualhosts.put(virtualhost, virtualhostObj);
                     log.info(String.format("[%s] Virtualhost %s added", verticle.toString(), virtualhost));
@@ -171,7 +171,7 @@ public class QueueMap {
                 break;
             case "backend":
                 if ("".equals(backend)) {
-                    log.warn(String.format("[%s] Backend UNDEF", verticle.toString(), backend));
+                    log.warn(String.format("[%s] Backend UNDEF", verticle.toString()));
                     isOk = false;
                 } else if (!virtualhosts.containsKey(virtualhost)) {
                     log.warn(String.format("[%s] Backend not removed. Virtualhost %s not exist", verticle.toString(), virtualhost));
