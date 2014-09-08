@@ -19,6 +19,8 @@ import static org.vertx.testtools.VertxAssert.assertEquals;
 import static org.vertx.testtools.VertxAssert.assertNotNull;
 import static org.vertx.testtools.VertxAssert.assertTrue;
 import static org.vertx.testtools.VertxAssert.testComplete;
+import lbaas.verticles.RouteManagerVerticle;
+import lbaas.verticles.RouterVerticle;
 
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
@@ -50,9 +52,9 @@ public abstract class UtilTestVerticle extends TestVerticle {
             @Override
             public void handle(Message<String> event) {
                 JsonObject messageJson = Util.safeExtractJson(event.body());
-                if (messageJson.getString("id").startsWith("lbaas.verticles.RouterVerticle"))
+                if (messageJson.getString("id").startsWith(RouterVerticle.class.getName()))
                     routerStarted = true;
-                if (messageJson.getString("id").startsWith("lbaas.verticles.RouteManagerVerticle"))
+                if (messageJson.getString("id").startsWith(RouteManagerVerticle.class.getName()))
                     routeManagerStarted = true;
                 if (routerStarted && routeManagerStarted) {
                     startTests();
@@ -71,7 +73,7 @@ public abstract class UtilTestVerticle extends TestVerticle {
             }
         });
     }
-    
+
 
     public RequestForTest newRequest() {
         return new RequestForTest();
@@ -88,7 +90,7 @@ public abstract class UtilTestVerticle extends TestVerticle {
     public Action newPost() {
     	return new Action(this).usingMethod("POST");
     }
-    
+
 
     public void run(final Action action) {
         final RequestForTest req = action.request();
@@ -103,12 +105,14 @@ public abstract class UtilTestVerticle extends TestVerticle {
                 final Buffer body = new Buffer(0);
 
                 resp.dataHandler(new Handler<Buffer>() {
+                    @Override
                     public void handle(Buffer data) {
                         body.appendBuffer(data);
                     }
                 });
 
                 resp.endHandler(new Handler<Void>() {
+                    @Override
                     public void handle(Void v) {
                         // Assert body as String
                         if (exp.body() != null) {
