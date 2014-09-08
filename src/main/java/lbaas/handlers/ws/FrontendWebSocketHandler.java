@@ -14,11 +14,8 @@
  */
 package lbaas.handlers.ws;
 
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
-
 import lbaas.core.Backend;
 import lbaas.core.RequestData;
 import lbaas.core.Virtualhost;
@@ -30,14 +27,13 @@ import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.http.WebSocketVersion;
-import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
 
 public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
 
     private final Vertx vertx;
-    private final JsonObject conf;
+//    private final JsonObject conf;
     private final Logger log;
     private final Map<String, Virtualhost> virtualhosts;
     private final String httpHeaderHost = HttpHeaders.HOST.toString();
@@ -47,7 +43,7 @@ public class FrontendWebSocketHandler implements Handler<ServerWebSocket> {
             final Container container,
             final Map<String, Virtualhost> virtualhosts) {
         this.vertx = vertx;
-        this.conf = container.config();
+//        this.conf = container.config();
         this.log = container.logger();
         this.virtualhosts = virtualhosts;
     }
